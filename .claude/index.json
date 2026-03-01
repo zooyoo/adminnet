@@ -1,0 +1,260 @@
+{
+  "scannedAt": "2026-03-01T00:00:00Z",
+  "branch": "v2",
+  "truncated": false,
+  "stats": {
+    "estimatedTotalFiles": 420,
+    "scannedFiles": 275,
+    "coveragePercent": 65
+  },
+  "ignoredPatterns": [
+    "bin/", "obj/", ".vs/", ".git/", "node_modules/", "dist/",
+    "wwwroot/upload/", "wwwroot/avatar/", "wwwroot/signature/",
+    "wwwroot/codeGen/", "publish/", "logs/", "*.user"
+  ],
+  "modules": [
+    {
+      "name": "Admin.NET.Core",
+      "path": "Admin.NET/Admin.NET.Core",
+      "language": "C#",
+      "targetFrameworks": ["net8.0", "net10.0"],
+      "entryFile": "Admin.NET.Core.csproj",
+      "claudeMd": "Admin.NET/Admin.NET.Core/CLAUDE.md",
+      "interfaces": [
+        "Service/Auth/SysAuthService.cs",
+        "Service/User/SysUserService.cs",
+        "Service/Tenant/SysTenantService.cs",
+        "Service/Role/SysRoleService.cs",
+        "Service/Menu/SysMenuService.cs",
+        "Service/CodeGen/SysCodeGenService.cs",
+        "Hub/OnlineUserHub.cs"
+      ],
+      "dataModels": [
+        "Entity/SysUser.cs",
+        "Entity/SysTenant.cs",
+        "Entity/SysOrg.cs",
+        "Entity/SysRole.cs",
+        "Entity/SysMenu.cs",
+        "Entity/EntityBase.cs"
+      ],
+      "infrastructure": [
+        "SqlSugar/SqlSugarSetup.cs",
+        "Cache/CacheSetup.cs",
+        "ElasticSearch/ElasticSearchSetup.cs",
+        "SignalR/SignalRSetup.cs",
+        "Logging/LoggingSetup.cs"
+      ],
+      "coverage": {
+        "interfaces": "high",
+        "dataModels": "high",
+        "tests": "low",
+        "gaps": ["服务层单元测试缺失", "多租户场景测试缺失", "权限过滤器测试缺失"]
+      }
+    },
+    {
+      "name": "Admin.NET.Application",
+      "path": "Admin.NET/Admin.NET.Application",
+      "language": "C#",
+      "targetFrameworks": ["net8.0", "net10.0"],
+      "entryFile": "Startup.cs",
+      "claudeMd": "Admin.NET/Admin.NET.Application/CLAUDE.md",
+      "configFiles": [
+        "Configuration/App.json",
+        "Configuration/Database.json",
+        "Configuration/JWT.json",
+        "Configuration/Cache.json",
+        "Configuration/Upload.json",
+        "Configuration/Email.json",
+        "Configuration/SMS.json",
+        "Configuration/OAuth.json",
+        "Configuration/Wechat.json",
+        "Configuration/ElasticSearch.json",
+        "Configuration/CodeGen.json",
+        "Configuration/EventBus.json"
+      ],
+      "coverage": {
+        "interfaces": "medium",
+        "dataModels": "low",
+        "tests": "none",
+        "gaps": ["业务服务层扩展示例缺失", "自定义实体示例较少"]
+      }
+    },
+    {
+      "name": "Admin.NET.Web.Core",
+      "path": "Admin.NET/Admin.NET.Web.Core",
+      "language": "C#",
+      "targetFrameworks": ["net8.0", "net10.0"],
+      "entryFile": "Startup.cs",
+      "claudeMd": "Admin.NET/Admin.NET.Web.Core/CLAUDE.md",
+      "interfaces": [
+        "Handlers/JwtHandler.cs",
+        "ProjectOptions.cs"
+      ],
+      "coverage": {
+        "interfaces": "high",
+        "dataModels": "n/a",
+        "tests": "none",
+        "gaps": ["中间件管道集成测试缺失"]
+      }
+    },
+    {
+      "name": "Admin.NET.Web.Entry",
+      "path": "Admin.NET/Admin.NET.Web.Entry",
+      "language": "C#",
+      "targetFrameworks": ["net8.0", "net10.0"],
+      "entryFile": "Admin.NET.Web.Entry.csproj",
+      "claudeMd": null,
+      "coverage": {
+        "interfaces": "low",
+        "dataModels": "n/a",
+        "tests": "none",
+        "gaps": ["Program.cs 未读取", "wwwroot 静态资源未扫描"]
+      }
+    },
+    {
+      "name": "Admin.NET.Test",
+      "path": "Admin.NET/Admin.NET.Test",
+      "language": "C#",
+      "targetFrameworks": ["net8.0", "net10.0"],
+      "entryFile": "Admin.NET.Test.csproj",
+      "claudeMd": null,
+      "testFiles": [
+        "BaseTest.cs",
+        "User/UserTest.cs",
+        "Utils/DateTimeUtilTests.cs",
+        "Utils/SafeMathTests.cs"
+      ],
+      "coverage": {
+        "interfaces": "low",
+        "dataModels": "n/a",
+        "tests": "low",
+        "gaps": ["仅覆盖工具类和用户基础操作，业务服务层无测试"]
+      }
+    },
+    {
+      "name": "Admin.NET.Plugin.ApprovalFlow",
+      "path": "Admin.NET/Plugins/Admin.NET.Plugin.ApprovalFlow",
+      "language": "C#",
+      "targetFrameworks": ["net8.0", "net10.0"],
+      "entryFile": "Startup.cs",
+      "claudeMd": "Admin.NET/Plugins/Admin.NET.Plugin.ApprovalFlow/CLAUDE.md",
+      "coverage": {
+        "interfaces": "medium",
+        "dataModels": "medium",
+        "tests": "none",
+        "gaps": ["流程引擎核心逻辑未深度扫描", "无测试"]
+      }
+    },
+    {
+      "name": "Admin.NET.Plugin.DingTalk",
+      "path": "Admin.NET/Plugins/Admin.NET.Plugin.DingTalk",
+      "language": "C#",
+      "targetFrameworks": ["net8.0", "net10.0"],
+      "entryFile": "Startup.cs",
+      "claudeMd": "Admin.NET/Plugins/Admin.NET.Plugin.DingTalk/CLAUDE.md",
+      "coverage": {
+        "interfaces": "medium",
+        "dataModels": "medium",
+        "tests": "none",
+        "gaps": ["DingTalkService 内部逻辑未读取", "无测试"]
+      }
+    },
+    {
+      "name": "Admin.NET.Plugin.GoView",
+      "path": "Admin.NET/Plugins/Admin.NET.Plugin.GoView",
+      "language": "C#",
+      "targetFrameworks": ["net8.0", "net10.0"],
+      "entryFile": "Startup.cs",
+      "claudeMd": "Admin.NET/Plugins/Admin.NET.Plugin.GoView/CLAUDE.md",
+      "coverage": {
+        "interfaces": "medium",
+        "dataModels": "high",
+        "tests": "none",
+        "gaps": ["无测试"]
+      }
+    },
+    {
+      "name": "Admin.NET.Plugin.K3Cloud",
+      "path": "Admin.NET/Plugins/Admin.NET.Plugin.K3Cloud",
+      "language": "C#",
+      "targetFrameworks": ["net8.0", "net10.0"],
+      "entryFile": "Startup.cs",
+      "claudeMd": "Admin.NET/Plugins/Admin.NET.Plugin.K3Cloud/CLAUDE.md",
+      "coverage": {
+        "interfaces": "medium",
+        "dataModels": "n/a",
+        "tests": "none",
+        "gaps": ["无测试", "K3Cloud 业务逻辑未深度扫描"]
+      }
+    },
+    {
+      "name": "Admin.NET.Plugin.ReZero",
+      "path": "Admin.NET/Plugins/Admin.NET.Plugin.ReZero",
+      "language": "C#",
+      "targetFrameworks": ["net8.0", "net10.0"],
+      "entryFile": "Startup.cs",
+      "claudeMd": "Admin.NET/Plugins/Admin.NET.Plugin.ReZero/CLAUDE.md",
+      "coverage": {
+        "interfaces": "low",
+        "dataModels": "n/a",
+        "tests": "none",
+        "gaps": ["SuperApiAop 内部逻辑未读取", "无测试"]
+      }
+    },
+    {
+      "name": "Admin.NET.Plugin.WorkWeixin",
+      "path": "Admin.NET/Plugins/Admin.NET.Plugin.WorkWeixin",
+      "language": "C#",
+      "targetFrameworks": ["net8.0", "net10.0"],
+      "entryFile": "Startup.cs",
+      "claudeMd": "Admin.NET/Plugins/Admin.NET.Plugin.WorkWeixin/CLAUDE.md",
+      "coverage": {
+        "interfaces": "medium",
+        "dataModels": "n/a",
+        "tests": "none",
+        "gaps": ["无测试", "WorkWeixin 业务逻辑未深度扫描"]
+      }
+    }
+  ],
+  "gaps": [
+    {
+      "priority": "high",
+      "module": "Admin.NET.Web.Entry",
+      "description": "Program.cs 未读取，入口启动逻辑未记录",
+      "suggestedAction": "读取 Admin.NET/Admin.NET.Web.Entry/Program.cs"
+    },
+    {
+      "priority": "high",
+      "module": "Admin.NET.Core",
+      "description": "SqlSugar 过滤器、UserManager、工具类未深度扫描",
+      "suggestedAction": "读取 SqlSugar/SqlSugarFilter.cs、Utils/ 目录"
+    },
+    {
+      "priority": "medium",
+      "module": "Admin.NET.Core",
+      "description": "Service/User、Service/Tenant、Service/Role 服务内部逻辑未读取",
+      "suggestedAction": "读取 Service/User/SysUserService.cs、Service/Tenant/SysTenantService.cs"
+    },
+    {
+      "priority": "medium",
+      "module": "Admin.NET.Plugin.ApprovalFlow",
+      "description": "审批流核心逻辑未深度扫描",
+      "suggestedAction": "读取 Service/ApprovalFlow/ApprovalFlowService.cs"
+    },
+    {
+      "priority": "low",
+      "module": "All",
+      "description": "所有模块缺乏服务层单元测试",
+      "suggestedAction": "在 Admin.NET.Test 中补充服务层测试"
+    }
+  ],
+  "nextScanSuggestions": [
+    "Admin.NET/Admin.NET.Web.Entry/Program.cs",
+    "Admin.NET/Admin.NET.Core/SqlSugar/SqlSugarFilter.cs",
+    "Admin.NET/Admin.NET.Core/Utils/",
+    "Admin.NET/Admin.NET.Core/Service/User/SysUserService.cs",
+    "Admin.NET/Admin.NET.Core/Service/Tenant/SysTenantService.cs",
+    "Admin.NET/Admin.NET.Core/Service/Role/SysRoleService.cs",
+    "Admin.NET/Admin.NET.Plugins/Admin.NET.Plugin.ApprovalFlow/Service/ApprovalFlow/ApprovalFlowService.cs"
+  ]
+}
