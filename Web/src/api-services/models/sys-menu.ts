@@ -14,6 +14,7 @@
 
 import { MenuTypeEnum } from './menu-type-enum';
 import { StatusEnum } from './status-enum';
+import { SysMenu } from './sys-menu';
  /**
  * 系统菜单表
  *
@@ -21,6 +22,7 @@ import { StatusEnum } from './status-enum';
  * @interface SysMenu
  */
 export interface SysMenu {
+
     /**
      * 雪花Id
      *
