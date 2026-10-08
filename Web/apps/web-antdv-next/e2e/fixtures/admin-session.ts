@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 
 export const testToken = (tenant = 1) => `header.${Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 600, tenant })).toString('base64url')}.signature`;
 
-type AdminModule = 'user' | 'tenant' | 'dict' | 'config' | 'tenantConfig' | 'lang' | 'langText' | 'infoSetting' | 'cache' | 'userRegWay';
+type AdminModule = 'user' | 'tenant' | 'dict' | 'config' | 'tenantConfig' | 'lang' | 'langText' | 'infoSetting' | 'cache' | 'userRegWay' | 'onlineUser';
 const titles: Record<AdminModule, string> = {
 	user: '用户管理',
 	tenant: '租户管理',
@@ -15,8 +15,10 @@ const titles: Record<AdminModule, string> = {
 	infoSetting: '系统信息配置',
 	cache: '缓存管理',
 	userRegWay: '注册方案',
+	onlineUser: '在线用户',
 };
 export async function mockAdminSession(page: Page, module: AdminModule, options: { readOnly?: boolean; superAdmin?: boolean } = {}) {
+	await page.route('**/prod-api/hubs/onlineUser/negotiate*', (route) => route.fulfill({ status: 503, json: { message: 'Contract fixture: real-time service unavailable' } }));
 	const prefix = `sys${module[0]!.toUpperCase()}${module.slice(1)}`;
 	const actions = options.readOnly
 		? ['page', 'list']
@@ -40,6 +42,7 @@ export async function mockAdminSession(page: Page, module: AdminModule, options:
 				'goTenant',
 				'changeTenant',
 				'syncGrantMenu',
+				'forceOffline',
 			];
 	await page.route('**/prod-api/api/sysConfig/sysInfo', (route) =>
 		route.fulfill({ json: { code: 200, result: { title: 'Admin.NET', captcha: 2, secondVer: 2, hideTenantForLogin: true, enableReg: 2 } } })

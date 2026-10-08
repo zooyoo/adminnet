@@ -17,6 +17,7 @@ import { $t } from '#/locales';
 import { useAuthStore } from '#/store';
 import LoginForm from '#/views/_core/authentication/login.vue';
 
+import OnlineUsers from './components/online-users.vue';
 import TenantSwitch from './components/tenant-switch.vue';
 
 const notifications = ref<NotificationItem[]>([]);
@@ -158,6 +159,7 @@ watch(
 			<UserDropdown :avatar :menus :text="userStore.userInfo?.realName" :description="userStore.userInfo?.account" @clear-preferences-and-logout="handleLogout" @logout="handleLogout" />
 		</template>
 		<template #notification>
+			<OnlineUsers />
 			<TenantSwitch v-if="userStore.userInfo?.accountType === 999" />
 			<Notification
 				:dot="showDot"

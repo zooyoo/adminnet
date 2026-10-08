@@ -61,6 +61,9 @@ public class Startup : AppStartup
                     // 若请求 Url 包含 token 参数，则设置 Token 值
                     if (httpContext.Request.Query.ContainsKey("token"))
                         context.Token = httpContext.Request.Query["token"];
+                    else if (httpContext.Request.Path.StartsWithSegments("/hubs") &&
+                        httpContext.Request.Query.TryGetValue("access_token", out var accessToken))
+                        context.Token = accessToken;
                     return Task.CompletedTask;
                 }
             };

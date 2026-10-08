@@ -14,6 +14,7 @@ export async function startProductionProxy(distRoot, apiUrl) {
 		'.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.ico': 'image/x-icon',
 	};
 	const upstreamRequests = new Set();
+	const webSockets = new Set();
 	const server = createServer((incoming, outgoing) => {
 		const url = new URL(incoming.url, 'http://127.0.0.1');
 		if (url.pathname.startsWith('/prod-api/')) {
@@ -46,13 +47,52 @@ export async function startProductionProxy(distRoot, apiUrl) {
 			outgoing.writeHead(404).end();
 		}
 	});
+	server.on('upgrade', (incoming, socket, head) => {
+		const url = new URL(incoming.url, 'http://127.0.0.1');
+		if (!url.pathname.startsWith('/prod-api/hubs/')) {
+			socket.destroy();
+			return;
+		}
+		const upstream = request(new URL(url.pathname.slice('/prod-api'.length) + url.search, apiUrl), {
+			method: 'GET', headers: { ...incoming.headers, host: apiUrl.host },
+		});
+		upstreamRequests.add(upstream);
+		upstream.on('close', () => upstreamRequests.delete(upstream));
+		upstream.on('error', () => socket.destroy());
+		upstream.on('response', (response) => {
+			response.resume();
+			socket.end(`HTTP/1.1 ${response.statusCode} Upgrade Rejected\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
+		});
+		socket.on('error', () => upstream.destroy());
+		upstream.on('upgrade', (response, remote, remoteHead) => {
+			webSockets.add(socket);
+			webSockets.add(remote);
+			let headers = '';
+			for (let index = 0; index < response.rawHeaders.length; index += 2) {
+				headers += `${response.rawHeaders[index]}: ${response.rawHeaders[index + 1]}\r\n`;
+			}
+			socket.write(`HTTP/1.1 101 Switching Protocols\r\n${headers}\r\n`);
+			if (head.length) remote.write(head);
+			if (remoteHead.length) socket.write(remoteHead);
+			socket.pipe(remote);
+			remote.pipe(socket);
+			socket.on('close', () => { webSockets.delete(socket); remote.destroy(); });
+			remote.on('close', () => { webSockets.delete(remote); socket.destroy(); });
+			remote.on('error', () => socket.destroy());
+		});
+		upstream.end();
+	});
 	await new Promise((resolve, reject) => {
 		server.once('error', reject);
 		server.listen(0, '127.0.0.1', resolve);
 	});
 	return {
 		baseUrl: `http://127.0.0.1:${server.address().port}`,
+		dropWebSockets() {
+			for (const socket of webSockets) socket.destroy();
+		},
 		async close() {
+			for (const socket of webSockets) socket.destroy();
 			for (const upstream of upstreamRequests) upstream.destroy();
 			await new Promise((resolve) => {
 				server.close(resolve);

@@ -29,6 +29,7 @@
     "@vue/test-utils": "catalog:"
   },
   "dependencies": {
+    "@microsoft/signalr": "10.0.0",
     "@vben/access": "workspace:*",
     "@vben/common-ui": "workspace:*",
     "@vben/constants": "workspace:*",

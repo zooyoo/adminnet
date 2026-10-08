@@ -3,12 +3,13 @@ param(
     [int]$Port = 5016,
     [switch]$CrudFixture,
     [switch]$AuthFixture,
+    [switch]$OnlineFixture,
     [string]$BuildRoot
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-if ($CrudFixture -and $AuthFixture) { throw 'Select only one isolated fixture.' }
+if (([int]$CrudFixture.IsPresent + [int]$AuthFixture.IsPresent + [int]$OnlineFixture.IsPresent) -gt 1) { throw 'Select only one isolated fixture.' }
 
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $buildRoot = if ($BuildRoot) { [IO.Path]::GetFullPath($BuildRoot) } else { Join-Path $repositoryRoot 'Admin.NET/Admin.NET.Web.Entry/bin/Debug/net10.0' }
@@ -145,10 +146,10 @@ function Wait-IsolatedApi([Diagnostics.Process]$ApiProcess) {
 $process = Start-IsolatedProcess
 try {
     Wait-IsolatedApi $process
-    if ($CrudFixture -or $AuthFixture) {
+    if ($CrudFixture -or $AuthFixture -or $OnlineFixture) {
         Stop-Process -Id $process.Id
         $process.WaitForExit()
-        $fixtureScript = if ($AuthFixture) { 'prepare-auth-db.mjs' } else { 'prepare-crud-db.mjs' }
+        $fixtureScript = if ($AuthFixture) { 'prepare-auth-db.mjs' } elseif ($OnlineFixture) { 'prepare-online-db.mjs' } else { 'prepare-crud-db.mjs' }
         & node (Join-Path $PSScriptRoot $fixtureScript) $runtimeRoot
         if ($LASTEXITCODE -ne 0) { throw 'Isolated fixture preparation failed.' }
         $process = Start-IsolatedProcess

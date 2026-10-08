@@ -4,15 +4,15 @@
 
 ## 当前状态
 
-- 用户要求严格按 01 → 48 实施，每项验收、更新进度并提交，然后压缩上下文继续。已完成 01、02，下一项 03；不要重新实施 01。
+- 用户要求严格按 01 → 48 实施，每项验收、更新进度并提交，然后压缩上下文继续。已完成 01、02、03，下一项 04；不要重新实施已完成项。
 - 第 01 项提交：`197ecaff6`。第 02 项随本交接提交，通过 `git log -1` 获取提交号。
 - 任务源：`doc/frontend-vben-tickets-draft.md`。其中“本轮不实施”是历史文档内容，不覆盖用户当前实施授权。
 - 只为全部目标完成调用 goal complete；不能将 2 / 48 当作整体完成。
 - 运行环境未提供显式压缩工具，已保留本交接供自动压缩恢复；不要声称已手动压缩，不创建新的用户会话。
 
-## 下一步 03
+## 下一步 04
 
-交付真实 SignalR 登录会话、在线用户查询和强制下线。重连使用当前令牌；退出、切换租户与迟到连接不能污染新身份；事件不可重复注册。按任务源建立 `issues/03-...md`，先查既有 SDK、Hub 和旧页面，保持后端合同。04 通知将复用此连接生命周期，不在 03 发明新通知系统。
+交付通知编辑发布、真实收取、详情、已读和未读数量闭环。复用 `Web/apps/web-antdv-next/src/api/realtime.ts` 的 `onlineSession`，订阅既有 `PublicNotice` / `ReceiveMessage`，不另建连接。
 
 ## 工具与运行
 
@@ -27,5 +27,7 @@
 
 - 第 02 项最终证据与命令详见对应 issue。636 项前端单元断言通过，但图标选择器退出有网络超时告警，不冒称无告警。
 - 真实路由权限修复使用 `RoutePermissionUtil` 从已匹配 RouteEndpoint 模板移除参数。缓存详情、前缀查询和前缀删除复用原有权限；真实无权账号读写 403。
+- 第 03 项新增 `OnlineSession`、`onlineSession` 与在线用户页面；第 04 项通知必须复用这些事件和生命周期。
+- 第 03 项证据：`C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-4698caa6996b4e54bb7b8ed5b4a2facc/evidence/online-baseline.json`，`passed: true`、`productionContractsPassed: true`。
 - 桌面与手机布局验收必须等通知和动画结束；系统 colorScheme 不保证切换应用主题，应通过实际按钮切换并断言 html 的 dark class。
 - 每项分别记录契约、真实集成、视觉证据；外部服务缺失不能用 Mock 关闭验收。第 48 项生产发布仍需独立授权。

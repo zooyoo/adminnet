@@ -18,16 +18,22 @@ public class SysOnlineUserService : IDynamicApiController, ITransient
     private readonly SysConfigService _sysConfigService;
     private readonly IHubContext<OnlineUserHub, IOnlineUserHub> _onlineUserHubContext;
     private readonly SqlSugarRepository<SysOnlineUser> _sysOnlineUerRep;
+    private readonly SysMenuService _sysMenuService;
+    private readonly SysCacheService _sysCacheService;
 
     public SysOnlineUserService(SysConfigService sysConfigService,
         IHubContext<OnlineUserHub, IOnlineUserHub> onlineUserHubContext,
         SqlSugarRepository<SysOnlineUser> sysOnlineUerRep,
-        UserManager userManager)
+        UserManager userManager,
+        SysMenuService sysMenuService,
+        SysCacheService sysCacheService)
     {
         _userManager = userManager;
         _sysConfigService = sysConfigService;
         _onlineUserHubContext = onlineUserHubContext;
         _sysOnlineUerRep = sysOnlineUerRep;
+        _sysMenuService = sysMenuService;
+        _sysCacheService = sysCacheService;
     }
 
     /// <summary>
@@ -38,6 +44,7 @@ public class SysOnlineUserService : IDynamicApiController, ITransient
     public async Task<SqlSugarPagedList<SysOnlineUser>> Page(PageOnlineUserInput input)
     {
         return await _sysOnlineUerRep.AsQueryable()
+            .WhereIF(!_userManager.SuperAdmin, u => u.TenantId == _userManager.TenantId)
             .WhereIF(_userManager.SuperAdmin && input.TenantId > 0, u => u.TenantId == input.TenantId)
             .WhereIF(!string.IsNullOrWhiteSpace(input.UserName), u => u.UserName.Contains(input.UserName))
             .WhereIF(!string.IsNullOrWhiteSpace(input.RealName), u => u.RealName.Contains(input.RealName))
@@ -53,8 +60,56 @@ public class SysOnlineUserService : IDynamicApiController, ITransient
     [DisplayName("强制下线")]
     public async Task ForceOffline(SysOnlineUser user)
     {
-        await _onlineUserHubContext.Clients.Client(user.ConnectionId ?? "").ForceOffline("强制下线");
-        await _sysOnlineUerRep.DeleteAsync(user);
+        if (user == null || user.Id <= 0) throw Oops.Oh("请选择有效的在线连接");
+        await CheckForcePermission();
+        var target = await _sysOnlineUerRep.AsQueryable()
+            .Where(u => u.Id == user.Id)
+            .WhereIF(!_userManager.SuperAdmin, u => u.TenantId == _userManager.TenantId)
+            .FirstAsync();
+        if (target == null || string.IsNullOrWhiteSpace(target.ConnectionId) ||
+            (!string.IsNullOrEmpty(user.ConnectionId) && target.ConnectionId != user.ConnectionId))
+            throw Oops.Oh("在线连接已失效或不属于当前租户");
+        await SendForceOffline(target);
+    }
+
+    [NonAction]
+    public async Task ForceOfflineConnection(string connectionId)
+    {
+        if (string.IsNullOrWhiteSpace(connectionId)) throw Oops.Oh("请选择有效的在线连接");
+        await CheckForcePermission();
+        var target = await _sysOnlineUerRep.AsQueryable()
+            .Where(u => u.ConnectionId == connectionId)
+            .WhereIF(!_userManager.SuperAdmin, u => u.TenantId == _userManager.TenantId)
+            .FirstAsync();
+        if (target == null) throw Oops.Oh("在线连接已失效或不属于当前租户");
+        await SendForceOffline(target);
+    }
+
+    private async Task CheckForcePermission()
+    {
+        if (_userManager.SuperAdmin) return;
+        var permissions = await _sysMenuService.GetOwnBtnPermList();
+        if (!permissions.Any(permission => string.Equals(permission, "sysOnlineUser:forceOffline", StringComparison.OrdinalIgnoreCase)))
+            throw Oops.Oh("无权强制下线");
+    }
+
+    private async Task SendForceOffline(SysOnlineUser user)
+    {
+        if (string.IsNullOrWhiteSpace(user.ConnectionId)) return;
+        await _onlineUserHubContext.Clients.Client(user.ConnectionId).ForceOffline("强制下线");
+        await _sysOnlineUerRep.DeleteByIdAsync(user.Id);
+        // 只清理目标连接，避免迟到的断开操作删除同账号的新连接。
+        var cached = _sysCacheService.HashGetOne<SysOnlineUser>(CacheConst.KeyUserOnline, "" + user.UserId);
+        if (cached?.ConnectionId == user.ConnectionId)
+            _sysCacheService.HashDel<SysOnlineUser>(CacheConst.KeyUserOnline, "" + user.UserId);
+        _sysCacheService.HashDel<SysOnlineUser>(CacheConst.KeyUserOnline, user.UserId + user.ConnectionId);
+        if (await _sysConfigService.GetConfigValue<bool>(ConfigConst.SysLoginOutReminder))
+        {
+            var users = await _sysOnlineUerRep.AsQueryable().Filter("", true)
+                .Where(u => u.TenantId == user.TenantId).Take(10).ToListAsync();
+            await _onlineUserHubContext.Clients.Groups($"{OnlineUserHub.GroupPrefix}{user.TenantId}")
+                .OnlineUserList(new OnlineUserList { RealName = user.RealName, Online = false, UserList = users });
+        }
     }
 
     /// <summary>
@@ -87,7 +142,7 @@ public class SysOnlineUserService : IDynamicApiController, ITransient
             var users = await _sysOnlineUerRep.GetListAsync(u => u.UserId == userId);
             foreach (var user in users)
             {
-                await ForceOffline(user);
+                await SendForceOffline(user);
             }
         }
     }
@@ -103,7 +158,7 @@ public class SysOnlineUserService : IDynamicApiController, ITransient
         var users = await _sysOnlineUerRep.GetListAsync(u => u.UserId == userId);
         foreach (var user in users)
         {
-            await ForceOffline(user);
+            await SendForceOffline(user);
         }
     }
 }

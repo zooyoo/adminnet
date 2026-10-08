@@ -5,6 +5,7 @@
 // 不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目二次开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 
 using Furion.InstantMessaging;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Admin.NET.Core;
@@ -13,27 +14,31 @@ namespace Admin.NET.Core;
 /// 在线用户集线器
 /// </summary>
 [MapHub("/hubs/onlineUser")]
+[Authorize]
 public class OnlineUserHub : Hub<IOnlineUserHub>
 {
-    private const string GROUP_ONLINE = "GROUP_ONLINE_"; // 租户分组前缀
+    internal const string GroupPrefix = "GROUP_ONLINE_"; // 租户分组前缀
 
     private readonly SqlSugarRepository<SysOnlineUser> _sysOnlineUerRep;
     private readonly SysMessageService _sysMessageService;
     private readonly IHubContext<OnlineUserHub, IOnlineUserHub> _onlineUserHubContext;
     private readonly SysCacheService _sysCacheService;
     private readonly SysConfigService _sysConfigService;
+    private readonly SysOnlineUserService _sysOnlineUserService;
 
     public OnlineUserHub(SqlSugarRepository<SysOnlineUser> sysOnlineUerRep,
         SysMessageService sysMessageService,
         IHubContext<OnlineUserHub, IOnlineUserHub> onlineUserHubContext,
         SysCacheService sysCacheService,
-        SysConfigService sysConfigService)
+        SysConfigService sysConfigService,
+        SysOnlineUserService sysOnlineUserService)
     {
         _sysOnlineUerRep = sysOnlineUerRep;
         _sysMessageService = sysMessageService;
         _onlineUserHubContext = onlineUserHubContext;
         _sysCacheService = sysCacheService;
         _sysConfigService = sysConfigService;
+        _sysOnlineUserService = sysOnlineUserService;
     }
 
     /// <summary>
@@ -48,7 +53,11 @@ public class OnlineUserHub : Hub<IOnlineUserHub>
         var realName = httpContext.User.FindFirst(ClaimConst.RealName)?.Value;
         var tenantId = (httpContext.User.FindFirst(ClaimConst.TenantId)?.Value).ToLong();
 
-        if (userId < 0 || string.IsNullOrWhiteSpace(account)) return;
+        if (userId <= 0 || string.IsNullOrWhiteSpace(account))
+        {
+            Context.Abort();
+            return;
+        }
         var user = new SysOnlineUser
         {
             ConnectionId = Context.ConnectionId,
@@ -74,7 +83,7 @@ public class OnlineUserHub : Hub<IOnlineUserHub>
         }
 
         // 以租户Id进行分组
-        var groupName = $"{GROUP_ONLINE}{user.TenantId}";
+        var groupName = $"{GroupPrefix}{user.TenantId}";
         await _onlineUserHubContext.Groups.AddToGroupAsync(Context.ConnectionId, groupName);
 
         var userList = await _sysOnlineUerRep.AsQueryable().Filter("", true)
@@ -108,7 +117,9 @@ public class OnlineUserHub : Hub<IOnlineUserHub>
         // 是否开启单用户登录
         if (await _sysConfigService.GetConfigValue<bool>(ConfigConst.SysSingleLogin))
         {
-            _sysCacheService.HashDel<SysOnlineUser>(CacheConst.KeyUserOnline, "" + user.UserId);
+            var cached = _sysCacheService.HashGetOne<SysOnlineUser>(CacheConst.KeyUserOnline, "" + user.UserId);
+            if (cached?.ConnectionId == Context.ConnectionId)
+                _sysCacheService.HashDel<SysOnlineUser>(CacheConst.KeyUserOnline, "" + user.UserId);
             // _sysCacheService.Remove(CacheConst.KeyUserOnline + user.UserId);
         }
         else
@@ -122,7 +133,7 @@ public class OnlineUserHub : Hub<IOnlineUserHub>
             .Where(u => u.TenantId == user.TenantId).Take(10).ToListAsync();
 
         if (await _sysConfigService.GetConfigValue<bool>(ConfigConst.SysLoginOutReminder))
-            await _onlineUserHubContext.Clients.Groups($"{GROUP_ONLINE}{user.TenantId}").OnlineUserList(new OnlineUserList
+            await _onlineUserHubContext.Clients.Groups($"{GroupPrefix}{user.TenantId}").OnlineUserList(new OnlineUserList
             {
                 RealName = user.RealName,
                 Online = false,
@@ -137,7 +148,7 @@ public class OnlineUserHub : Hub<IOnlineUserHub>
     /// <returns></returns>
     public async Task ForceOffline(OnlineUserHubInput input)
     {
-        await _onlineUserHubContext.Clients.Client(input.ConnectionId).ForceOffline("强制下线");
+        await _sysOnlineUserService.ForceOfflineConnection(input?.ConnectionId);
     }
 
     /// <summary>

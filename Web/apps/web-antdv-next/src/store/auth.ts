@@ -11,7 +11,8 @@ import { notification } from 'antdv-next';
 import { defineStore } from 'pinia';
 
 import { changeTenantApi, enterTenantApi, getUserInfoApi, loginApi, logoutApi, phoneLoginApi } from '#/api';
-import { sessionBoundary } from '#/api/session';
+import { onlineSession } from '#/api/realtime';
+import { isTokenExpired, sessionBoundary } from '#/api/session';
 import { resetRoutes } from '#/router';
 import { safeRedirect } from '#/router/redirect';
 
@@ -26,6 +27,7 @@ export const useAuthStore = defineStore(
 		let expiryTask: Promise<void> | undefined;
 
 		function clearSession() {
+			onlineSession.disconnect();
 			sessionBoundary.invalidate();
 			resetRoutes();
 			resetAllStores();
@@ -101,12 +103,14 @@ export const useAuthStore = defineStore(
 		}
 
 		async function logout(redirect = true) {
+			const version = sessionBoundary.version;
+			onlineSession.disconnect();
 			try {
 				if (accessStore.accessToken) await logoutApi();
 			} catch {
 				// 服务端不可用时仍清理本地登录状态。
 			} finally {
-				await redirectToLogin(redirect);
+				if (version === sessionBoundary.version) await redirectToLogin(redirect);
 			}
 		}
 
@@ -138,6 +142,18 @@ export const useAuthStore = defineStore(
 				userInfo.homePath = homePath.value || preferences.app.defaultHomePath;
 				userStore.setUserInfo(userInfo);
 				accessStore.setAccessCodes(userInfo.buttons);
+				onlineSession.connect({
+					version,
+					token: async () => {
+						if (accessStore.accessToken && isTokenExpired(accessStore.accessToken)) await getUserInfoApi();
+						return accessStore.accessToken ?? '';
+					},
+					isCurrent: () => version === sessionBoundary.version,
+					forcedOffline: async () => {
+						await logout(false);
+						if (!accessStore.accessToken) notification.warning({ title: '已被强制下线', description: '请重新登录后继续操作', placement: preferences.app.isMobile ? 'bottomRight' : 'topRight' });
+					},
+				});
 			}
 			return userInfo;
 		}
