@@ -68,7 +68,21 @@ defineExpose({ show });
 </script>
 
 <template>
-	<Modal v-model:open="open" title="授权数据范围" :width="500" :mask-closable="false" :confirm-loading="saving" :ok-button-props="{ disabled: loading || !!error }" @ok="save" @cancel="generation++">
+	<Modal
+		v-model:open="open"
+		title="授权数据范围"
+		:width="500"
+		centered
+		:styles="{ body: { maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto' } }"
+		:closable="!saving"
+		:keyboard="!saving"
+		:cancel-button-props="{ disabled: saving }"
+		:mask-closable="false"
+		:confirm-loading="saving"
+		:ok-button-props="{ disabled: loading || !!error }"
+		@ok="save"
+		@cancel="generation++"
+	>
 		<Alert v-if="error" :message="error" type="error" show-icon />
 		<Spin :spinning="loading">
 			<Form :model="value" layout="vertical" name="data-scope">

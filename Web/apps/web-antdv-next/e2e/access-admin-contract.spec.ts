@@ -30,6 +30,8 @@ const orgs = [
 const roles = [{ id: 1, name: '部门管理员', code: 'dept_admin', tenantId: 1, status: 1, dataScope: 5, orderNo: 100 }];
 
 async function login(page: Page, module: 'role' | 'menu' | 'org', readOnly = false) {
+	await page.route('**/prod-api/**', (route) => route.fulfill({ status: 503, json: { message: 'Contract fixture: endpoint not declared' } }));
+	await page.route('**/prod-api/api/sysNotice/unReadList', (route) => route.fulfill({ json: { code: 200, result: [] } }));
 	const accessToken = `head.${Buffer.from(JSON.stringify({ exp: Date.now() / 1000 + 600 })).toString('base64url')}.signature`;
 	await page.route('**/prod-api/api/sysConfig/sysInfo', (route) =>
 		route.fulfill({ json: { code: 200, result: { title: 'Admin.NET', captcha: 2, secondVer: 2, hideTenantForLogin: true, enableReg: 2 } } })
@@ -103,6 +105,13 @@ test('role edit preserves partial menu selection and can revoke every menu', asy
 	const dialog = page.getByRole('dialog');
 	await expect(treeCheckbox(dialog, '查看用户')).toHaveClass(/ant-tree-checkbox-checked/);
 	await expect(treeCheckbox(dialog, '编辑用户')).not.toHaveClass(/ant-tree-checkbox-checked/);
+	await expect(treeCheckbox(dialog, '用户管理')).toHaveClass(/indeterminate/);
+	expect(
+		await dialog.getByRole('button', { name: /^确\s*定$/ }).evaluate((button) => {
+			const rect = button.getBoundingClientRect();
+			return rect.top >= 0 && rect.bottom <= innerHeight;
+		})
+	).toBe(true);
 	await dialog.getByLabel('角色名称', { exact: true }).fill('更新角色');
 	const [save] = await Promise.all([page.waitForRequest((req) => req.url().endsWith('/sysRole/update')), dialog.getByRole('button', { name: /^确\s*定$/ }).click()]);
 	expect(save.postDataJSON()).toMatchObject({ id: 1, name: '更新角色', menuIdList: [11] });
@@ -115,6 +124,28 @@ test('role edit preserves partial menu selection and can revoke every menu', asy
 	await expect(dialog).toBeHidden();
 	expect(errors).toEqual([]);
 	await page.screenshot({ path: testInfo.outputPath('role.png'), fullPage: true });
+});
+
+test('selecting a parent grants both children and clearing it revokes all', async ({ page }) => {
+	await login(page, 'role');
+	await page.route('**/prod-api/api/sysRole/update', (route) => route.fulfill({ json: { code: 200 } }));
+	await page.getByRole('button', { name: '编辑角色', exact: true }).click();
+	const dialog = page.getByRole('dialog');
+	await expect(treeCheckbox(dialog, '用户管理')).toHaveClass(/indeterminate/);
+	await treeCheckbox(dialog, '用户管理').click();
+	await expect(treeCheckbox(dialog, '查看用户')).toHaveClass(/checkbox-checked/);
+	await expect(treeCheckbox(dialog, '编辑用户')).toHaveClass(/checkbox-checked/);
+	const saving = page.waitForRequest((request) => request.url().endsWith('/sysRole/update'));
+	await dialog.getByRole('button', { name: /^确\s*定$/ }).click();
+	expect((await saving).postDataJSON().menuIdList.sort()).toEqual([10, 11, 12]);
+	await expect(dialog).toBeHidden();
+	await page.route('**/prod-api/api/sysRole/ownMenuList**', (route) => route.fulfill({ json: { code: 200, result: [10, 11, 12] } }));
+	await page.getByRole('button', { name: '编辑角色', exact: true }).click();
+	await expect(treeCheckbox(dialog, '用户管理')).toHaveClass(/checkbox-checked/);
+	await treeCheckbox(dialog, '用户管理').click();
+	const clearing = page.waitForRequest((request) => request.url().endsWith('/sysRole/update'));
+	await dialog.getByRole('button', { name: /^确\s*定$/ }).click();
+	expect((await clearing).postDataJSON().menuIdList).toEqual([]);
 });
 
 test('role data scope loads checked organizations and drops them for non-custom scope', async ({ page }) => {

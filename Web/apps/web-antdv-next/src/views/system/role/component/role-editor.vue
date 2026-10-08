@@ -4,10 +4,11 @@ import type { FormInstance } from 'antdv-next';
 import type { RoleRecord, UpdateRoleInput } from '#/api/system/access-admin';
 import type { TreeOption } from '#/utils/admin-tree';
 
-import { ref } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
 
 import { Alert, Form, FormItem, Input, InputNumber, Modal, RadioGroup, Spin, TextArea, Tree } from 'antdv-next';
 
+import { sessionBoundary } from '#/api/session';
 import { menuList, roleMenuIds, saveRole } from '#/api/system/access-admin';
 import { treeOptions } from '#/utils/admin-tree';
 
@@ -23,7 +24,9 @@ const checked = ref<number[]>([]);
 let generation = 0;
 
 async function show(record?: RoleRecord, tenantId?: number) {
+	if (saving.value) return;
 	const current = ++generation;
+	const version = sessionBoundary.version;
 	value.value = record
 		? { id: record.id, name: record.name, code: record.code, status: record.status, orderNo: record.orderNo, remark: record.remark, tenantId: record.tenantId }
 		: { name: '', code: '', status: 1, orderNo: 100, tenantId };
@@ -34,7 +37,7 @@ async function show(record?: RoleRecord, tenantId?: number) {
 	loading.value = true;
 	try {
 		const [tree, ids] = await Promise.all([menuList(value.value.tenantId ?? tenantId), record?.id ? roleMenuIds(record.id) : Promise.resolve([])]);
-		if (current !== generation || !open.value) return;
+		if (current !== generation || version !== sessionBoundary.version || !open.value) return;
 		menus.value = treeOptions(tree);
 		checked.value = ids;
 		form.value?.clearValidate();
@@ -53,9 +56,12 @@ async function save() {
 		return;
 	}
 	saving.value = true;
+	const current = generation;
+	const version = sessionBoundary.version;
 	try {
 		// 仅提交完整勾选节点，半选父级由后端补齐，避免授予未勾选兄弟节点。
 		await saveRole({ ...value.value, menuIdList: [...checked.value] });
+		if (current !== generation || version !== sessionBoundary.version) return;
 		open.value = false;
 		emit('saved');
 	} catch {
@@ -65,6 +71,9 @@ async function save() {
 	}
 }
 
+onBeforeUnmount(() => {
+	generation++;
+});
 defineExpose({ show });
 </script>
 
@@ -73,6 +82,11 @@ defineExpose({ show });
 		v-model:open="open"
 		:title="value.id ? '编辑角色' : '添加角色'"
 		:width="700"
+		centered
+		:styles="{ body: { maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto' } }"
+		:closable="!saving"
+		:keyboard="!saving"
+		:cancel-button-props="{ disabled: saving }"
 		:mask-closable="false"
 		:confirm-loading="saving"
 		:ok-button-props="{ disabled: loading || !!error }"
