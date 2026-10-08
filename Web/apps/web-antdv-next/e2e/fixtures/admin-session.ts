@@ -1,0 +1,120 @@
+import type { Page } from '@playwright/test';
+import { expect } from '@playwright/test';
+
+export const testToken = (tenant = 1) => `header.${Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 600, tenant })).toString('base64url')}.signature`;
+
+type AdminModule = 'user' | 'tenant' | 'dict' | 'config' | 'tenantConfig' | 'lang' | 'langText' | 'infoSetting' | 'cache' | 'userRegWay';
+const titles: Record<AdminModule, string> = {
+	user: '用户管理',
+	tenant: '租户管理',
+	dict: '字典管理',
+	config: '系统参数',
+	tenantConfig: '租户参数',
+	lang: '语言管理',
+	langText: '翻译管理',
+	infoSetting: '系统信息配置',
+	cache: '缓存管理',
+	userRegWay: '注册方案',
+};
+export async function mockAdminSession(page: Page, module: AdminModule, options: { readOnly?: boolean; superAdmin?: boolean } = {}) {
+	const prefix = `sys${module[0]!.toUpperCase()}${module.slice(1)}`;
+	const actions = options.readOnly
+		? ['page', 'list']
+		: [
+				'page',
+				'list',
+				'keyList',
+				'value',
+				'clear',
+				'add',
+				'update',
+				'delete',
+				'batchDelete',
+				'export',
+				'import',
+				'setStatus',
+				'resetPwd',
+				'unlockLogin',
+				'grantMenu',
+				'createDb',
+				'goTenant',
+				'changeTenant',
+				'syncGrantMenu',
+			];
+	await page.route('**/prod-api/api/sysConfig/sysInfo', (route) =>
+		route.fulfill({ json: { code: 200, result: { title: 'Admin.NET', captcha: 2, secondVer: 2, hideTenantForLogin: true, enableReg: 2 } } })
+	);
+	await page.route('**/prod-api/api/sysAuth/login', (route) =>
+		route.fulfill({ json: { code: 200, result: { accessToken: testToken(), refreshToken: 'refresh-one', homepage: `/system/${module}` } } })
+	);
+	await page.route('**/prod-api/api/sysAuth/userInfo', (route) =>
+		route.fulfill({
+			json: {
+				code: 200,
+				result: {
+					id: 10,
+					account: 'contract',
+					realName: '测试用户',
+					accountType: options.superAdmin ? 999 : 777,
+					tenantId: 1,
+					currentTenantId: 1,
+					roleIds: [1],
+					buttons: module === 'dict' ? ['sysDictType', 'sysDictData'].flatMap((code) => actions.map((action) => `${code}:${action}`)) : actions.map((action) => `${prefix}:${action}`),
+				},
+			},
+		})
+	);
+	await page.route('**/prod-api/api/sysMenu/vbenMenuTree', (route) =>
+		route.fulfill({
+			json: {
+				code: 200,
+				result: [{ name: prefix, path: `/system/${module}`, component: `/system/${module}/index`, meta: { title: titles[module], icon: 'lucide:users' } }],
+			},
+		})
+	);
+	await page.route('**/prod-api/api/sysTenant/list', (route) =>
+		route.fulfill({
+			json: {
+				code: 200,
+				result: [
+					{ label: '租户一', value: 1, host: '' },
+					{ label: '租户二', value: 2, host: '' },
+				],
+			},
+		})
+	);
+	await page.route('**/prod-api/api/sysDictType/allDictList', (route) =>
+		route.fulfill({
+			json: {
+				code: 200,
+				result: {
+					AccountTypeEnum: [
+						{ label: '会员', value: '666' },
+						{ label: '普通账号', value: '777' },
+						{ label: '系统管理员', value: '888' },
+						{ label: '超级管理员', value: '999' },
+					],
+					CardTypeEnum: [{ label: '身份证', value: 0 }],
+					GenderEnum: [
+						{ label: '男', value: 1 },
+						{ label: '女', value: 2 },
+					],
+					CultureLevelEnum: [{ label: '本科', value: 5 }],
+					NationEnum: [{ label: '汉族', value: '1' }],
+				},
+			},
+		})
+	);
+}
+
+export async function loginAdmin(page: Page, module: AdminModule) {
+	await page.goto('/#/auth/login', { waitUntil: 'domcontentloaded' });
+	await expect(page.locator('button[type=submit]')).toBeEnabled();
+	await page.getByLabel('账号', { exact: true }).fill('contract');
+	await page.getByLabel('密码', { exact: true }).fill('contract-password');
+	await expect(page.getByLabel('账号', { exact: true })).toHaveValue('contract');
+	await expect(page.getByLabel('密码', { exact: true })).toHaveValue('contract-password');
+	await expect(page.locator('button[type=submit]')).toBeEnabled();
+	await page.locator('button[type=submit]').click();
+	await expect(page).toHaveURL(new RegExp(`#\\/system\\/${module}$`));
+}

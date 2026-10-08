@@ -34,6 +34,13 @@ bin-release/
 # folders
 dist/
 node_modules/
+.turbo/
+playwright-report/
+test-results/
+.agents/
+.claude/
+.codex/
+skills-lock.json
 /Web/package-lock.json
 /Web/public/config.js
 /Web/stats.html

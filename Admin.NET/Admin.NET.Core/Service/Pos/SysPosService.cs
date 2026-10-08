@@ -57,6 +57,9 @@ public class SysPosService : IDynamicApiController, ITransient
     [DisplayName("增加职位")]
     public async Task AddPos(AddPosInput input)
     {
+        // 非超管不能通过请求正文指定其他租户。
+        if (!_userManager.SuperAdmin) input.TenantId = _userManager.TenantId;
+
         if (await _sysPosRep.IsAnyAsync(u => u.Name == input.Name && u.Code == input.Code)) throw Oops.Oh(ErrorCodeEnum.D6000);
 
         await _sysPosRep.InsertAsync(input.Adapt<SysPos>());

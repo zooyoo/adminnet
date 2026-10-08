@@ -96,6 +96,16 @@ public class SysMenuService : IDynamicApiController, ITransient
     }
 
     /// <summary>
+    /// 获取 Vben 登录菜单树
+    /// </summary>
+    [DisplayName("获取 Vben 登录菜单树"), HttpGet]
+    public async Task<List<VbenMenuOutput>> GetVbenMenuTree()
+    {
+        var menus = await GetLoginMenuTree();
+        return menus.Select(VbenMenuOutput.FromMenu).ToList();
+    }
+
+    /// <summary>
     /// 获取菜单列表 🔖
     /// </summary>
     /// <returns></returns>

@@ -70,7 +70,8 @@ public class SysRoleMenuService : ITransient
             });
         }
 
-        await _sysRoleMenuRep.InsertRangeAsync(menus);
+        if (menus.Count > 0)
+            await _sysRoleMenuRep.InsertRangeAsync(menus);
 
         // 清除缓存
         // _sysCacheService.RemoveByPrefixKey(CacheConst.KeyUserMenu);

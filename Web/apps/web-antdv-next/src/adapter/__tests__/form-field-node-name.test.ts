@@ -1,0 +1,229 @@
+import type { VueWrapper } from '@vue/test-utils';
+
+import { flushPromises, mount } from '@vue/test-utils';
+import { defineComponent, h, nextTick, ref } from 'vue';
+
+import { globalShareState, setupVbenForm, useVbenForm } from '@vben/common-ui';
+
+import Input from 'antdv-next/dist/input/index';
+import TreeSelect from 'antdv-next/dist/tree-select/index';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
+const wrappers: VueWrapper[] = [];
+const treeOpen = ref(false);
+
+// 探针：记录实际 Antdv-Next 控件收到的 props/attrs 键。
+let capturedTreeSelectKeys: string[] = [];
+let capturedTreeSelectNodeName: unknown;
+let capturedTreeSelectNameValue: unknown;
+let capturedDeclaredName: unknown;
+
+// 声明 name 为语义 prop 的探针组件：验证 componentProps.name 不被剥离
+const DeclaredNameComponent = defineComponent({
+  name: 'DeclaredNameComponent',
+  props: {
+    name: { type: String, default: '' },
+  },
+  setup(props) {
+    capturedDeclaredName = props.name;
+    return () => h('div', `name:${props.name ?? ''}`);
+  },
+});
+
+const ProbeTreeSelect = defineComponent({
+  name: 'ProbeTreeSelect',
+  inheritAttrs: false,
+  setup(props, { attrs }) {
+    capturedTreeSelectKeys = [...Object.keys(props), ...Object.keys(attrs)];
+    capturedTreeSelectNodeName = Reflect.get(attrs, 'nodeName');
+    capturedTreeSelectNameValue = Reflect.get(attrs, 'name');
+    return () => h(TreeSelect, { ...props, ...attrs, open: treeOpen.value });
+  },
+});
+
+beforeAll(() => {
+  setupVbenForm({
+    config: { baseModelPropName: 'value' },
+    rules: {},
+  });
+});
+
+afterEach(() => {
+  for (const wrapper of wrappers.splice(0)) {
+    wrapper.unmount();
+  }
+  capturedTreeSelectKeys = [];
+  capturedTreeSelectNodeName = undefined;
+  capturedTreeSelectNameValue = undefined;
+  capturedDeclaredName = undefined;
+  treeOpen.value = false;
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
+
+describe('form field name isolation with Antdv-Next controls', () => {
+  it('renders MRE schema (TreeSelect parentId + Input nodeName) without error', async () => {
+    // MRE: TreeSelect(fieldName parentId) + Input(fieldName nodeName)
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const [Form] = useVbenForm({
+      schema: [
+        {
+          component: ProbeTreeSelect,
+          componentProps: { treeData: [] },
+          fieldName: 'parentId',
+          modelPropName: 'value',
+        },
+        {
+          component: Input,
+          fieldName: 'nodeName',
+          modelPropName: 'value',
+        },
+      ],
+    });
+
+    let renderError: unknown;
+    const wrapper = mount(Form, {
+      global: {
+        config: {
+          errorHandler: (error) => {
+            renderError = error;
+          },
+        },
+      },
+    });
+    wrappers.push(wrapper);
+    await flushPromises();
+    await nextTick();
+
+    expect(renderError).toBeUndefined();
+    expect(consoleError).not.toHaveBeenCalled();
+
+    // 打开 TreeSelect 弹层：issue #8214 的崩溃发生在弹层 floating 定位
+    // （getNodeName 读取被劫持的 form.nodeName）阶段，此处验证完整打开流程无错
+    treeOpen.value = true;
+    await flushPromises();
+    await nextTick();
+    expect(renderError).toBeUndefined();
+    expect(consoleError).not.toHaveBeenCalled();
+
+    // 原生控件上不应存在 name="nodeName"：<input name="nodeName"> 会劫持
+    // form.nodeName 访问器（issue #8214 的根因）
+    expect(wrapper.find('input[name="nodeName"]').exists()).toBe(false);
+
+    // 探针结果：TreeSelect 收到的键里不应有值为对象的 nodeName 键。
+    expect(capturedTreeSelectKeys).toContain('name');
+    expect(capturedTreeSelectNodeName).toBeUndefined();
+  });
+
+  it('does not leak a nodeName keyed object into TreeSelect props when field is named nodeName', async () => {
+    // 反向场景：TreeSelect 字段本身就是 nodeName（最严格情形）
+    // 环境前提：happy-dom 的 <form> 必须支持 nodeName 固有属性，
+    // 否则 conflictsWithFormProperty 检测会误判（返回 undefined → 不剥离 name）
+    expect(Reflect.get(document.createElement('form'), 'nodeName')).toBe(
+      'FORM',
+    );
+    const [Form] = useVbenForm({
+      schema: [
+        {
+          component: ProbeTreeSelect,
+          componentProps: { treeData: [] },
+          fieldName: 'nodeName',
+          modelPropName: 'value',
+        },
+      ],
+    });
+
+    let renderError: unknown;
+    const wrapper = mount(Form, {
+      global: {
+        config: {
+          errorHandler: (error) => {
+            renderError = error;
+          },
+        },
+      },
+    });
+    wrappers.push(wrapper);
+    await flushPromises();
+    await nextTick();
+
+    expect(renderError).toBeUndefined();
+    // 冲突字段（nodeName）的控件不应收到 name，否则 <input name="nodeName">
+    // 会劫持 form.nodeName 访问器（issue #8214）
+    expect(capturedTreeSelectKeys).not.toContain('name');
+    expect(capturedTreeSelectNodeName).toBeUndefined();
+  });
+
+  it('keeps model binding when modelPropName resolves to name and its value collides', async () => {
+    // coderabbit review 边界：modelPropName: 'name' 时 binds.name 承载模型数据
+    // （v-model 语义），即便其值与 <form> 固有属性同名也不得剥离；
+    // 原生属性路径仍由 conflictsWithFormProperty 阻断。
+    const [Form] = useVbenForm({
+      schema: [
+        {
+          component: ProbeTreeSelect,
+          componentProps: { treeData: [] },
+          defaultValue: 'nodeName',
+          fieldName: 'nodeName',
+          modelPropName: 'name',
+        },
+      ],
+    });
+
+    const wrapper = mount(Form);
+    wrappers.push(wrapper);
+    await flushPromises();
+    await nextTick();
+
+    // 模型绑定存活：name 键存在且承载表单数据（未被子组件 attr 路径劫持）
+    expect(capturedTreeSelectKeys).toContain('name');
+    expect(capturedTreeSelectNameValue).toBe('nodeName');
+  });
+
+  it('preserves componentProps.name when the component declares name as a semantic prop', async () => {
+    // coderabbit review 边界：声明了 name 语义 prop 的组件，componentProps.name
+    // 是组件 prop 而非原生 fallthrough 属性，值冲突也不得剥离
+    const [Form] = useVbenForm({
+      schema: [
+        {
+          component: DeclaredNameComponent,
+          componentProps: { name: 'nodeName' },
+          fieldName: 'nodeName',
+        },
+      ],
+    });
+
+    const wrapper = mount(Form);
+    wrappers.push(wrapper);
+    await flushPromises();
+    await nextTick();
+
+    // 语义 prop 存活：组件收到的 name 就是用户显式配置的值
+    expect(capturedDeclaredName).toBe('nodeName');
+  });
+
+  it('resolves string components through componentMap before the declared-prop check', async () => {
+    // coderabbit review 边界：字符串组件名经 componentMap 解析出的组件若声明了
+    // name 语义 prop，同样不得剥离（守卫须内省解析后的 FieldComponent）
+    globalShareState.setComponents({ NameDeclared: DeclaredNameComponent });
+    setupVbenForm({ config: { baseModelPropName: 'value' }, rules: {} });
+    const [Form] = useVbenForm({
+      schema: [
+        {
+          component: 'NameDeclared',
+          componentProps: { name: 'nodeName' },
+          fieldName: 'nodeName',
+        },
+      ],
+    });
+
+    const wrapper = mount(Form);
+    wrappers.push(wrapper);
+    await flushPromises();
+    await nextTick();
+
+    expect(capturedDeclaredName).toBe('nodeName');
+  });
+});

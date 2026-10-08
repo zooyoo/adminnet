@@ -30,7 +30,12 @@ public class SysUserRoleService : ITransient
     {
         await _sysUserRoleRep.DeleteAsync(u => u.UserId == input.UserId);
 
-        if (input.RoleIdList == null || input.RoleIdList.Count < 1) return;
+        if (input.RoleIdList == null || input.RoleIdList.Count < 1)
+        {
+            // 清空全部角色同样需要撤销旧的按钮权限缓存。
+            _sysCacheService.Remove(CacheConst.KeyUserButton + input.UserId);
+            return;
+        }
         var roles = input.RoleIdList.Select(u => new SysUserRole
         {
             UserId = input.UserId,
