@@ -407,6 +407,9 @@ public class SysTenantService : IDynamicApiController, ITransient
     [DisplayName("删除租户")]
     public async Task DeleteTenant(DeleteTenantInput input)
     {
+        // 检查 Id 是否有效（避免前端传递的字符串 Id 反序列化为 0 导致删除无效但不报错）
+        if (input.Id <= 0) throw Oops.Oh(ErrorCodeEnum.D0009);
+        
         // 禁止删除默认租户
         if (input.Id.ToString() == SqlSugarConst.MainConfigId) throw Oops.Oh(ErrorCodeEnum.D1023);
 
@@ -520,7 +523,7 @@ public class SysTenantService : IDynamicApiController, ITransient
         if (menuList.Where(u => !string.IsNullOrWhiteSpace(u.Name)).GroupBy(u => u.Name).Any(u => u.Count() > 1))
             throw Oops.Oh(ErrorCodeEnum.D4009);
 
-        //获取默认租户授权菜单，种子数据主键ID保持不变，防止重复
+        // 获取默认租户授权菜单，种子数据主键ID保持不变，防止重复
         var tenantMenuList = input.Id == SqlSugarConst.DefaultTenantId ? await _sysTenantMenuRep.AsQueryable().Where(u => u.TenantId == input.Id).ToListAsync() : null;
 
         List<long> tenantIdList = [input.Id];
@@ -540,11 +543,14 @@ public class SysTenantService : IDynamicApiController, ITransient
             sysTenantMenuList.AddRange(input.MenuIdList.Select(menuId => new SysTenantMenu { TenantId = tenantId, MenuId = menuId }));
         });
 
-        //默认租户授权菜单主键ID不变
-        foreach (var item in sysTenantMenuList)
+        // 默认租户授权菜单主键ID不变
+        if (tenantMenuList != null)
         {
-            var tenantMenu = tenantMenuList.FirstOrDefault(u => u.TenantId == item.TenantId && u.MenuId == item.MenuId);
-            if (tenantMenu != null) item.Id = tenantMenu.Id;
+            foreach (var item in sysTenantMenuList)
+            {
+                var tenantMenu = tenantMenuList.FirstOrDefault(u => u.TenantId == item.TenantId && u.MenuId == item.MenuId);
+                if (tenantMenu != null) item.Id = tenantMenu.Id;
+            }
         }
         await _sysTenantMenuRep.InsertRangeAsync(sysTenantMenuList);
 

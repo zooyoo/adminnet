@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目二次开发而产生的一切法律纠纷和责任，我们不承担任何责任！</font></b></u>
+ * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  * 
@@ -17,7 +17,9 @@ import { Configuration } from '../configuration';
 // Some imports not used depending on template conditions
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS, RequestArgs, BaseAPI, RequiredError } from '../base';
-import { AdminResultObject } from '../models';
+import { AdminResultListNuGetPackage } from '../models';
+import { AdminResultSystemHardwareInfo } from '../models';
+import { AdminResultSystemRuntimeInfo } from '../models';
 /**
  * SysServerApi - axios parameter creator
  * @export
@@ -26,12 +28,12 @@ export const SysServerApiAxiosParamCreator = function (configuration?: Configura
     return {
         /**
          * 
-         * @summary 获取框架主要程序集 🔖
+         * @summary 获取服务器硬件信息
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiSysServerAssemblyListGet: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            const localVarPath = `/api/sysServer/assemblyList`;
+        apiSysServerHardwareInfoGet: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/sysServer/hardwareInfo`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, 'https://example.com');
             let baseOptions;
@@ -69,12 +71,12 @@ export const SysServerApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          * 
-         * @summary 获取服务器配置信息 🔖
+         * @summary 获取框架主要程序集
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiSysServerServerBaseGet: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            const localVarPath = `/api/sysServer/serverBase`;
+        apiSysServerNuGetPackageInfoGet: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/sysServer/nuGetPackageInfo`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, 'https://example.com');
             let baseOptions;
@@ -112,55 +114,12 @@ export const SysServerApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          * 
-         * @summary 获取服务器磁盘信息 🔖
+         * @summary 获取服务器运行时信息
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiSysServerServerDiskGet: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            const localVarPath = `/api/sysServer/serverDisk`;
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, 'https://example.com');
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-            const localVarRequestOptions :AxiosRequestConfig = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication Bearer required
-            // http bearer authentication required
-            if (configuration && configuration.accessToken) {
-                const accessToken = typeof configuration.accessToken === 'function'
-                    ? await configuration.accessToken()
-                    : await configuration.accessToken;
-                localVarHeaderParameter["Authorization"] = "Bearer " + accessToken;
-            }
-
-            const query = new URLSearchParams(localVarUrlObj.search);
-            for (const key in localVarQueryParameter) {
-                query.set(key, localVarQueryParameter[key]);
-            }
-            for (const key in options.params) {
-                query.set(key, options.params[key]);
-            }
-            localVarUrlObj.search = (new URLSearchParams(query)).toString();
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: localVarUrlObj.pathname + localVarUrlObj.search + localVarUrlObj.hash,
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * 
-         * @summary 获取服务器使用信息 🔖
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        apiSysServerServerUsedGet: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            const localVarPath = `/api/sysServer/serverUsed`;
+        apiSysServerRuntimeInfoGet: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/sysServer/runtimeInfo`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, 'https://example.com');
             let baseOptions;
@@ -207,12 +166,12 @@ export const SysServerApiFp = function(configuration?: Configuration) {
     return {
         /**
          * 
-         * @summary 获取框架主要程序集 🔖
+         * @summary 获取服务器硬件信息
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiSysServerAssemblyListGet(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultObject>>> {
-            const localVarAxiosArgs = await SysServerApiAxiosParamCreator(configuration).apiSysServerAssemblyListGet(options);
+        async apiSysServerHardwareInfoGet(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultSystemHardwareInfo>>> {
+            const localVarAxiosArgs = await SysServerApiAxiosParamCreator(configuration).apiSysServerHardwareInfoGet(options);
             return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
                 const axiosRequestArgs :AxiosRequestConfig = {...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url};
                 return axios.request(axiosRequestArgs);
@@ -220,12 +179,12 @@ export const SysServerApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
-         * @summary 获取服务器配置信息 🔖
+         * @summary 获取框架主要程序集
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiSysServerServerBaseGet(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultObject>>> {
-            const localVarAxiosArgs = await SysServerApiAxiosParamCreator(configuration).apiSysServerServerBaseGet(options);
+        async apiSysServerNuGetPackageInfoGet(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultListNuGetPackage>>> {
+            const localVarAxiosArgs = await SysServerApiAxiosParamCreator(configuration).apiSysServerNuGetPackageInfoGet(options);
             return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
                 const axiosRequestArgs :AxiosRequestConfig = {...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url};
                 return axios.request(axiosRequestArgs);
@@ -233,25 +192,12 @@ export const SysServerApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
-         * @summary 获取服务器磁盘信息 🔖
+         * @summary 获取服务器运行时信息
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiSysServerServerDiskGet(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultObject>>> {
-            const localVarAxiosArgs = await SysServerApiAxiosParamCreator(configuration).apiSysServerServerDiskGet(options);
-            return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
-                const axiosRequestArgs :AxiosRequestConfig = {...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url};
-                return axios.request(axiosRequestArgs);
-            };
-        },
-        /**
-         * 
-         * @summary 获取服务器使用信息 🔖
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async apiSysServerServerUsedGet(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultObject>>> {
-            const localVarAxiosArgs = await SysServerApiAxiosParamCreator(configuration).apiSysServerServerUsedGet(options);
+        async apiSysServerRuntimeInfoGet(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultSystemRuntimeInfo>>> {
+            const localVarAxiosArgs = await SysServerApiAxiosParamCreator(configuration).apiSysServerRuntimeInfoGet(options);
             return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
                 const axiosRequestArgs :AxiosRequestConfig = {...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url};
                 return axios.request(axiosRequestArgs);
@@ -268,39 +214,30 @@ export const SysServerApiFactory = function (configuration?: Configuration, base
     return {
         /**
          * 
-         * @summary 获取框架主要程序集 🔖
+         * @summary 获取服务器硬件信息
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiSysServerAssemblyListGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultObject>> {
-            return SysServerApiFp(configuration).apiSysServerAssemblyListGet(options).then((request) => request(axios, basePath));
+        async apiSysServerHardwareInfoGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultSystemHardwareInfo>> {
+            return SysServerApiFp(configuration).apiSysServerHardwareInfoGet(options).then((request) => request(axios, basePath));
         },
         /**
          * 
-         * @summary 获取服务器配置信息 🔖
+         * @summary 获取框架主要程序集
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiSysServerServerBaseGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultObject>> {
-            return SysServerApiFp(configuration).apiSysServerServerBaseGet(options).then((request) => request(axios, basePath));
+        async apiSysServerNuGetPackageInfoGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultListNuGetPackage>> {
+            return SysServerApiFp(configuration).apiSysServerNuGetPackageInfoGet(options).then((request) => request(axios, basePath));
         },
         /**
          * 
-         * @summary 获取服务器磁盘信息 🔖
+         * @summary 获取服务器运行时信息
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiSysServerServerDiskGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultObject>> {
-            return SysServerApiFp(configuration).apiSysServerServerDiskGet(options).then((request) => request(axios, basePath));
-        },
-        /**
-         * 
-         * @summary 获取服务器使用信息 🔖
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async apiSysServerServerUsedGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultObject>> {
-            return SysServerApiFp(configuration).apiSysServerServerUsedGet(options).then((request) => request(axios, basePath));
+        async apiSysServerRuntimeInfoGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultSystemRuntimeInfo>> {
+            return SysServerApiFp(configuration).apiSysServerRuntimeInfoGet(options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -314,42 +251,32 @@ export const SysServerApiFactory = function (configuration?: Configuration, base
 export class SysServerApi extends BaseAPI {
     /**
      * 
-     * @summary 获取框架主要程序集 🔖
+     * @summary 获取服务器硬件信息
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysServerApi
      */
-    public async apiSysServerAssemblyListGet(options?: AxiosRequestConfig) : Promise<AxiosResponse<AdminResultObject>> {
-        return SysServerApiFp(this.configuration).apiSysServerAssemblyListGet(options).then((request) => request(this.axios, this.basePath));
+    public async apiSysServerHardwareInfoGet(options?: AxiosRequestConfig) : Promise<AxiosResponse<AdminResultSystemHardwareInfo>> {
+        return SysServerApiFp(this.configuration).apiSysServerHardwareInfoGet(options).then((request) => request(this.axios, this.basePath));
     }
     /**
      * 
-     * @summary 获取服务器配置信息 🔖
+     * @summary 获取框架主要程序集
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysServerApi
      */
-    public async apiSysServerServerBaseGet(options?: AxiosRequestConfig) : Promise<AxiosResponse<AdminResultObject>> {
-        return SysServerApiFp(this.configuration).apiSysServerServerBaseGet(options).then((request) => request(this.axios, this.basePath));
+    public async apiSysServerNuGetPackageInfoGet(options?: AxiosRequestConfig) : Promise<AxiosResponse<AdminResultListNuGetPackage>> {
+        return SysServerApiFp(this.configuration).apiSysServerNuGetPackageInfoGet(options).then((request) => request(this.axios, this.basePath));
     }
     /**
      * 
-     * @summary 获取服务器磁盘信息 🔖
+     * @summary 获取服务器运行时信息
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysServerApi
      */
-    public async apiSysServerServerDiskGet(options?: AxiosRequestConfig) : Promise<AxiosResponse<AdminResultObject>> {
-        return SysServerApiFp(this.configuration).apiSysServerServerDiskGet(options).then((request) => request(this.axios, this.basePath));
-    }
-    /**
-     * 
-     * @summary 获取服务器使用信息 🔖
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof SysServerApi
-     */
-    public async apiSysServerServerUsedGet(options?: AxiosRequestConfig) : Promise<AxiosResponse<AdminResultObject>> {
-        return SysServerApiFp(this.configuration).apiSysServerServerUsedGet(options).then((request) => request(this.axios, this.basePath));
+    public async apiSysServerRuntimeInfoGet(options?: AxiosRequestConfig) : Promise<AxiosResponse<AdminResultSystemRuntimeInfo>> {
+        return SysServerApiFp(this.configuration).apiSysServerRuntimeInfoGet(options).then((request) => request(this.axios, this.basePath));
     }
 }

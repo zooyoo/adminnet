@@ -106,6 +106,9 @@ public class SysAuthService : IDynamicApiController, ITransient
 
         // 登录成功则清空密码错误次数
         _sysCacheService.Remove(keyPasswordErrorTimes);
+        
+        // 清除用户按钮权限缓存，确保获取最新权限码（避免菜单/角色变更后旧缓存导致按钮不显示）
+        _sysCacheService.Remove($"{CacheConst.KeyUserButton}{user.Id}");
 
         return await CreateToken(user);
     }
@@ -219,6 +222,9 @@ public class SysAuthService : IDynamicApiController, ITransient
 
         // 获取登录租户和用户
         var (_, user) = await GetLoginUserAndTenant(input.TenantId, phone: input.Phone);
+       
+        // 账号是否被冻结
+        if (user.Status == StatusEnum.Disable) throw Oops.Oh(ErrorCodeEnum.D1017);
 
         return await CreateToken(user);
     }
@@ -232,8 +238,11 @@ public class SysAuthService : IDynamicApiController, ITransient
     [NonAction]
     internal virtual async Task<LoginOutput> CreateToken(SysUser user, SysUserEventTypeEnum sysUserEventTypeEnum = SysUserEventTypeEnum.Login)
     {
-        // 单用户登录
-        await _sysOnlineUserService.SingleLogin(user.Id);
+        if (sysUserEventTypeEnum != SysUserEventTypeEnum.RefreshToken)
+        {
+            // 单用户登录
+            await _sysOnlineUserService.SingleLogin(user.Id);
+        }
 
         // 生成Token令牌
         var tokenExpire = await _sysConfigService.GetTokenExpire();

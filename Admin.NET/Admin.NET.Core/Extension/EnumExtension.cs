@@ -7,7 +7,7 @@
 namespace Admin.NET.Core;
 
 /// <summary>
-/// 枚举拓展
+/// 枚举拓展方法
 /// </summary>
 public static class EnumExtension
 {
@@ -31,7 +31,7 @@ public static class EnumExtension
             throw new ArgumentException("Type '" + enumType.Name + "' is not an enum.");
 
         // 查询缓存
-        var enumDic = EnumNameValueDict.TryGetValue(enumType, out var value) ? value : new Dictionary<int, string>();
+        var enumDic = EnumNameValueDict.TryGetValue(enumType, out var value) ? value : [];
         if (enumDic.Count != 0)
             return enumDic;
         // 取枚举类型的Key/Value字典集合
@@ -76,9 +76,7 @@ public static class EnumExtension
             throw new ArgumentException("Type '" + enumType.Name + "' is not an enum.");
 
         // 查询缓存
-        var enumDic = EnumDisplayValueDict.TryGetValue(enumType, out var value)
-            ? value
-            : new Dictionary<int, string>();
+        var enumDic = EnumDisplayValueDict.TryGetValue(enumType, out var value) ? value : [];
         if (enumDic.Count != 0)
             return enumDic;
         // 取枚举类型的Key/Value字典集合
@@ -106,7 +104,11 @@ public static class EnumExtension
         foreach (var enumField in enumFields)
         {
             var intValue = (int)enumField.GetValue(enumType)!;
-            var desc = enumField.GetDescriptionValue<DescriptionAttribute>();
+            // 获取字段的指定特性，不包含继承中的特性
+            object[] customAttributes = enumField.GetCustomAttributes(typeof(DescriptionAttribute), false);
+            // 如果没有数据返回null
+            var desc = customAttributes.Length > 0 ? (DescriptionAttribute)customAttributes[0] : null;
+
             enumDic[intValue] = desc != null && !string.IsNullOrEmpty(desc.Description) ? desc.Description : enumField.Name;
         }
 
@@ -149,9 +151,9 @@ public static class EnumExtension
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
-    public static string GetEnumDescription(this Enum value)
+    public static string GetDescription(this Enum value)
     {
-        return value.GetType().GetField(value.ToString())?.GetCustomAttribute<DescriptionAttribute>()?.Description;
+        return value == null ? "" : (value.GetType().GetField(value.ToString())?.GetCustomAttribute<DescriptionAttribute>()?.Description);
     }
 
     /// <summary>
@@ -159,9 +161,9 @@ public static class EnumExtension
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
-    public static string GetEnumDescription(this object value)
+    public static string GetDescription(this object value)
     {
-        return value.GetType().GetField(value.ToString()!)?.GetCustomAttribute<DescriptionAttribute>()?.Description;
+        return value == null ? "" : (value.GetType().GetField(value.ToString()!)?.GetCustomAttribute<DescriptionAttribute>()?.Description);
     }
 
     /// <summary>
@@ -171,7 +173,7 @@ public static class EnumExtension
     /// <returns></returns>
     public static string GetTheme(this object value)
     {
-        return value.GetType().GetField(value.ToString()!)?.GetCustomAttribute<ThemeAttribute>()?.Theme;
+        return value == null ? "" : (value.GetType().GetField(value.ToString()!)?.GetCustomAttribute<ThemeAttribute>()?.Theme);
     }
 
     /// <summary>
@@ -190,7 +192,7 @@ public static class EnumExtension
             return new EnumEntity
             {
                 Name = item.ToString(),
-                Describe = item.GetEnumDescription() ?? item.ToString(),
+                Describe = item.GetDescription() ?? item.ToString(),
                 Theme = item.GetTheme() ?? string.Empty,
                 Value = item.GetHashCode()
             };

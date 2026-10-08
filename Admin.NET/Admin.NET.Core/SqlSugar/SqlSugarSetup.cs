@@ -18,6 +18,13 @@ public static class SqlSugarSetup
     private static bool _isHandlingSeedData = false;
 
     /// <summary>
+    /// 日志数据库上下文
+    /// </summary>
+    public static SqlSugarScopeProvider LogDb => ITenant.IsAnyConnection(SqlSugarConst.LogConfigId)
+        ? ITenant.GetConnectionScope(SqlSugarConst.LogConfigId)
+        : ITenant.GetConnectionScope(SqlSugarConst.MainConfigId);
+
+    /// <summary>
     /// SqlSugar 上下文初始化
     /// </summary>
     /// <param name="services"></param>
@@ -81,6 +88,9 @@ public static class SqlSugarSetup
                 // 只处理贴了特性[SugarTable]表
                 if (!type.GetCustomAttributes<SugarTable>().Any())
                     return;
+                var moduleAttr = type.GetCustomAttribute<TableModuleAttribute>();
+                if (moduleAttr != null && !entity.DbTableName.StartsWith(moduleAttr.Prefix))
+                    entity.DbTableName = moduleAttr.Prefix + entity.DbTableName;
                 if (config.DbSettings.EnableUnderLine && !entity.DbTableName.Contains('_'))
                     entity.DbTableName = entity.DbTableName.ToUnderLine(); // 驼峰转下划线
             },
@@ -235,16 +245,18 @@ public static class SqlSugarSetup
                     if (string.IsNullOrEmpty(createOrgName))
                         entityInfo.SetValue(App.User.FindFirst(ClaimConst.OrgName)?.Value);
                 }
+                else if (entityInfo.PropertyName == nameof(EntityBaseOrg.OrgId))
+                {
+                    var orgId = entityValue.OrgId;
+                    if (orgId == 0 || orgId == null)
+                        entityInfo.SetValue(App.User.FindFirst(ClaimConst.OrgId)?.Value);
+                }
             }
             // 编辑/更新
             else if (entityInfo.OperationType == DataFilterType.UpdateByObject)
             {
                 if (entityInfo.PropertyName == nameof(EntityBase.UpdateTime))
                     entityInfo.SetValue(DateTime.Now);
-                else if (entityInfo.PropertyName == nameof(EntityBase.UpdateUserId))
-                    entityInfo.SetValue(App.User?.FindFirst(ClaimConst.UserId)?.Value);
-                else if (entityInfo.PropertyName == nameof(EntityBase.UpdateUserName))
-                    entityInfo.SetValue(App.User?.FindFirst(ClaimConst.RealName)?.Value);
                 else if (entityInfo.PropertyName == nameof(EntityBaseDel.DeleteTime))
                 {
                     dynamic entityValue = entityInfo.EntityValue;
@@ -254,6 +266,13 @@ public static class SqlSugarSetup
                         entityInfo.SetValue(DateTime.Now);
                     }
                 }
+                // 若当前用户为空（非web线程时）
+                if (App.User == null) return;
+
+                if (entityInfo.PropertyName == nameof(EntityBase.UpdateUserId))
+                    entityInfo.SetValue(App.User?.FindFirst(ClaimConst.UserId)?.Value);
+                else if (entityInfo.PropertyName == nameof(EntityBase.UpdateUserName))
+                    entityInfo.SetValue(App.User?.FindFirst(ClaimConst.RealName)?.Value);
             }
         };
 

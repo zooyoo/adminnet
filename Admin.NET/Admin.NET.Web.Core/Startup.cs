@@ -5,10 +5,10 @@
 // 不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目二次开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 
 using Admin.NET.Core;
-using Admin.NET.Core.ElasticSearch;
 using Admin.NET.Core.Service;
 using AspNetCoreRateLimit;
 using Furion;
+using Furion.JsonSerialization;
 using Furion.Logging;
 using Furion.SpecificationDocument;
 using Furion.VirtualFileServer;
@@ -21,7 +21,6 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Newtonsoft.Json;
 using OnceMi.AspNetCore.OSS;
 using Scalar.AspNetCore;
 using SixLabors.ImageSharp.Web.DependencyInjection;
@@ -29,12 +28,12 @@ using System;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Unicode;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-#if NET10_0_OR_GREATER
-using Admin.NET.Core.Update;
-#endif
+//#if NET10_0_OR_GREATER
+//using Admin.NET.Core.Update;
+//#endif
 
 namespace Admin.NET.Web.Core;
 
@@ -85,40 +84,43 @@ public class Startup : AppStartup
         // 脱敏检测
         services.AddSensitiveDetection();
 
-        // Json序列化设置
-        static void SetNewtonsoftJsonSetting(JsonSerializerSettings setting)
-        {
-            setting.DateFormatHandling = DateFormatHandling.IsoDateFormat;
-            setting.DateTimeZoneHandling = DateTimeZoneHandling.Local;
-            //setting.Converters.AddDateTimeTypeConverters(localized: false); // 时间本地化
-            setting.DateFormatString = "yyyy-MM-dd HH:mm:ss"; // 时间格式化
-            setting.ReferenceLoopHandling = ReferenceLoopHandling.Ignore; // 忽略循环引用
-            // setting.ContractResolver = new CamelCasePropertyNamesContractResolver(); // 解决动态对象属性名大写
-            // setting.NullValueHandling = NullValueHandling.Ignore; // 忽略空值
-            setting.Converters.AddLongTypeConverters(); // long转string（防止js精度溢出） 超过17位开启
-            // setting.MetadataPropertyHandling = MetadataPropertyHandling.Ignore; // 解决DateTimeOffset异常
-            // setting.DateParseHandling = DateParseHandling.None; // 解决DateTimeOffset异常
-            // setting.Converters.Add(new IsoDateTimeConverter { DateTimeStyles = DateTimeStyles.AssumeUniversal }); // 解决DateTimeOffset异常
-        }
-        ;
-
         services.AddControllersWithViews()
             .AddAppLocalization()
-            .AddNewtonsoftJson(options => SetNewtonsoftJsonSetting(options.SerializerSettings))
             //.AddXmlSerializerFormatters()
             //.AddXmlDataContractSerializerFormatters()
             .AddInjectWithUnifyResult<AdminResultProvider>()
             .AddJsonOptions(options =>
             {
-                options.JsonSerializerOptions.Encoder = JavaScriptEncoder.Create(UnicodeRanges.All); // 禁止Unicode转码
-                options.JsonSerializerOptions.Converters.AddDateTimeTypeConverters("yyyy-MM-dd HH:mm:ss"); // 时间格式化
+                //options.JsonSerializerOptions.PropertyNamingPolicy = null; // 序列化属性名大写（属性原样输出）
+                options.JsonSerializerOptions.Converters.AddDateTimeConverters("yyyy-MM-dd HH:mm:ss", localized: true); // 时间格式化
+                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; // 忽略循环引用
+                //options.JsonSerializerOptions.IncludeFields = true; // 包含成员字段序列化
+                options.JsonSerializerOptions.AllowTrailingCommas = true; // 允许尾随逗号
+                options.JsonSerializerOptions.ReadCommentHandling = JsonCommentHandling.Skip; // 允许注释
+                //options.JsonSerializerOptions.Encoder = JavaScriptEncoder.Create(UnicodeRanges.All); // 禁止 Unicode 转码
+                options.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping; // 处理（中文）乱码
+                options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; // 不区分大小写
+                //options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull; // 忽略所有 null 属性
+                //options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault; // 忽略所有默认值属性
+                options.JsonSerializerOptions.WriteIndented = true; // JSON 字符串缩进
+                options.JsonSerializerOptions.Converters.AddLongConverters(overMaxLengthOf17: true); // long 类型序列化时转 string（超过 17 位再转换）
+                //options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.AllowReadingFromString; // String 转 Number
+                //options.JsonSerializerOptions.Converters.Add(new StringJsonConverter()); // Number 和 Boolean 转 String
+                options.JsonSerializerOptions.Converters.AddDateOnlyConverters("yyyy-MM-dd"); // DateOnly
+                options.JsonSerializerOptions.Converters.AddTimeOnlyConverters("HH:mm:ss"); // TimeOnly
+                options.JsonSerializerOptions.Converters.AddClayConverters(); // 粘土对象 Clay 类型序列化
+                //options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); // 枚举和字符串互转
+                options.JsonSerializerOptions.Converters.AddEnumConverters(); // 枚举类型序列化
+                options.JsonSerializerOptions.Converters.AddDataTableConverters(); // 类型 DataTable 序列化
+                options.JsonSerializerOptions.Converters.AddDataSetConverters(); // 类型 DataSet 序列化
+
             });
 
         // 三方授权登录OAuth
         services.AddOAuth();
 
         // ElasticSearch
-        services.AddElasticSearchClients();
+        services.AddElasticSearch();
 
         // 配置Nginx转发获取客户端真实IP
         // 注1：如果负载均衡不是在本机通过 Loopback 地址转发请求的，一定要加上options.KnownNetworks.Clear()和options.KnownProxies.Clear()
@@ -126,7 +128,11 @@ public class Startup : AppStartup
         services.Configure<ForwardedHeadersOptions>(options =>
         {
             options.ForwardedHeaders = ForwardedHeaders.All;
+#if NET8_0
             options.KnownNetworks.Clear();
+#elif NET10_0
+            options.KnownIPNetworks.Clear();
+#endif
             options.KnownProxies.Clear();
         });
 
@@ -210,7 +216,7 @@ public class Startup : AppStartup
             options.KeepAliveInterval = TimeSpan.FromSeconds(15); // 服务器端向客户端ping的间隔
             options.ClientTimeoutInterval = TimeSpan.FromSeconds(30); // 客户端向服务器端ping的间隔
             options.MaximumReceiveMessageSize = 1024 * 1014 * 10; // 数据包大小10M，默认最大为32K
-        }).AddNewtonsoftJsonProtocol(options => SetNewtonsoftJsonSetting(options.PayloadSerializerSettings));
+        }).AddJsonProtocol(options => options.PayloadSerializerOptions = JSON.GetSerializerOptions<JsonSerializerOptions>());
 
         // 系统日志
         services.AddLoggingSetup();
@@ -360,24 +366,25 @@ public class Startup : AppStartup
             };
             options.LoginConfig.DefaultUsername = "";
             options.LoginConfig.DefaultPassword = "";
-            options.LoginConfig.SessionKey = "schedule_session_key"; // 登录客户端存储的 Session 键
+            options.LoginConfig.AppSecret = "0D7174503141C11DC1A79A7C72B44E0B"; // 登录客户端的授权密钥，必须要求不少于16位的密钥
         });
 
         app.UseInject(string.Empty, options =>
         {
             foreach (var groupInfo in SpecificationDocumentBuilder.GetOpenApiGroups())
             {
-                groupInfo.Description += "<br/><u><b><font color='FF0000'> 👮不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目二次开发而产生的一切法律纠纷和责任，我们不承担任何责任！</font></b></u>";
-            }
+                var warning = "本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。";
+                groupInfo.Description += $"<br/><u><b><font color='FF0000'> 👮{warning}</font></b></u>";
+			}
             options.ConfigureSwagger(m =>
             {
                 m.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0;
             });
         });
 
-#if NET10_0_OR_GREATER
-        app.UseAutoVersionUpdate();
-#endif
+//#if NET10_0_OR_GREATER
+//        app.UseAutoVersionUpdate();
+//#endif
 
         app.UseEndpoints(endpoints =>
         {

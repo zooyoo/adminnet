@@ -105,13 +105,13 @@ public class SysPluginService : IDynamicApiController, ITransient
     public string CompileAssembly([FromBody] string csharpCode, [FromQuery] string assemblyName = default)
     {
         // 编译 C# 代码并返回动态程序集
-        var dynamicAssembly = App.CompileCSharpClassCode(csharpCode, assemblyName);
+        using var dynamicAssembly = App.CompileCSharpClassCode(csharpCode, assemblyName);
 
         // 将程序集添加进动态 WebAPI 应用部件
-        _provider.AddAssembliesWithNotifyChanges(dynamicAssembly);
+        _provider.AddAssembliesWithNotifyChanges(dynamicAssembly.Assembly);
 
         // 返回动态程序集名称
-        return dynamicAssembly.GetName().Name;
+        return dynamicAssembly.Assembly.GetName().Name;
     }
 
     /// <summary>
@@ -122,5 +122,19 @@ public class SysPluginService : IDynamicApiController, ITransient
     public void RemoveAssembly(string assemblyName)
     {
         _provider.RemoveAssembliesWithNotifyChanges(assemblyName);
+    }
+
+    /// <summary>
+    /// 加载所有动态程序集/接口
+    /// </summary>
+    /// <returns></returns>
+    [NonAction]
+    public async Task LoadAllAssembly()
+    {
+        var plugins = await _sysPluginRep.GetListAsync();
+        foreach (var plugin in plugins)
+        {
+            CompileAssembly(plugin.CsharpCode, plugin.AssemblyName);
+        }
     }
 }
