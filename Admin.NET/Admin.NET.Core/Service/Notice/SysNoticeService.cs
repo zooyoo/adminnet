@@ -43,6 +43,7 @@ public class SysNoticeService : IDynamicApiController, ITransient
         return await _sysNoticeRep.AsQueryable()
             .WhereIF(!string.IsNullOrWhiteSpace(input.Title), u => u.Title.Contains(input.Title.Trim()))
             .WhereIF(input.Type > 0, u => u.Type == input.Type)
+            .Where(u => u.TenantId == _userManager.TenantId)
             .WhereIF(!_userManager.SuperAdmin, u => u.CreateUserId == _userManager.UserId)
             .OrderBy(u => u.CreateTime, OrderByType.Desc)
             .ToPagedListAsync(input.Page, input.PageSize);
@@ -57,7 +58,18 @@ public class SysNoticeService : IDynamicApiController, ITransient
     [DisplayName("增加通知公告")]
     public async Task AddNotice(AddNoticeInput input)
     {
-        var notice = input.Adapt<SysNotice>();
+        ValidateContent(input);
+        var notice = new SysNotice
+        {
+            Title = input.Title,
+            Content = input.Content,
+            Type = input.Type,
+            Status = NoticeStatusEnum.DRAFT,
+            TenantId = _userManager.TenantId,
+            CreateUserId = _userManager.UserId,
+            CreateUserName = _userManager.RealName,
+            CreateTime = DateTime.Now
+        };
         InitNoticeInfo(notice);
         await _sysNoticeRep.InsertAsync(notice);
     }
@@ -72,12 +84,27 @@ public class SysNoticeService : IDynamicApiController, ITransient
     [DisplayName("更新通知公告")]
     public async Task UpdateNotice(UpdateNoticeInput input)
     {
-        if (input.CreateUserId != _userManager.UserId)
+        ValidateContent(input);
+        var notice = await _sysNoticeRep.GetByIdAsync(input.Id);
+        if (notice == null || notice.TenantId != _userManager.TenantId || notice.CreateUserId != _userManager.UserId)
             throw Oops.Oh(ErrorCodeEnum.D7003);
+        if (notice.Status == NoticeStatusEnum.PUBLIC)
+            throw Oops.Oh(ErrorCodeEnum.D7001);
 
-        var notice = input.Adapt<SysNotice>();
-        InitNoticeInfo(notice);
-        await _sysNoticeRep.UpdateAsync(notice);
+        // 只更新可编辑字段，并在写入时再次检查状态，防止并发发布后被覆盖。
+        var changed = await _sysNoticeRep.AsUpdateable()
+            .SetColumns(u => new SysNotice
+            {
+                Title = input.Title,
+                Content = input.Content,
+                Type = input.Type,
+                UpdateTime = DateTime.Now,
+                UpdateUserId = _userManager.UserId,
+                UpdateUserName = _userManager.RealName
+            })
+            .Where(u => u.Id == input.Id && u.TenantId == _userManager.TenantId && u.CreateUserId == _userManager.UserId && u.Status != NoticeStatusEnum.PUBLIC)
+            .ExecuteCommandAsync();
+        if (changed == 0) throw Oops.Oh(ErrorCodeEnum.D7001);
     }
 
     /// <summary>
@@ -92,11 +119,14 @@ public class SysNoticeService : IDynamicApiController, ITransient
     {
         var sysNotice = await _sysNoticeRep.GetByIdAsync(input.Id);
 
-        if (sysNotice.CreateUserId != _userManager.UserId) throw Oops.Oh(ErrorCodeEnum.D7003);
+        if (sysNotice == null || sysNotice.TenantId != _userManager.TenantId || sysNotice.CreateUserId != _userManager.UserId) throw Oops.Oh(ErrorCodeEnum.D7003);
 
         if (sysNotice.Status == NoticeStatusEnum.PUBLIC) throw Oops.Oh(ErrorCodeEnum.D7001);
 
-        await _sysNoticeRep.DeleteAsync(u => u.Id == input.Id);
+        var deleted = await _sysNoticeRep.AsDeleteable()
+            .Where(u => u.Id == input.Id && u.TenantId == _userManager.TenantId && u.CreateUserId == _userManager.UserId && u.Status != NoticeStatusEnum.PUBLIC)
+            .ExecuteCommandAsync();
+        if (deleted == 0) throw Oops.Oh(ErrorCodeEnum.D7001);
 
         await _sysNoticeUserRep.DeleteAsync(u => u.NoticeId == input.Id);
     }
@@ -109,26 +139,49 @@ public class SysNoticeService : IDynamicApiController, ITransient
     [DisplayName("发布通知公告")]
     public async Task Public(NoticeInput input)
     {
-        if (!(await _sysNoticeRep.IsAnyAsync(u => u.Id == input.Id && u.CreateUserId == _userManager.UserId)))
-            throw Oops.Oh(ErrorCodeEnum.D7003);
-
-        // 更新发布状态和时间
-        await _sysNoticeRep.UpdateAsync(u => new SysNotice() { Status = NoticeStatusEnum.PUBLIC, PublicTime = DateTime.Now }, u => u.Id == input.Id);
-
         var notice = await _sysNoticeRep.GetByIdAsync(input.Id);
-
-        // 通知到的人(所有账号)
-        var userIdList = await _sysUserRep.AsQueryable().Select(u => u.Id).ToListAsync();
-
-        await _sysNoticeUserRep.DeleteAsync(u => u.NoticeId == notice.Id);
-        var noticeUserList = userIdList.Select(u => new SysNoticeUser
+        if (notice == null || notice.TenantId != _userManager.TenantId || notice.CreateUserId != _userManager.UserId)
+            throw Oops.Oh(ErrorCodeEnum.D7003);
+        if (notice.Status == NoticeStatusEnum.PUBLIC)
         {
-            NoticeId = notice.Id,
-            UserId = u,
-        }).ToList();
-        await _sysNoticeUserRep.InsertRangeAsync(noticeUserList);
+            // 推送失败可以重试，但不能重建收件记录或清空阅读状态。
+            var existingRecipients = await _sysNoticeUserRep.AsQueryable()
+                .Where(u => u.NoticeId == input.Id && u.TenantId == _userManager.TenantId).Select(u => u.UserId).ToListAsync();
+            await _sysOnlineUserService.PublicNotice(notice, existingRecipients);
+            return;
+        }
 
-        // 广播所有在线账号
+        List<long> userIdList;
+        var tenant = _sysNoticeRep.AsTenant();
+        await tenant.BeginTranAsync();
+        try
+        {
+            var changed = await _sysNoticeRep.AsUpdateable()
+                .SetColumns(u => new SysNotice { Status = NoticeStatusEnum.PUBLIC, PublicTime = DateTime.Now })
+                .Where(u => u.Id == input.Id && u.TenantId == _userManager.TenantId && u.CreateUserId == _userManager.UserId && u.Status != NoticeStatusEnum.PUBLIC)
+                .ExecuteCommandAsync();
+            if (changed == 0) throw Oops.Oh(ErrorCodeEnum.D7001);
+
+            userIdList = await _sysUserRep.AsQueryable().Where(u => u.TenantId == _userManager.TenantId).Select(u => u.Id).ToListAsync();
+            await _sysNoticeUserRep.DeleteAsync(u => u.NoticeId == input.Id && u.TenantId == _userManager.TenantId);
+            if (userIdList.Count > 0)
+            {
+                await _sysNoticeUserRep.InsertRangeAsync(userIdList.Select(userId => new SysNoticeUser
+                {
+                    NoticeId = input.Id,
+                    UserId = userId,
+                    TenantId = _userManager.TenantId
+                }).ToList());
+            }
+            notice = await _sysNoticeRep.GetByIdAsync(input.Id);
+            await tenant.CommitTranAsync();
+        }
+        catch
+        {
+            await tenant.RollbackTranAsync();
+            throw;
+        }
+        // 收件记录先提交，实时客户端收到事件后即可读取已持久化的未读列表。
         await _sysOnlineUserService.PublicNotice(notice, userIdList);
     }
 
@@ -144,7 +197,7 @@ public class SysNoticeService : IDynamicApiController, ITransient
         {
             ReadStatus = NoticeUserStatusEnum.READ,
             ReadTime = DateTime.Now
-        }, u => u.NoticeId == input.Id && u.UserId == _userManager.UserId);
+        }, u => u.NoticeId == input.Id && u.TenantId == _userManager.TenantId && u.UserId == _userManager.UserId && u.ReadStatus == NoticeUserStatusEnum.UNREAD);
     }
 
     /// <summary>
@@ -156,7 +209,7 @@ public class SysNoticeService : IDynamicApiController, ITransient
     public async Task<SqlSugarPagedList<SysNoticeUser>> PageReceived(PageNoticeInput input)
     {
         return await _sysNoticeUserRep.AsQueryable().Includes(u => u.SysNotice)
-            .Where(u => u.UserId == _userManager.UserId)
+            .Where(u => u.TenantId == _userManager.TenantId && u.UserId == _userManager.UserId)
             .WhereIF(!string.IsNullOrWhiteSpace(input.Title), u => u.SysNotice.Title.Contains(input.Title.Trim()))
             .WhereIF(input.Type is > 0, u => u.SysNotice.Type == input.Type)
             .OrderBy(u => u.SysNotice.CreateTime, OrderByType.Desc)
@@ -171,7 +224,7 @@ public class SysNoticeService : IDynamicApiController, ITransient
     public async Task<List<SysNotice>> GetUnReadList()
     {
         var noticeUserList = await _sysNoticeUserRep.AsQueryable().Includes(u => u.SysNotice)
-            .Where(u => u.UserId == _userManager.UserId && u.ReadStatus == NoticeUserStatusEnum.UNREAD)
+            .Where(u => u.TenantId == _userManager.TenantId && u.UserId == _userManager.UserId && u.ReadStatus == NoticeUserStatusEnum.UNREAD)
             .OrderBy(u => u.SysNotice.CreateTime, OrderByType.Desc).ToListAsync();
         return noticeUserList.Select(t => t.SysNotice).ToList();
     }
@@ -186,5 +239,14 @@ public class SysNoticeService : IDynamicApiController, ITransient
         notice.PublicUserId = _userManager.UserId;
         notice.PublicUserName = _userManager.RealName;
         notice.PublicOrgId = _userManager.OrgId;
+        notice.TenantId = _userManager.TenantId;
+    }
+
+    private static void ValidateContent(AddNoticeInput input)
+    {
+        if (string.IsNullOrWhiteSpace(input.Title) || input.Title.Length > 32 ||
+            string.IsNullOrWhiteSpace(input.Content) ||
+            input.Type is not (NoticeTypeEnum.NOTICE or NoticeTypeEnum.ANNOUNCEMENT))
+            throw Oops.Oh("请填写有效的通知标题、类型和内容");
     }
 }

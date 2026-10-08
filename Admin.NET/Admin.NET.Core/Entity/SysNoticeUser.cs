@@ -11,7 +11,7 @@ namespace Admin.NET.Core;
 /// </summary>
 [SugarTable(null, "系统通知公告用户表")]
 [SysTable]
-public partial class SysNoticeUser : EntityBaseId
+public partial class SysNoticeUser : EntityBaseTenantId
 {
     /// <summary>
     /// 通知公告Id

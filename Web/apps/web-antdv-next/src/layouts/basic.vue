@@ -1,26 +1,50 @@
 <script lang="ts" setup>
 import type { NotificationItem } from '@vben/layouts';
 
-import { computed, ref, watch } from 'vue';
+import type { Notice } from '#/api/system/notice';
+
+import { computed, onScopeDispose, provide, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
 import { VBEN_DOC_URL, VBEN_GITHUB_URL } from '@vben/constants';
 import { useWatermark } from '@vben/hooks';
 import { BookOpenText, CircleHelp, SvgGithubIcon } from '@vben/icons';
-import { BasicLayout, LockScreen, Notification, UserDropdown } from '@vben/layouts';
+import { BasicLayout, LockScreen, UserDropdown } from '@vben/layouts';
 import { preferences, usePreferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
 import { openWindow } from '@vben/utils';
 
+import { Alert, Button, Drawer, Modal } from 'antdv-next';
+
+import { NoticeInbox } from '#/api/notice-inbox';
+import { onlineSession, onlineStatus } from '#/api/realtime';
+import { sessionBoundary } from '#/api/session';
+import { setNoticeRead, unreadNotices } from '#/api/system/notice';
+import NoticeContent from '#/components/notice-content/index.vue';
+import { noticePlainText } from '#/components/notice-content/notice-html';
+import { noticeReadKey } from '#/components/notice-content/notice-read';
 import { $t } from '#/locales';
 import { useAuthStore } from '#/store';
 import LoginForm from '#/views/_core/authentication/login.vue';
+import ReceivedNotices from '#/views/home/notice/index.vue';
 
+import NoticePopover from './components/notice-popover.vue';
 import OnlineUsers from './components/online-users.vue';
 import TenantSwitch from './components/tenant-switch.vue';
 
 const notifications = ref<NotificationItem[]>([]);
+const noticeError = ref('');
+const noticeLoading = ref(false);
+const noticeReading = ref(false);
+const receivedOpen = ref(false);
+const noticeDetail = ref<NotificationItem>();
+const noticeDetailOpen = computed({
+	get: () => noticeDetail.value !== undefined,
+	set: (open) => {
+		if (!open) noticeDetail.value = undefined;
+	},
+});
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -28,7 +52,6 @@ const authStore = useAuthStore();
 const accessStore = useAccessStore();
 const { destroyWatermark, updateWatermark } = useWatermark();
 const { isDark } = usePreferences();
-const showDot = computed(() => notifications.value.some((item) => !item.isRead));
 
 const menus = computed(() => [
 	{
@@ -75,47 +98,84 @@ async function handleLogout() {
 	await authStore.logout(false);
 }
 
-function handleNoticeClear() {
-	notifications.value = [];
+function noticeItem(notice: Notice, isRead = false): NotificationItem {
+	return {
+		...notice,
+		id: notice.id!,
+		avatar: avatar.value,
+		date: String(notice.publicTime ?? notice.createTime ?? ''),
+		isRead,
+		message: noticePlainText(notice.content ?? ''),
+		content: notice.content,
+		title: String(notice.title ?? '通知'),
+	};
 }
 
-function markRead(id: number | string) {
-	const item = notifications.value.find((item) => item.id === id);
-	if (item) {
-		item.isRead = true;
+const inbox = new NoticeInbox({
+	load: unreadNotices,
+	read: setNoticeRead,
+	update: (items) => {
+		notifications.value = items.map((notice) => noticeItem(notice));
+	},
+	error: (error) => {
+		noticeError.value = error;
+	},
+	version: () => sessionBoundary.version,
+	loading: (loading) => {
+		noticeLoading.value = loading;
+	},
+});
+provide(noticeReadKey, () => {
+	void inbox.refresh();
+});
+
+async function markRead(id: number | string) {
+	await inbox.markRead(id);
+}
+
+async function handleMakeAll() {
+	if (noticeReading.value) return;
+	const version = sessionBoundary.version;
+	noticeReading.value = true;
+	try {
+		const results = await inbox.markAllRead();
+		if (version === sessionBoundary.version && results.some((result) => !result)) noticeError.value = '部分通知未能标记为已读，请重试';
+	} finally {
+		if (version === sessionBoundary.version) noticeReading.value = false;
 	}
 }
 
-function remove(id: number | string) {
-	notifications.value = notifications.value.filter((item) => item.id !== id);
-}
-
-function handleMakeAll() {
-	notifications.value.forEach((item) => (item.isRead = true));
-}
-
-const viewAll = () => {};
-
-const handleClick = (item: NotificationItem) => {
-	// 如果通知项有链接，点击时跳转
-	if (item.link) {
-		navigateTo(item.link, item.query, item.state);
-	}
+const viewAll = () => {
+	receivedOpen.value = true;
 };
 
-function navigateTo(link: string, query?: Record<string, any>, state?: Record<string, any>) {
-	if (link.startsWith('http://') || link.startsWith('https://')) {
-		// 外部链接，在新标签页打开
-		window.open(link, '_blank');
-	} else {
-		// 内部路由链接，支持 query 参数和 state
-		router.push({
-			path: link,
-			query: query || {},
-			state,
-		});
-	}
-}
+const handleClick = (item: NotificationItem) => {
+	noticeDetail.value = item;
+	void markRead(item.id);
+};
+
+const disposeNotice = onlineSession.subscribe('PublicNotice', () => {
+	void inbox.refresh();
+});
+
+watch(
+	() => [userStore.userInfo?.id, userStore.userInfo?.currentTenantId, Boolean(accessStore.accessToken)],
+	() => {
+		inbox.reset();
+		noticeDetail.value = undefined;
+		receivedOpen.value = false;
+		noticeReading.value = false;
+		if (accessStore.accessToken && userStore.userInfo) void inbox.refresh();
+	},
+	{ immediate: true }
+);
+watch(onlineStatus, (status) => {
+	if (status === 'connected') void inbox.refresh();
+});
+onScopeDispose(() => {
+	disposeNotice();
+	inbox.reset();
+});
 
 watch(
 	() => ({
@@ -161,18 +221,21 @@ watch(
 		<template #notification>
 			<OnlineUsers />
 			<TenantSwitch v-if="userStore.userInfo?.accountType === 999" />
-			<Notification
-				:dot="showDot"
-				:notifications="notifications"
-				@clear="handleNoticeClear"
-				@read="(item) => item.id && markRead(item.id)"
-				@remove="(item) => item.id && remove(item.id)"
-				@make-all="handleMakeAll"
-				@on-click="handleClick"
+			<NoticePopover
+				:items="notifications"
+				:error="noticeError"
+				:loading="noticeLoading"
+				:reading="noticeReading"
+				@refresh="inbox.refresh()"
+				@read-all="handleMakeAll"
+				@detail="handleClick"
 				@view-all="viewAll"
 			/>
 		</template>
 		<template #extra>
+			<Alert v-if="noticeError" :message="noticeError" type="error" show-icon>
+				<template #action><Button size="small" @click="inbox.refresh()">重试通知</Button></template>
+			</Alert>
 			<AuthenticationLoginExpiredModal v-model:open="accessStore.loginExpired" :avatar>
 				<LoginForm />
 			</AuthenticationLoginExpiredModal>
@@ -181,4 +244,22 @@ watch(
 			<LockScreen :avatar @to-login="handleLogout" />
 		</template>
 	</BasicLayout>
+	<Drawer v-model:open="receivedOpen" title="通知中心" :size="preferences.app.isMobile ? 360 : 960" :styles="{ wrapper: { maxWidth: '100vw' } }">
+		<ReceivedNotices v-if="receivedOpen" />
+	</Drawer>
+	<Modal v-model:open="noticeDetailOpen" title="通知详情" :footer="null" centered :styles="{ body: { maxHeight: 'calc(100dvh - 160px)', overflowY: 'auto' } }">
+		<template v-if="noticeDetail">
+			<h3>{{ noticeDetail.title }}</h3>
+			<NoticeContent :content="String(noticeDetail.content ?? '')" />
+			<Button v-if="noticeError" @click="markRead(noticeDetail.id)">重试已读</Button>
+		</template>
+	</Modal>
 </template>
+
+<style scoped>
+.notice-detail {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	font-family: inherit;
+}
+</style>

@@ -121,7 +121,7 @@ public class SysOnlineUserService : IDynamicApiController, ITransient
     [NonAction]
     public async Task PublicNotice(SysNotice notice, List<long> userIds)
     {
-        var userList = await _sysOnlineUerRep.GetListAsync(u => userIds.Contains(u.UserId));
+        var userList = await _sysOnlineUerRep.GetListAsync(u => userIds.Contains(u.UserId) && u.TenantId == notice.TenantId);
         if (userList.Count == 0) return;
 
         foreach (var item in userList)

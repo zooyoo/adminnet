@@ -12,7 +12,7 @@ namespace Admin.NET.Core;
 [SugarTable(null, "系统通知公告表")]
 [SysTable]
 [SugarIndex("index_{table}_T", nameof(Type), OrderByType.Asc)]
-public partial class SysNotice : EntityBase
+public partial class SysNotice : EntityBaseTenant
 {
     /// <summary>
     /// 标题

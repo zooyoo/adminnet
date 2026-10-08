@@ -42,7 +42,14 @@ const coreRoutes: RouteRecordRaw[] = [
     name: 'Root',
     path: '/',
     redirect: preferences.app.defaultHomePath,
-    children: [],
+    children: [
+      {
+        name: 'ReceivedNoticeCenter',
+        path: '/dashboard/notice',
+        component: () => import('#/views/home/notice/index.vue'),
+        meta: { title: '通知中心', hideInMenu: true, requiresAuth: true },
+      },
+    ],
   },
   {
     component: AuthPageLayout,
