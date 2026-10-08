@@ -7,11 +7,7 @@ set moduleName=apiServices
 set apiServicesPath=%dir%..\src\api-services\
 set apiUrl=http://localhost:5005/swagger/Default/swagger.json
 
-if "%1"=="approvalFlow" (
-  set moduleName=approvalFlow
-  set apiServicesPath=%dir%..\src\api-plugins\approvalFlow\
-  set apiUrl=http://localhost:5005/swagger/ApprovalFlow/swagger.json
-) else if "%1"=="dingTalk" (
+if "%1"=="dingTalk" (
   set moduleName=dingTalk
   set apiServicesPath=%dir%..\src\api-plugins\dingTalk\
   set apiUrl=http://localhost:5005/swagger/DingTalk/swagger.json

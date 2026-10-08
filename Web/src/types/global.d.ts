@@ -1,7 +1,6 @@
 // 申明外部 npm 插件模块
 declare module 'vue-grid-layout';
 declare module 'vue-signature-pad';
-declare module 'vform3-builds';
 declare module 'qrcodejs2-fixes';
 declare module 'splitpanes';
 declare module 'js-cookie';

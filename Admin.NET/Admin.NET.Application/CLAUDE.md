@@ -47,7 +47,6 @@ public class Startup : AppStartup
 
 项目引用：
 - `Admin.NET.Core`
-- `Admin.NET.Plugin.ApprovalFlow`
 - `Admin.NET.Plugin.DingTalk`
 - `Admin.NET.Plugin.GoView`
 

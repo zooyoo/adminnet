@@ -10,11 +10,7 @@ $apiServicesPath = Join-Path (Join-Path $scriptDir "..") "src\api-services\"
 $apiUrl = "http://localhost:5005/swagger/Default/swagger.json"
 
 # 根据传入的参数修改配置
-if ($args[0] -eq "approvalFlow") {
-    $moduleName = "approvalFlow"
-    $apiServicesPath = Join-Path (Join-Path $scriptDir "..") "src\api-plugins\approvalFlow\"
-    $apiUrl = "http://localhost:5005/swagger/ApprovalFlow/swagger.json"
-} elseif ($args[0] -eq "dingTalk") {
+if ($args[0] -eq "dingTalk") {
     $moduleName = "dingTalk"
     $apiServicesPath = Join-Path (Join-Path $scriptDir "..") "src\api-plugins\dingTalk\"
     $apiUrl = "http://localhost:5005/swagger/DingTalk/swagger.json"

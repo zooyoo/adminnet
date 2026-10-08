@@ -7,11 +7,6 @@ apiServicesPath="$dir/../src/api-services/"
 apiUrl="http://localhost:5005/swagger/Default/swagger.json"
 
 case "$1" in
-    approvalFlow)
-        moduleName="approvalFlow"
-        apiServicesPath="$dir/../src/api-plugins/approvalFlow/"
-        apiUrl="http://localhost:5005/swagger/ApprovalFlow/swagger.json"
-        ;;
     dingTalk)
         moduleName="dingTalk"
         apiServicesPath="$dir/../src/api-plugins/dingTalk/"

@@ -16,9 +16,6 @@ import VueSignaturePad from 'vue-signature-pad';
 // 组织架构图
 import vue3TreeOrg from 'vue3-tree-org';
 import 'vue3-tree-org/lib/vue3-tree-org.css';
-// VForm3 表单设计
-import VForm3 from 'vform3-builds';
-import 'vform3-builds/dist/designer.style.css';
 // 关闭自动打印
 import { disAutoConnect } from 'vue-plugin-hiprint';
 import sysDict from "/@/components/sysDict/sysDict.vue";
@@ -38,4 +35,4 @@ app.component('GMultiLangInput', multiLangInput);
 const TooltipProps = ElTooltip.props
 TooltipProps.showAfter = { type: Number, default: 800 }; // 设置全局tooltip延时显示时间为800毫秒
 
-app.use(pinia).use(router).use(ElementPlus).use(VueGridLayout).use(VForm3).use(VueSignaturePad).use(vue3TreeOrg).mount('#app');
+app.use(pinia).use(router).use(ElementPlus).use(VueGridLayout).use(VueSignaturePad).use(vue3TreeOrg).mount('#app');
