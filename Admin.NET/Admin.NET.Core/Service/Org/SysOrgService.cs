@@ -146,6 +146,10 @@ public class SysOrgService : IDynamicApiController, ITransient
     [DisplayName("增加机构")]
     public async Task<long> AddOrg(AddOrgInput input)
     {
+        input.TenantId = _userManager.SuperAdmin && input.TenantId > 0 ? input.TenantId : _userManager.TenantId;
+        input.CreateUserId = _userManager.UserId;
+        input.CreateUserName = _userManager.RealName;
+        await ValidateParent(input.Pid, input.TenantId.Value);
         if (!_userManager.SuperAdmin && input.Pid == 0)
             throw Oops.Oh(ErrorCodeEnum.D2009);
 
@@ -200,22 +204,13 @@ public class SysOrgService : IDynamicApiController, ITransient
     [DisplayName("更新机构")]
     public async Task UpdateOrg(UpdateOrgInput input)
     {
+        var original = await _sysOrgRep.GetFirstAsync(u => u.Id == input.Id) ?? throw Oops.Oh(ErrorCodeEnum.D2000);
+        if (!_userManager.SuperAdmin && original.TenantId != _userManager.TenantId)
+            throw Oops.Oh(ErrorCodeEnum.D2003);
+        await ValidateParent(input.Pid, original.TenantId!.Value);
         if (!_userManager.SuperAdmin && input.Pid == 0)
             throw Oops.Oh(ErrorCodeEnum.D2012);
 
-        if (input.Pid != 0)
-        {
-            //var pOrg = await _sysOrgRep.GetFirstAsync(u => u.Id == input.Pid);
-            //_ = pOrg ?? throw Oops.Oh(ErrorCodeEnum.D2000);
-
-            // 若父机构发生变化则清空用户机构缓存
-            var sysOrg = await _sysOrgRep.GetFirstAsync(u => u.Id == input.Id);
-            if (sysOrg != null && sysOrg.Pid != input.Pid)
-            {
-                // 删除与此机构、新父机构有关的用户机构缓存
-                DeleteAllUserOrgCache(sysOrg.Id, input.Pid);
-            }
-        }
         if (input.Id == input.Pid)
             throw Oops.Oh(ErrorCodeEnum.D2001);
 
@@ -235,7 +230,22 @@ public class SysOrgService : IDynamicApiController, ITransient
                 throw Oops.Oh(ErrorCodeEnum.D2003);
         }
 
-        await _sysOrgRep.AsUpdateable(input.Adapt<SysOrg>()).IgnoreColumns(true).ExecuteCommandAsync();
+        await _sysOrgRep.AsUpdateable(input.Adapt<SysOrg>()).IgnoreColumns(true)
+            .IgnoreColumns(u => new { u.TenantId, u.CreateUserId, u.CreateUserName, u.CreateTime }).ExecuteCommandAsync();
+        if (original.Pid != input.Pid)
+        {
+            DeleteAllUserOrgCache(original.Id, original.Pid);
+            DeleteAllUserOrgCache(original.Id, input.Pid);
+        }
+    }
+
+    private async Task ValidateParent(long parentId, long tenantId)
+    {
+        if (parentId == 0) return;
+        var parent = await _sysOrgRep.GetFirstAsync(u => u.Id == parentId) ?? throw Oops.Oh(ErrorCodeEnum.D2000);
+        if (parent.TenantId != tenantId) throw Oops.Oh(ErrorCodeEnum.D2003);
+        if (!_userManager.SuperAdmin && !(await GetUserOrgIdList()).Contains(parentId))
+            throw Oops.Oh(ErrorCodeEnum.D2003);
     }
 
     /// <summary>
@@ -249,6 +259,8 @@ public class SysOrgService : IDynamicApiController, ITransient
     public async Task DeleteOrg(DeleteOrgInput input)
     {
         var sysOrg = await _sysOrgRep.GetFirstAsync(u => u.Id == input.Id) ?? throw Oops.Oh(ErrorCodeEnum.D1002);
+        if (!_userManager.SuperAdmin && sysOrg.TenantId != _userManager.TenantId)
+            throw Oops.Oh(ErrorCodeEnum.D2003);
 
         // 是否有权限操作此机构
         if (!_userManager.SuperAdmin)

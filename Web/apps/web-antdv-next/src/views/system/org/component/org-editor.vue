@@ -4,10 +4,11 @@ import type { FormInstance } from 'antdv-next';
 import type { OrgRecord, UpdateOrgInput } from '#/api/system/access-admin';
 import type { TreeOption } from '#/utils/admin-tree';
 
-import { ref } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
 
 import { Alert, Form, FormItem, Input, InputNumber, Modal, RadioGroup, Select, Spin, TextArea, TreeSelect } from 'antdv-next';
 
+import { sessionBoundary } from '#/api/session';
 import { orgList, saveOrg } from '#/api/system/access-admin';
 import { useReferenceStore } from '#/store/reference';
 import { treeOptions } from '#/utils/admin-tree';
@@ -23,9 +24,13 @@ const form = ref<FormInstance>();
 const parents = ref<TreeOption[]>([]);
 const value = ref<UpdateOrgInput>({ name: '', code: '', status: 1, orderNo: 100 });
 let generation = 0;
+let editorSession = sessionBoundary.version;
 
 async function show(record?: OrgRecord, tenantId?: number, copy = false, pid = 0) {
+	if (saving.value) return;
 	const current = ++generation;
+	const version = sessionBoundary.version;
+	editorSession = version;
 	title.value = record ? (copy ? '复制机构' : '编辑机构') : '添加机构';
 	value.value = record
 		? {
@@ -48,26 +53,30 @@ async function show(record?: OrgRecord, tenantId?: number, copy = false, pid = 0
 	open.value = true;
 	try {
 		const [tree] = await Promise.all([orgList(value.value.tenantId ?? tenantId), reference.load()]);
-		if (current !== generation || !open.value) return;
+		if (current !== generation || version !== sessionBoundary.version || !open.value) return;
 		parents.value = treeOptions(tree, value.value.id, value.value.tenantId ?? undefined);
 		form.value?.clearValidate();
 	} catch (cause) {
-		if (current === generation) error.value = cause instanceof Error ? cause.message : '机构信息加载失败';
+		if (current === generation && version === sessionBoundary.version) error.value = cause instanceof Error ? cause.message : '机构信息加载失败';
 	} finally {
 		if (current === generation) loading.value = false;
 	}
 }
 
 async function save() {
-	if (loading.value || saving.value || error.value) return;
+	if (loading.value || saving.value || error.value || editorSession !== sessionBoundary.version) return;
+	const current = generation;
+	const version = editorSession;
 	try {
 		await form.value?.validate();
 	} catch {
 		return;
 	}
+	if (current !== generation || version !== sessionBoundary.version || !open.value) return;
 	saving.value = true;
 	try {
 		await saveOrg({ ...value.value, pid: value.value.pid ?? 0 });
+		if (current !== generation || version !== sessionBoundary.version) return;
 		open.value = false;
 		emit('saved');
 	} catch {
@@ -77,11 +86,28 @@ async function save() {
 	}
 }
 
+onBeforeUnmount(() => {
+	generation++;
+});
 defineExpose({ show });
 </script>
 
 <template>
-	<Modal v-model:open="open" :title="title" :width="640" :mask-closable="false" :confirm-loading="saving" :ok-button-props="{ disabled: loading || !!error }" @ok="save" @cancel="generation++">
+	<Modal
+		v-model:open="open"
+		:title="title"
+		:width="640"
+		centered
+		:styles="{ body: { maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto' } }"
+		:closable="!saving"
+		:keyboard="!saving"
+		:cancel-button-props="{ disabled: saving }"
+		:mask-closable="false"
+		:confirm-loading="saving"
+		:ok-button-props="{ disabled: loading || !!error }"
+		@ok="save"
+		@cancel="generation++"
+	>
 		<Alert v-if="error" :message="error" type="error" show-icon />
 		<Spin :spinning="loading">
 			<Form ref="form" name="org-editor" :model="value" layout="vertical">

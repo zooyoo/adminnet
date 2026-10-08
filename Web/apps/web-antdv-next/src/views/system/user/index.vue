@@ -3,7 +3,7 @@ import type { TableProps } from 'antdv-next';
 
 import type { UserRecord } from '#/api/system/user';
 
-import { onMounted, reactive, ref } from 'vue';
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 
 import { useAccess } from '@vben/access';
 import { createIconifyIcon, Plus, Search } from '@vben/icons';
@@ -11,6 +11,7 @@ import { useUserStore } from '@vben/stores';
 
 import { Avatar, Button, Dropdown, Form, FormItem, Input, message, Modal, Popconfirm, Switch, Tag, Tooltip } from 'antdv-next';
 
+import { sessionBoundary } from '#/api/session';
 import { removeUser, resetUserPassword, setUserStatus, unlockUser, userPage } from '#/api/system/user';
 import AdminTable from '#/components/admin-table/index.vue';
 import { useAdminTable } from '#/components/admin-table/use-admin-table';
@@ -43,6 +44,7 @@ const navigation = ref<InstanceType<typeof OrgNavigation>>();
 const pending = ref<number[]>([]);
 const passwordVisible = ref(false);
 const resetPassword = ref('');
+let disposed = false;
 const columns: NonNullable<TableProps<UserRecord>['columns']> = [
 	{ title: '头像', key: 'avatar', width: 70 },
 	{ title: '账号', key: 'account', dataIndex: 'account', width: 140 },
@@ -94,15 +96,19 @@ function action(key: string, record: UserRecord) {
 		void editor.value?.show(record, true);
 		return;
 	}
+	const version = sessionBoundary.version;
 	Modal.confirm({
 		title: key === 'reset' ? `确定重置“${record.account}”的密码？` : `确定解除“${record.account}”的登录锁定？`,
 		onOk: async () => {
-			if (!record.id) return;
+			if (!record.id || disposed || version !== sessionBoundary.version) return;
 			if (key === 'reset') {
-				resetPassword.value = await resetUserPassword(record.id);
+				const password = await resetUserPassword(record.id);
+				if (disposed || version !== sessionBoundary.version) return;
+				resetPassword.value = password;
 				passwordVisible.value = true;
 			} else {
 				await unlockUser(record.id);
+				if (disposed || version !== sessionBoundary.version) return;
 				message.success('已解除登录锁定');
 			}
 		},
@@ -110,6 +116,11 @@ function action(key: string, record: UserRecord) {
 }
 onMounted(async () => {
 	await Promise.all([table.reload(), reference.load().catch(() => undefined)]);
+});
+onBeforeUnmount(() => {
+	disposed = true;
+	resetPassword.value = '';
+	passwordVisible.value = false;
 });
 </script>
 

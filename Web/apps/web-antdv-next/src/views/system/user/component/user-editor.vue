@@ -3,13 +3,14 @@ import type { FormInstance } from 'antdv-next';
 
 import type { UserDraft, UserRecord } from '#/api/system/user';
 
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 
 import { createIconifyIcon, Plus } from '@vben/icons';
 import { useUserStore } from '@vben/stores';
 
 import { Alert, Button, DatePicker, Divider, Form, FormItem, Input, InputNumber, Modal, RadioGroup, Select, Spin, TabPane, Tabs, TextArea, Transfer, TreeSelect } from 'antdv-next';
 
+import { sessionBoundary } from '#/api/session';
 import { saveUser, userAssignments, userEditorOptions } from '#/api/system/user';
 import { useReferenceStore } from '#/store/reference';
 import { treeOptions } from '#/utils/admin-tree';
@@ -41,9 +42,13 @@ const assigned = computed({
 });
 const accountTypes = computed(() => reference.options('AccountTypeEnum').filter((item) => item.value !== 999 && (item.value !== 888 || user.userInfo?.accountType === 999)));
 let generation = 0;
+let editorSession = sessionBoundary.version;
 
 async function show(record?: UserRecord, copy = false, tenantId?: number, orgId?: number) {
+	if (saving.value) return;
 	const current = ++generation;
+	const version = sessionBoundary.version;
+	editorSession = version;
 	value.value = createUserDraft(record, copy, tenantId, orgId);
 	title.value = record ? (copy ? '复制账号' : '编辑账号') : '添加账号';
 	open.value = true;
@@ -58,21 +63,23 @@ async function show(record?: UserRecord, copy = false, tenantId?: number, orgId?
 			record?.id ? userAssignments(record.id) : Promise.resolve({ roleIdList: [], extOrgIdList: [] }),
 			reference.load(),
 		]);
-		if (current !== generation || !open.value) return;
+		if (current !== generation || version !== sessionBoundary.version || !open.value) return;
 		options.value = loaded;
 		value.value.roleIdList = [...assignments.roleIdList];
 		value.value.extOrgIdList = assignments.extOrgIdList.map((item) => ({ orgId: item.orgId, posId: item.posId, jobNum: item.jobNum, posLevel: item.posLevel, joinDate: item.joinDate }));
 		if (!value.value.langCode) value.value.langCode = loaded.languages[0]?.code;
 		form.value?.clearValidate();
 	} catch (cause) {
-		if (current === generation) loadError.value = cause instanceof Error ? cause.message : '账号信息加载失败';
+		if (current === generation && version === sessionBoundary.version) loadError.value = cause instanceof Error ? cause.message : '账号信息加载失败';
 	} finally {
 		if (current === generation) loading.value = false;
 	}
 }
 
 async function save() {
-	if (loading.value || saving.value || loadError.value) return;
+	if (loading.value || saving.value || loadError.value || editorSession !== sessionBoundary.version) return;
+	const current = generation;
+	const version = editorSession;
 	validationError.value = validateAssignments(value.value);
 	if (validationError.value) {
 		activeTab.value = 'base';
@@ -84,9 +91,11 @@ async function save() {
 		activeTab.value = 'base';
 		return;
 	}
+	if (current !== generation || version !== sessionBoundary.version || !open.value) return;
 	saving.value = true;
 	try {
 		await saveUser(value.value);
+		if (current !== generation || version !== sessionBoundary.version) return;
 		open.value = false;
 		emit('saved');
 	} catch {
@@ -96,11 +105,28 @@ async function save() {
 	}
 }
 
+onBeforeUnmount(() => {
+	generation++;
+});
 defineExpose({ show });
 </script>
 
 <template>
-	<Modal v-model:open="open" :title="title" :width="780" :mask-closable="false" :confirm-loading="saving" :ok-button-props="{ disabled: loading || !!loadError }" @ok="save" @cancel="generation++">
+	<Modal
+		v-model:open="open"
+		:title="title"
+		:width="780"
+		centered
+		:styles="{ body: { maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto' } }"
+		:closable="!saving"
+		:keyboard="!saving"
+		:cancel-button-props="{ disabled: saving }"
+		:mask-closable="false"
+		:confirm-loading="saving"
+		:ok-button-props="{ disabled: loading || !!loadError }"
+		@ok="save"
+		@cancel="generation++"
+	>
 		<Alert v-if="loadError || validationError" :message="loadError || validationError" type="error" show-icon class="mb-3" />
 		<Spin :spinning="loading">
 			<Form ref="form" name="user-editor" :model="value" layout="vertical">

@@ -46,7 +46,7 @@ $ErrorActionPreference = 'Stop'
 
 ## 接续
 
-第 01、02 项已经验收，下一项为 03。按最新用户要求逐项更新进度、提交代码、保存交接记录后继续，不以创建新会话为前置条件。
+编号任务的当前状态以 `progress.md` 和对应 `issues/` 文件为准。按最新用户要求逐项更新进度、提交代码、保存交接记录后继续，不以创建新会话为前置条件。
 
 ## 缓存验收
 
@@ -61,3 +61,21 @@ if ($LASTEXITCODE -ne 0) { throw 'Cache baseline failed.' }
 脚本使用真实种子地址 `/platform/cache`，验证桌面和手机读写、权限拒绝；可选 `--contracts` 在相同生产产物上运行 Mock 契约，报告明确区分两类证据。最后主动停止本次隔离 API，验证停机反馈，因此不可直接复用已完成运行的服务。中途失败仍需执行停止脚本。
 
 若默认后端输出被用户调试进程占用，使用 `dotnet build -o <独立临时目录>`，向启动脚本传入 `-BuildRoot <独立临时目录>`；不得为验收终止用户调试服务。
+
+## 用户、机构与职位关联验收
+
+先构建后端和 `Web/dist`，用 `-OnlineFixture` 创建全新的隔离运行。`$runtime` 为启动输出的临时目录，不能指向开发或生产实例。仅运行桌面：
+
+```powershell
+$ErrorActionPreference = 'Stop'
+node .scratch/frontend-vben-migration/run-user-service-baseline.mjs $runtime
+if ($LASTEXITCODE -ne 0) { throw '真实用户服务验收失败。' }
+node .scratch/frontend-vben-migration/run-user-browser-baseline.mjs $runtime
+if ($LASTEXITCODE -ne 0) { throw '真实用户桌面验收失败。' }
+node .scratch/frontend-vben-migration/run-user-contract-baseline.mjs
+if ($LASTEXITCODE -ne 0) { throw '用户桌面契约验收失败。' }
+```
+
+服务脚本通过真实 API、只读 SQLite 与 SignalR 验证关联保存、权限边界、机构防环、密码和锁定行为。桌面脚本提供生产产物到该隔离 API 的本地代理，最后停止后端验证真实 502 及草稿保留；中途失败后按“清理”章节停止服务。脚本仅清理自身唯一前缀的数据，报告独立记录 `cleanupPassed`。临时密码和令牌不写入报告。
+
+第三个脚本使用生产产物与 Mock API，只证明用户、机构、职位及权限页面的契约。报告位于输出的临时目录；不能代替前两个脚本的真实集成证据。

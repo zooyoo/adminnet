@@ -92,6 +92,8 @@ public class SysUserService : IDynamicApiController, ITransient
     [DisplayName("增加用户")]
     public virtual async Task<long> AddUser(AddUserInput input)
     {
+        input.TenantId = _userManager.SuperAdmin && input.TenantId > 0 ? input.TenantId : _userManager.TenantId;
+        await ValidateAssignments(input, input.TenantId.Value);
         var isExist = await _sysUserRep.AsQueryable().ClearFilter().AnyAsync(u => u.Account == input.Account);
         if (isExist) throw Oops.Oh(ErrorCodeEnum.D1003);
 
@@ -104,6 +106,8 @@ public class SysUserService : IDynamicApiController, ITransient
         // 若没有设置密码则取默认密码
         var password = !string.IsNullOrWhiteSpace(input.Password) ? input.Password : await _sysConfigService.GetConfigValue<string>(ConfigConst.SysPassword);
         var user = input.Adapt<SysUser>();
+        user.CreateUserId = _userManager.UserId;
+        user.CreateUserName = _userManager.RealName;
         user.Password = CryptogramUtil.Encrypt(password);
         var newUser = await _sysUserRep.AsInsertable(user).ExecuteReturnEntityAsync();
 
@@ -177,6 +181,10 @@ public class SysUserService : IDynamicApiController, ITransient
     [DisplayName("更新用户")]
     public virtual async Task UpdateUser(UpdateUserInput input)
     {
+        var original = await GetManageableUser(input.Id);
+        var originalRoles = await _sysUserRoleService.GetUserRoleIdList(input.Id);
+        var originalExtOrgs = await _sysUserExtOrgService.GetUserExtOrgList(input.Id);
+        await ValidateAssignments(input, original.TenantId!.Value);
         if (await _sysUserRep.AsQueryable().ClearFilter().AnyAsync(u => u.Account == input.Account && u.Id != input.Id))
             throw Oops.Oh(ErrorCodeEnum.D1003);
 
@@ -187,7 +195,7 @@ public class SysUserService : IDynamicApiController, ITransient
         if (_userManager.AccountType != AccountTypeEnum.SuperAdmin && input.AccountType is AccountTypeEnum.SuperAdmin or AccountTypeEnum.SysAdmin) throw Oops.Oh(ErrorCodeEnum.D1038);
 
         await _sysUserRep.AsUpdateable(input.Adapt<SysUser>()).IgnoreColumns(true)
-            .IgnoreColumns(u => new { u.Password, u.Status, u.TenantId }).ExecuteCommandAsync();
+            .IgnoreColumns(u => new { u.Password, u.Status, u.TenantId, u.CreateUserId, u.CreateUserName, u.CreateTime }).ExecuteCommandAsync();
 
         await UpdateRoleAndExtOrg(input);
 
@@ -196,8 +204,9 @@ public class SysUserService : IDynamicApiController, ITransient
 
         // 若账号的角色和组织架构发生变化,则强制下线账号进行权限更新
         var user = await _sysUserRep.AsQueryable().ClearFilter().FirstAsync(u => u.Id == input.Id);
-        var roleIds = await GetOwnRoleList(input.Id);
-        if (input.OrgId != user.OrgId || !input.RoleIdList.OrderBy(u => u).SequenceEqual(roleIds.OrderBy(u => u)))
+        if (input.OrgId != original.OrgId ||
+            !(input.RoleIdList ?? new()).OrderBy(u => u).SequenceEqual(originalRoles.OrderBy(u => u)) ||
+            !(input.ExtOrgIdList ?? new()).Select(u => u.OrgId).OrderBy(u => u).SequenceEqual(originalExtOrgs.Select(u => u.OrgId).OrderBy(u => u)))
             await _sysOnlineUserService.ForceOffline(input.Id);
         // 更新域账号
         await _sysUserLdapService.AddUserLdap(user.TenantId!.Value, user.Id, user.Account, input.DomainAccount);
@@ -232,7 +241,9 @@ public class SysUserService : IDynamicApiController, ITransient
     /// <returns></returns>
     private async Task UpdateRoleAndExtOrg(AddUserInput input)
     {
-        await GrantRole(new UserRoleInput { UserId = input.Id, RoleIdList = input.RoleIdList });
+        // 注册入口已经由注册方案确定关联；公开授权接口另行校验管理权限。
+        await _sysUserRoleService.GrantUserRole(new UserRoleInput { UserId = input.Id, RoleIdList = input.RoleIdList });
+        await _eventPublisher.PublishAsync(SysUserEventTypeEnum.UpdateRole, new UserRoleInput { UserId = input.Id, RoleIdList = input.RoleIdList });
 
         await _sysUserExtOrgService.UpdateUserExtOrg(input.Id, input.ExtOrgIdList);
     }
@@ -247,7 +258,7 @@ public class SysUserService : IDynamicApiController, ITransient
     [DisplayName("删除用户")]
     public virtual async Task DeleteUser(DeleteUserInput input)
     {
-        var user = await _sysUserRep.GetByIdAsync(input.Id) ?? throw Oops.Oh(ErrorCodeEnum.D0009);
+        var user = await GetManageableUser(input.Id);
         user.ValidateIsSuperAdminAccountType();
         user.ValidateIsUserId(_userManager.UserId);
 
@@ -328,7 +339,7 @@ public class SysUserService : IDynamicApiController, ITransient
         if (_userManager.UserId == input.Id)
             throw Oops.Oh(ErrorCodeEnum.D1026);
 
-        var user = await _sysUserRep.GetByIdAsync(input.Id) ?? throw Oops.Oh(ErrorCodeEnum.D0009);
+        var user = await GetManageableUser(input.Id);
         user.ValidateIsSuperAdminAccountType(ErrorCodeEnum.D1015);
         if (!Enum.IsDefined(typeof(StatusEnum), input.Status))
             throw Oops.Oh(ErrorCodeEnum.D3005);
@@ -370,11 +381,11 @@ public class SysUserService : IDynamicApiController, ITransient
     [DisplayName("授权用户角色")]
     public async Task GrantRole(UserRoleInput input)
     {
-        //var user = await _sysUserRep.GetFirstAsync(u => u.Id == input.UserId) ?? throw Oops.Oh(ErrorCodeEnum.D0009);
-        //if (user.AccountType == AccountTypeEnum.SuperAdmin)
-        //    throw Oops.Oh(ErrorCodeEnum.D1022);
-
+        var user = await GetManageableUser(input.UserId);
+        await ValidateRoleIds(input.RoleIdList, user.TenantId!.Value);
         await _sysUserRoleService.GrantUserRole(input);
+        SqlSugarFilter.DeleteUserOrgCache(input.UserId, _sysUserRep.Context.CurrentConnectionConfig.ConfigId.ToString());
+        await _sysOnlineUserService.ForceOffline(input.UserId);
 
         // 发布系统用户操作事件
         await _eventPublisher.PublishAsync(SysUserEventTypeEnum.UpdateRole, input);
@@ -440,7 +451,7 @@ public class SysUserService : IDynamicApiController, ITransient
     [DisplayName("重置用户密码")]
     public virtual async Task<string> ResetPwd(ResetPwdUserInput input)
     {
-        var user = await _sysUserRep.GetByIdAsync(input.Id) ?? throw Oops.Oh(ErrorCodeEnum.D0009);
+        var user = await GetManageableUser(input.Id);
         string randomPassword = new(Enumerable.Repeat("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", 6).Select(s => s[Random.Shared.Next(s.Length)]).ToArray());
         user.Password = CryptogramUtil.Encrypt(randomPassword);
         await _sysUserRep.AsUpdateable(user).UpdateColumns(u => u.Password).ExecuteCommandAsync();
@@ -467,7 +478,7 @@ public class SysUserService : IDynamicApiController, ITransient
     [DisplayName("解除登录锁定")]
     public virtual async Task UnlockLogin(UnlockLoginInput input)
     {
-        var user = await _sysUserRep.GetByIdAsync(input.Id) ?? throw Oops.Oh(ErrorCodeEnum.D0009);
+        var user = await GetManageableUser(input.Id);
 
         // 清空密码错误次数
         var keyPasswordErrorTimes = $"{CacheConst.KeyPasswordErrorTimes}{user.Account}";
@@ -489,6 +500,7 @@ public class SysUserService : IDynamicApiController, ITransient
     [DisplayName("获取用户拥有角色集合")]
     public async Task<List<long>> GetOwnRoleList(long userId)
     {
+        await GetManageableUser(userId);
         return await _sysUserRoleService.GetUserRoleIdList(userId);
     }
 
@@ -500,6 +512,60 @@ public class SysUserService : IDynamicApiController, ITransient
     [DisplayName("获取用户扩展机构集合")]
     public async Task<List<SysUserExtOrg>> GetOwnExtOrgList(long userId)
     {
+        await GetManageableUser(userId);
         return await _sysUserExtOrgService.GetUserExtOrgList(userId);
+    }
+
+    private async Task<SysUser> GetManageableUser(long userId)
+    {
+        var user = await _sysUserRep.AsQueryable().FirstAsync(u => u.Id == userId) ?? throw Oops.Oh(ErrorCodeEnum.D0009);
+        if (!_userManager.SuperAdmin)
+        {
+            if (user.TenantId != _userManager.TenantId || user.AccountType is AccountTypeEnum.SuperAdmin or AccountTypeEnum.SysAdmin)
+                throw Oops.Oh(ErrorCodeEnum.D1038);
+            var orgIds = await _sysOrgService.GetUserOrgIdList();
+            if (!orgIds.Contains(user.OrgId)) throw Oops.Oh(ErrorCodeEnum.D2003);
+        }
+        return user;
+    }
+
+    private async Task ValidateRoleIds(List<long> roleIds, long tenantId)
+    {
+        var ids = (roleIds ?? new()).Distinct().ToList();
+        if (ids.Count == 0) return;
+        var roles = await _sysUserRep.Context.Queryable<SysRole>().Where(u => ids.Contains(u.Id)).ToListAsync();
+        if (roles.Count != ids.Count || roles.Any(u => u.TenantId != tenantId))
+            throw Oops.Oh(ErrorCodeEnum.D1038);
+        if (!_userManager.SuperAdmin && !_userManager.SysAdmin)
+        {
+            var ownIds = await _sysUserRoleService.GetUserRoleIdList(_userManager.UserId);
+            if (roles.Any(u => u.CreateUserId != _userManager.UserId && !ownIds.Contains(u.Id)))
+                throw Oops.Oh(ErrorCodeEnum.D1038);
+        }
+    }
+
+    private async Task ValidateAssignments(AddUserInput input, long tenantId)
+    {
+        var extras = input.ExtOrgIdList ?? new();
+        if (extras.Select(u => (u.OrgId, u.PosId)).Distinct().Count() != extras.Count)
+            throw Oops.Oh(ErrorCodeEnum.D2003);
+        var orgIds = extras.Select(u => u.OrgId).Append(input.OrgId).Distinct().ToList();
+        var posIds = extras.Select(u => u.PosId).Append(input.PosId).Distinct().ToList();
+        var orgs = await _sysUserRep.Context.Queryable<SysOrg>().Where(u => orgIds.Contains(u.Id)).ToListAsync();
+        var positions = await _sysUserRep.Context.Queryable<SysPos>().Where(u => posIds.Contains(u.Id)).ToListAsync();
+        if (orgs.Count != orgIds.Count || orgs.Any(u => u.TenantId != tenantId) ||
+            positions.Count != posIds.Count || positions.Any(u => u.TenantId != tenantId))
+            throw Oops.Oh(ErrorCodeEnum.D2003);
+        if (!_userManager.SuperAdmin)
+        {
+            var allowed = await _sysOrgService.GetUserOrgIdList();
+            if (orgIds.Any(id => !allowed.Contains(id))) throw Oops.Oh(ErrorCodeEnum.D2003);
+        }
+        await ValidateRoleIds(input.RoleIdList, tenantId);
+        // 关联表的主键和账号归属由服务端生成，不能采信复制或伪造的字段。
+        input.ExtOrgIdList = extras.Select(u => new SysUserExtOrg
+        {
+            OrgId = u.OrgId, PosId = u.PosId, JobNum = u.JobNum, PosLevel = u.PosLevel, JoinDate = u.JoinDate
+        }).ToList();
     }
 }

@@ -21,6 +21,7 @@ const employee = {
 };
 
 test.beforeEach(async ({ page }) => {
+	await page.route('**/prod-api/**', (route) => route.fulfill({ status: 503, json: { message: 'Contract fixture: undeclared request' } }));
 	await mockAdminSession(page, 'user');
 	await page.route('**/prod-api/api/sysUser/page', (route) => route.fulfill({ json: { code: 200, result: { items: [employee], total: 1 } } }));
 	await page.route('**/prod-api/api/sysOrg/tree**', (route) =>
@@ -213,4 +214,31 @@ test('opening accounts in different tenants does not reuse filtered role or posi
 	await dialog.getByRole('tab', { name: '角色授权' }).click();
 	await expect(dialog.getByText('其他租户角色', { exact: true })).toBeVisible();
 	await expect(dialog.getByText('未授予角色', { exact: true })).toHaveCount(0);
+});
+
+test('pending save keeps the account editor open until the server confirms the result', async ({ page }) => {
+	let release!: () => void;
+	const pending = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	await page.route('**/prod-api/api/sysUser/update', async (route) => {
+		await pending;
+		await route.fulfill({ json: { code: 200 } });
+	});
+	await loginAdmin(page, 'user');
+	await page.getByRole('button', { name: '编辑账号', exact: true }).click();
+	const dialog = page.getByRole('dialog', { name: '编辑账号', exact: true });
+	await expect(dialog.getByLabel('附属机构 1', { exact: true })).toBeVisible();
+	try {
+		await Promise.all([
+			page.waitForRequest((request) => request.url().endsWith('/sysUser/update')),
+			dialog.getByRole('button', { name: /^确\s*定$/ }).click(),
+		]);
+		await expect(dialog.getByRole('button', { name: /^取\s*消$/ })).toBeDisabled();
+		await page.keyboard.press('Escape');
+		await expect(dialog).toBeVisible();
+	} finally {
+		release();
+	}
+	await expect(dialog).toBeHidden();
 });
