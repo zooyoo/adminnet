@@ -64,6 +64,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Cache baseline failed.' }
 
 ## 用户、机构与职位关联验收
 
+编写和排查验收脚本时，使用 [真实浏览器验收 Skill](../../.agents/skills/real-browser-baseline/SKILL.md)。每次执行后，将已验证的新经验补充到其参考记录；本目录 `AGENTS.md` 已登记持续维护要求。
+
 先构建后端和 `Web/dist`，用 `-OnlineFixture` 创建全新的隔离运行。`$runtime` 为启动输出的临时目录，不能指向开发或生产实例。仅运行桌面：
 
 ```powershell
