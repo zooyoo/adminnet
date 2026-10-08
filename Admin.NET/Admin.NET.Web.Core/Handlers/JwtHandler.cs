@@ -82,9 +82,7 @@ public class JwtHandler : AppAuthorizeHandler
             return true;
 
         // 路由名称
-        var routeName = httpContext.Request.Path.StartsWithSegments("/api")
-            ? httpContext.Request.Path.Value![5..].Replace("/", ":")
-            : httpContext.Request.Path.Value![1..].Replace("/", ":");
+        var routeName = RoutePermissionUtil.GetPermissionName(httpContext);
 
         // 获取用户拥有按钮权限集合
         var ownBtnPermList = await SysMenuService.GetOwnBtnPermList();

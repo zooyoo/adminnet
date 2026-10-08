@@ -1,6 +1,6 @@
-# 第 01 项隔离联调基线
+# 编号提案隔离联调基线
 
-这些脚本是进行中的验收工具，不代表第 01 项已经完成。进度以 `progress.md` 和 `issues/01-real-login-position-baseline.md` 为准。
+这些脚本是可重复的隔离验收工具，脚本存在不等于任务完成。进度和证据以 `progress.md` 及对应 `issues/` 文件为准。
 
 ## 运行
 
@@ -46,4 +46,18 @@ $ErrorActionPreference = 'Stop'
 
 ## 接续
 
-继续第 01 项未勾选验收条件，不能开始第 02 项或把基线报告当作提案完成。第 01 项完全验收后才更新总进度并创建新会话。当前工具目录未提供 `create_thread`，因此尚未创建下一会话。
+第 01、02 项已经验收，下一项为 03。按最新用户要求逐项更新进度、提交代码、保存交接记录后继续，不以创建新会话为前置条件。
+
+## 缓存验收
+
+生产前端构建后，用 `-CrudFixture` 创建新的隔离 API，再运行：
+
+```powershell
+$ErrorActionPreference = 'Stop'
+node .scratch/frontend-vben-migration/run-cache-baseline.mjs $runtime --contracts
+if ($LASTEXITCODE -ne 0) { throw 'Cache baseline failed.' }
+```
+
+脚本使用真实种子地址 `/platform/cache`，验证桌面和手机读写、权限拒绝；可选 `--contracts` 在相同生产产物上运行 Mock 契约，报告明确区分两类证据。最后主动停止本次隔离 API，验证停机反馈，因此不可直接复用已完成运行的服务。中途失败仍需执行停止脚本。
+
+若默认后端输出被用户调试进程占用，使用 `dotnet build -o <独立临时目录>`，向启动脚本传入 `-BuildRoot <独立临时目录>`；不得为验收终止用户调试服务。

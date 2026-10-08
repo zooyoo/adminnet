@@ -46,6 +46,7 @@ export const useAuthStore = defineStore(
 				description: `欢迎回来，${userInfo.realName}`,
 				title: '登录成功',
 				duration: 3,
+				placement: preferences.app.isMobile ? 'bottomRight' : 'topRight',
 			});
 			return { userInfo };
 		}

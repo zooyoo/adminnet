@@ -2,7 +2,8 @@ param(
     [ValidateRange(1024, 65535)]
     [int]$Port = 5016,
     [switch]$CrudFixture,
-    [switch]$AuthFixture
+    [switch]$AuthFixture,
+    [string]$BuildRoot
 )
 
 $ErrorActionPreference = 'Stop'
@@ -10,7 +11,7 @@ Set-StrictMode -Version Latest
 if ($CrudFixture -and $AuthFixture) { throw 'Select only one isolated fixture.' }
 
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
-$buildRoot = Join-Path $repositoryRoot 'Admin.NET/Admin.NET.Web.Entry/bin/Debug/net10.0'
+$buildRoot = if ($BuildRoot) { [IO.Path]::GetFullPath($BuildRoot) } else { Join-Path $repositoryRoot 'Admin.NET/Admin.NET.Web.Entry/bin/Debug/net10.0' }
 $configurationRoot = Join-Path $repositoryRoot 'Admin.NET/Admin.NET.Application/Configuration'
 if (-not (Test-Path -LiteralPath (Join-Path $buildRoot 'Admin.NET.Web.Entry.dll'))) {
     throw 'Build Admin.NET.Web.Entry in Debug before starting the isolated API.'

@@ -219,6 +219,17 @@ function usePreferences() {
 
     const contentIsMaximize = headerHidden && sidebarHidden;
 
+    // 手机端将自动入口收进用户菜单，避免悬浮按钮覆盖业务操作。
+    if (
+      preferencesButtonPosition === 'auto' &&
+      isMobile.value &&
+      header.enable &&
+      !headerHidden &&
+      !isFullContent.value
+    ) {
+      return { fixed: false, header: false, userDropdown: true };
+    }
+
     const isHeaderPosition = preferencesButtonPosition === 'header';
     const isUserDropdownPosition =
       preferencesButtonPosition === 'user-dropdown';

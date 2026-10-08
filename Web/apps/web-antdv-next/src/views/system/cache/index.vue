@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useAccess } from '@vben/access';
 import { JsonViewer } from '@vben/common-ui';
 import { createIconifyIcon } from '@vben/icons';
+import { usePreferences } from '@vben/preferences';
 
 import { Alert, Button, Empty, Input, Modal, Spin, Tooltip, Tree } from 'antdv-next';
 import { isCancel } from 'axios';
@@ -14,6 +15,7 @@ import { buildCacheTree, displayCacheValue } from './cache-tree';
 
 defineOptions({ name: 'SysCache' });
 const { hasAccessByCodes } = useAccess();
+const { isDark } = usePreferences();
 const can = (action: string) => hasAccessByCodes([`sysCache:${action}`]);
 const Refresh = createIconifyIcon('lucide:refresh-cw');
 const Trash = createIconifyIcon('lucide:trash-2');
@@ -27,6 +29,14 @@ const selected = ref<string[]>([]);
 const selectedKey = ref<string>();
 const content = ref<unknown>();
 const expanded = ref<string[]>([]);
+const confirmation = ref<{ key?: string }>();
+const saving = ref(false);
+const confirmationOpen = computed({
+	get: () => confirmation.value !== undefined,
+	set: (open) => {
+		if (!open && !saving.value) confirmation.value = undefined;
+	},
+});
 let generation = 0;
 let listGeneration = 0;
 let controller: AbortController | undefined;
@@ -82,25 +92,26 @@ async function select(values: Array<number | string>) {
 function remove() {
 	const key = selectedKey.value;
 	if (key === undefined || !can('delete')) return;
-	Modal.confirm({
-		title: `确定删除缓存“${key}”？`,
-		okButtonProps: { danger: true },
-		onOk: async () => {
-			await removeCache(key);
-			await reload();
-		},
-	});
+	confirmation.value = { key };
 }
 function clear() {
 	if (!can('clear')) return;
-	Modal.confirm({
-		title: '确定清空所有缓存？',
-		okButtonProps: { danger: true },
-		onOk: async () => {
-			await clearCache();
-			await reload();
-		},
-	});
+	confirmation.value = {};
+}
+async function confirmMutation() {
+	const operation = confirmation.value;
+	if (!operation || saving.value || !can(operation.key === undefined ? 'clear' : 'delete')) return;
+	saving.value = true;
+	try {
+		if (operation.key === undefined) await clearCache();
+		else await removeCache(operation.key);
+		confirmation.value = undefined;
+		await reload();
+	} catch {
+		// 请求层统一提示错误，保留确认框与选中数据以便重试。
+	} finally {
+		saving.value = false;
+	}
 }
 onMounted(() => {
 	if (can('keyList')) void reload();
@@ -134,10 +145,24 @@ onBeforeUnmount(() => {
 			</header>
 			<Alert v-if="detailError" :message="detailError" type="error" show-icon />
 			<Spin :spinning="detailLoading">
-				<JsonViewer v-if="selectedKey !== undefined && !detailError" :value="content" :expand-depth="3" copyable :show-double-quotes="true" />
+				<template v-if="selectedKey !== undefined && !detailError && !detailLoading">
+					<JsonViewer v-if="content !== null && typeof content === 'object'" :value="content" :theme="isDark ? 'dark' : 'light'" :expand-depth="3" copyable :show-double-quotes="true" />
+					<pre v-else class="cache-scalar">{{ content === undefined ? '' : String(content) }}</pre>
+				</template>
 				<Empty v-else-if="selectedKey === undefined" description="未选择缓存" />
 			</Spin>
 		</main>
+		<Modal
+			v-model:open="confirmationOpen"
+			:title="confirmation?.key === undefined ? '确定清空所有缓存？' : `确定删除缓存“${confirmation.key}”？`"
+			:confirm-loading="saving"
+			:ok-button-props="{ danger: true }"
+			:cancel-button-props="{ disabled: saving }"
+			:closable="!saving"
+			:keyboard="!saving"
+			:mask-closable="!saving"
+			@ok="confirmMutation"
+		/>
 	</div>
 </template>
 
@@ -167,6 +192,9 @@ header {
 	justify-content: space-between;
 	margin-bottom: 16px;
 }
+header > :deep(button) {
+	flex-shrink: 0;
+}
 h1,
 h2 {
 	font-size: 16px;
@@ -174,8 +202,12 @@ h2 {
 	overflow-wrap: anywhere;
 	min-width: 0;
 }
-.cache-detail :deep(.jv-code) {
+.cache-detail :deep(.vben-json-viewer) {
 	overflow: auto;
+}
+.cache-scalar {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
 }
 @media (max-width: 750px) {
 	.cache-page {
