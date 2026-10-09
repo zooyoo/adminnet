@@ -4,6 +4,7 @@ param(
     [switch]$CrudFixture,
     [switch]$AuthFixture,
     [switch]$OnlineFixture,
+    [switch]$FileDeduplication,
     [switch]$TranslationTestService,
     [uri]$SmsTestService,
     [ValidateRange(1, 120)]
@@ -95,8 +96,8 @@ $configuration['OSSProvider'] = @{
 $configuration['Upload'] = @{
     Path = 'isolated-upload'
     MaxSize = 10240
-    EnableMd5 = $false
-    ContentType = @('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'application/octet-stream', 'image/png', 'image/jpeg', 'image/gif', 'image/bmp')
+    EnableMd5 = $FileDeduplication.IsPresent
+    ContentType = @('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'application/octet-stream', 'text/plain', 'application/xml', 'image/png', 'image/jpeg', 'image/gif', 'image/bmp', 'image/webp', 'video/mp4', 'video/webm', 'audio/mpeg', 'audio/wav', 'audio/mp4', 'video/ogg')
 }
 if ($SmsTestService) {
     if ($SmsTestService.Scheme -ne 'http' -or $SmsTestService.Host -ne '127.0.0.1' -or

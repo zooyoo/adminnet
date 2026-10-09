@@ -27,6 +27,13 @@ public class RoutePermissionUtilTests
     [InlineData("/api/sysCache/delete/{key?}", "/api/sysCache/delete", "sysCache:delete")]
     [InlineData("/API/sysCache/value/{key}", "/API/sysCache/value/key", "sysCache:keyList")]
     [InlineData("/custom/action/{id}", "/custom/action/123", "custom:action")]
+    [InlineData("/api/sysFile/preview/{id}", "/api/sysFile/preview/17", "sysFile:downloadFile")]
+    [InlineData("/api/sysFile/downloadFileBase64", "/api/sysFile/downloadFileBase64", "sysFile:downloadFile")]
+    [InlineData("/api/sysFile/file", "/api/sysFile/file", "sysFile:page")]
+    [InlineData("/api/sysFile/fileByIds", "/api/sysFile/fileByIds", "sysFile:page")]
+    [InlineData("/api/sysFile/folder", "/api/sysFile/folder", "sysFile:page")]
+    [InlineData("/api/sysFile/uploadFiles", "/api/sysFile/uploadFiles", "sysFile:uploadFile")]
+    [InlineData("/api/sysFile/uploadFileFromBase64", "/api/sysFile/uploadFileFromBase64", "sysFile:uploadFile")]
     public void GetPermissionName_MatchedRoute_ExcludesParameterValues(string template, string path, string expected)
     {
         // 准备
@@ -56,6 +63,11 @@ public class RoutePermissionUtilTests
     [InlineData("sysLangText:batchSave", true)]
     [InlineData("sysLangText:aiTranslateText", true)]
     [InlineData("sysConfig:sysInfo", false)]
+    [InlineData("sysFile:page", true)]
+    [InlineData("sysFile:uploadFile", true)]
+    [InlineData("sysFile:downloadFile", true)]
+    [InlineData("sysFile:update", true)]
+    [InlineData("sysFile:delete", true)]
     public void RequiresExplicitGrant_TranslationSensitiveAction_DoesNotDependOnMenuRegistration(string permission, bool expected)
     {
         Assert.Equal(expected, RoutePermissionUtil.RequiresExplicitGrant(permission));

@@ -308,6 +308,26 @@ public class Startup : AppStartup
         });
 
         // 图像处理
+        // 必须先于图片缓存和静态文件：私有上传只能经受认证的下载/预览 API 读取。
+        app.Use(async (context, next) =>
+        {
+            var name = System.IO.Path.GetFileNameWithoutExtension(context.Request.Path.Value);
+            if (System.IO.Path.HasExtension(context.Request.Path.Value) && long.TryParse(name, out var fileId))
+            {
+                var repository = context.RequestServices.GetRequiredService<SqlSugarRepository<SysFile>>();
+                var file = await repository.AsQueryable().ClearFilter().Where(u => u.Id == fileId).FirstAsync();
+                if (file != null)
+                {
+                    context.Response.Headers.CacheControl = "no-store";
+                    if (!file.IsPublic)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        return;
+                    }
+                }
+            }
+            await next();
+        });
         app.UseImageSharp();
 
         // 特定文件类型（文件后缀）处理

@@ -15,7 +15,11 @@ public class DefaultFileProvider : ICustomFileProvider, ITransient
     /// <returns></returns>
     private string BuildFullFilePath(SysFile sysFile)
     {
-        return Path.Combine(App.WebHostEnvironment.WebRootPath, sysFile.FilePath ?? "", $"{sysFile.Id}{sysFile.Suffix}");
+        var root = Path.GetFullPath(App.WebHostEnvironment.WebRootPath);
+        var path = Path.GetFullPath(Path.Combine(root, sysFile.FilePath ?? "", $"{sysFile.Id}{sysFile.Suffix}"));
+        if (!path.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            throw Oops.Oh("文件路径越界");
+        return path;
     }
 
     /// <summary>
@@ -62,7 +66,7 @@ public class DefaultFileProvider : ICustomFileProvider, ITransient
     public Task<FileStreamResult> GetFileStreamResultAsync(SysFile sysFile, string fileName)
     {
         var fullPath = BuildFullFilePath(sysFile);
-        return Task.FromResult(new FileStreamResult(new FileStream(fullPath, FileMode.Open), "application/octet-stream")
+        return Task.FromResult(new FileStreamResult(new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read), "application/octet-stream")
         {
             FileDownloadName = fileName + sysFile.Suffix
         });

@@ -7,9 +7,8 @@ import { useAppConfig } from '@vben/hooks';
 
 import { Alert, Button, Spin } from 'antdv-next';
 
-import { SysFileApi } from '#/api-services/apis/sys-file-api';
-import { getAPI } from '#/api/sdk';
 import { sessionBoundary } from '#/api/session';
+import { uploadFile } from '#/api/system/file';
 import { sanitizeNoticeHtml } from '#/components/notice-content/notice-html';
 
 import { noticeResourceUrl } from './resource-url';
@@ -58,9 +57,8 @@ async function initialize() {
 							emit('busy', true);
 							error.value = '';
 							try {
-								const response = await getAPI(SysFileApi).apiSysFileUploadFilePostForm(file, undefined, undefined, undefined, undefined, undefined, undefined, { signal: controller.signal });
+								const result = await uploadFile(file, '通知图片', true, controller.signal);
 								if (disposed || controller.signal.aborted || version !== sessionBoundary.version) return;
-								const result = response.data.result;
 								if (!result?.url) throw new Error('上传响应缺少图片地址');
 								const url = noticeResourceUrl(result.url, apiURL, window.location.origin);
 								insert(url, result.fileName ?? file.name, url);

@@ -17,7 +17,8 @@ public static class RoutePermissionUtil
     public static bool RequiresExplicitGrant(string permission)
     {
         return permission?.ToLowerInvariant() is "syslangtext:export" or "syslangtext:import" or
-            "syslangtext:batchdelete" or "syslangtext:batchsave" or "syslangtext:aitranslatetext" or "sysconfig:savesysinfo";
+            "syslangtext:batchdelete" or "syslangtext:batchsave" or "syslangtext:aitranslatetext" or "sysconfig:savesysinfo" or
+            "sysfile:page" or "sysfile:uploadfile" or "sysfile:downloadfile" or "sysfile:update" or "sysfile:delete";
     }
 
     public static string GetPermissionName(HttpContext context)
@@ -37,6 +38,9 @@ public static class RoutePermissionUtil
             "syscache:value" or "syscache:keysbyprefixkey" => "sysCache:keyList",
             "syscache:deletebyprekey" => "sysCache:delete",
             "sysldap:syncdept" => "sysLdap:syncOrg",
+            "sysfile:preview" or "sysfile:downloadfilebase64" => "sysFile:downloadFile",
+            "sysfile:file" or "sysfile:filebyids" or "sysfile:folder" => "sysFile:page",
+            "sysfile:uploadfiles" or "sysfile:uploadfilefrombase64" => "sysFile:uploadFile",
             _ => permission
         };
     }

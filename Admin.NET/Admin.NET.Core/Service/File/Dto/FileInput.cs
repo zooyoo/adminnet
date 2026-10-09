@@ -11,6 +11,7 @@ namespace Admin.NET.Core.Service;
 /// </summary>
 public class PageFileInput : BasePageInput
 {
+    public long? TenantId { get; set; }
     /// <summary>
     /// 文件名称
     /// </summary>

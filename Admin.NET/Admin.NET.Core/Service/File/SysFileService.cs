@@ -63,16 +63,19 @@ public class SysFileService : IDynamicApiController, ITransient
     [DisplayName("获取文件分页列表")]
     public async Task<SqlSugarPagedList<SysFile>> Page(PageFileInput input)
     {
+        if (input.StartTime > input.EndTime) throw Oops.Oh("开始时间不能晚于结束时间");
         // 获取所有公开附件
         var publicList = _sysFileRep.AsQueryable().ClearFilter().Where(u => u.IsPublic == true);
         // 获取私有附件
-        var privateList = _sysFileRep.AsQueryable().Where(u => u.IsPublic == false);
+        var privateList = _sysFileRep.AsQueryable().Where(u => u.IsPublic == false)
+            .WhereIF(!_userManager.SuperAdmin, u => u.TenantId == _userManager.TenantId);
         // 合并公开和私有附件并分页
         return await _sysFileRep.Context.UnionAll(publicList, privateList)
+            .WhereIF(_userManager.SuperAdmin && input.TenantId > 0, u => u.TenantId == input.TenantId)
             .WhereIF(!string.IsNullOrWhiteSpace(input.FileName), u => u.FileName.Contains(input.FileName.Trim()))
             .WhereIF(!string.IsNullOrWhiteSpace(input.FilePath), u => u.FilePath.Contains(input.FilePath.Trim()))
-            .WhereIF(!string.IsNullOrWhiteSpace(input.StartTime.ToString()) && !string.IsNullOrWhiteSpace(input.EndTime.ToString()),
-                u => u.CreateTime >= input.StartTime && u.CreateTime <= input.EndTime)
+            .WhereIF(input.StartTime.HasValue, u => u.CreateTime >= input.StartTime)
+            .WhereIF(input.EndTime.HasValue, u => u.CreateTime <= input.EndTime)
             .OrderBy(u => u.CreateTime, OrderByType.Desc)
             .ToPagedListAsync(input.Page, input.PageSize);
     }
@@ -132,9 +135,9 @@ public class SysFileService : IDynamicApiController, ITransient
     [DisplayName("根据文件Id或Url下载")]
     public async Task<IActionResult> DownloadFile(SysFile input)
     {
-        var file = input.Id > 0 ? await GetFile(input.Id) : await _sysFileRep.CopyNew().GetFirstAsync(u => u.Url == input.Url);
-        var fileName = HttpUtility.UrlEncode(file.FileName, Encoding.GetEncoding("UTF-8"));
-        return await GetFileStreamResult(file, fileName);
+        var file = input.Id > 0 ? await GetFile(input.Id) : await ReadableFiles().Where(u => u.Url == input.Url).FirstAsync();
+        if (file == null) throw Oops.Oh(ErrorCodeEnum.D8000);
+        return await GetFileStreamResult(file, file.FileName);
     }
 
     /// <summary>
@@ -148,6 +151,18 @@ public class SysFileService : IDynamicApiController, ITransient
         var file = await GetFile(id);
         //var fileName = HttpUtility.UrlEncode(file.FileName, Encoding.GetEncoding("UTF-8"));
         return await GetFileStreamResult(file, file.Id + "");
+    }
+
+    /// <summary>
+    /// 当前用户签名图片，沿用个人资料访问权限。
+    /// </summary>
+    public async Task<IActionResult> GetOwnSignature()
+    {
+        var user = await _sysFileRep.ChangeRepository<SqlSugarRepository<SysUser>>().GetByIdAsync(_userManager.UserId);
+        var file = await _sysFileRep.AsQueryable().Where(u => u.Url == user.Signature &&
+            u.TenantId == _userManager.TenantId && u.CreateUserId == _userManager.UserId).FirstAsync();
+        if (file == null) throw Oops.Oh(ErrorCodeEnum.D8000);
+        return await GetFileStreamResult(file, file.FileName);
     }
 
     /// <summary>
@@ -180,7 +195,7 @@ public class SysFileService : IDynamicApiController, ITransient
     [DisplayName("下载指定文件Base64格式")]
     public async Task<string> DownloadFileBase64([FromBody] string url)
     {
-        var sysFile = await _sysFileRep.CopyNew().GetFirstAsync(u => u.Url == url) ?? throw Oops.Oh($"文件不存在");
+        var sysFile = await ReadableFiles().Where(u => u.Url == url).FirstAsync() ?? throw Oops.Oh($"文件不存在");
         return await _customFileProvider.DownloadFileBase64Async(sysFile);
     }
 
@@ -193,9 +208,9 @@ public class SysFileService : IDynamicApiController, ITransient
     [DisplayName("删除文件")]
     public async Task DeleteFile(BaseIdInput input)
     {
-        var file = await _sysFileRep.GetByIdAsync(input.Id) ?? throw Oops.Oh($"文件不存在");
-        await _sysFileRep.DeleteAsync(file);
+        var file = await WritableFile(input.Id);
         await _customFileProvider.DeleteFileAsync(file);
+        await _sysFileRep.DeleteAsync(file);
     }
 
     /// <summary>
@@ -207,10 +222,16 @@ public class SysFileService : IDynamicApiController, ITransient
     [DisplayName("更新文件")]
     public async Task UpdateFile(SysFile input)
     {
-        var isExist = await _sysFileRep.IsAnyAsync(u => u.Id == input.Id);
-        if (!isExist) throw Oops.Oh(ErrorCodeEnum.D8000);
-
-        await _sysFileRep.UpdateAsync(input);
+        var file = await WritableFile(input.Id);
+        if (string.IsNullOrWhiteSpace(input.FileName) || input.FileName.Length > 128 ||
+            input.FileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            throw Oops.Oh("文件名称无效");
+        // 只允许修改既有元数据，存储位置、租户和创建者由服务端保留。
+        await _sysFileRep.AsUpdateable(new SysFile
+        {
+            Id = file.Id, FileName = input.FileName.Trim(), FileType = input.FileType,
+            IsPublic = input.IsPublic, FileAlias = input.FileAlias, DataId = input.DataId
+        }).UpdateColumns(u => new { u.FileName, u.FileType, u.IsPublic, u.FileAlias, u.DataId }).ExecuteCommandAsync();
     }
 
     /// <summary>
@@ -221,7 +242,7 @@ public class SysFileService : IDynamicApiController, ITransient
     [DisplayName("获取文件")]
     public async Task<SysFile> GetFile([FromQuery] long id)
     {
-        var file = await _sysFileRep.CopyNew().GetByIdAsync(id);
+        var file = await ReadableFiles().Where(u => u.Id == id).FirstAsync();
         return file ?? throw Oops.Oh(ErrorCodeEnum.D8000);
     }
 
@@ -233,7 +254,22 @@ public class SysFileService : IDynamicApiController, ITransient
     [DisplayName("根据文件Id集合获取文件")]
     public async Task<List<SysFile>> GetFileByIds([FromQuery][FlexibleArray<long>] List<long> ids)
     {
-        return await _sysFileRep.AsQueryable().Where(u => ids.Contains(u.Id)).ToListAsync();
+        return await ReadableFiles().Where(u => ids.Contains(u.Id)).ToListAsync();
+    }
+
+    private ISugarQueryable<SysFile> ReadableFiles()
+    {
+        var publicFiles = _sysFileRep.AsQueryable().ClearFilter().Where(u => u.IsPublic);
+        var ownFiles = _sysFileRep.AsQueryable().Where(u => !u.IsPublic)
+            .WhereIF(!_userManager.SuperAdmin, u => u.TenantId == _userManager.TenantId);
+        return _sysFileRep.Context.UnionAll(publicFiles, ownFiles);
+    }
+
+    private async Task<SysFile> WritableFile(long id)
+    {
+        return await _sysFileRep.AsQueryable().Where(u => u.Id == id)
+            .WhereIF(!_userManager.SuperAdmin, u => u.TenantId == _userManager.TenantId)
+            .FirstAsync() ?? throw Oops.Oh(ErrorCodeEnum.D8000);
     }
 
     /// <summary>
@@ -266,11 +302,22 @@ public class SysFileService : IDynamicApiController, ITransient
         if (input.File == null || input.File.Length <= 0) throw Oops.Oh(ErrorCodeEnum.D8000);
 
         if (input.File.FileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) throw Oops.Oh(ErrorCodeEnum.D8005);
+        if (Path.GetFileNameWithoutExtension(input.File.FileName).Length > 128) throw Oops.Oh("文件名称过长");
+        // 限制在去重之前执行，防止复用已有文件绕过大小和类型校验。
+        if (!_uploadOptions.ContentType.Contains(input.File.ContentType)) throw Oops.Oh(ErrorCodeEnum.D8001);
+        if (input.File.Length > (long)_uploadOptions.MaxSize * 1024) throw Oops.Oh(ErrorCodeEnum.D8002);
+        var requestedSuffix = Path.GetExtension(input.File.FileName).ToLowerInvariant();
+        if (!string.IsNullOrWhiteSpace(input.AllowSuffix) &&
+            !input.AllowSuffix.Split('.', StringSplitOptions.RemoveEmptyEntries).Contains(requestedSuffix.TrimStart('.'), StringComparer.OrdinalIgnoreCase))
+            throw Oops.Oh(ErrorCodeEnum.D8003);
+        var sourceName = Path.GetFileNameWithoutExtension(input.File.FileName);
+        var storedSuffix = requestedSuffix is ".jpeg" or ".jpe" ? ".jpg" : requestedSuffix;
+        var path = (string.IsNullOrWhiteSpace(targetPath) ? _uploadOptions.Path : targetPath).ParseToDateTimeForRep();
 
         // 判断是否重复上传的文件
         var sizeKb = input.File.Length / 1024; // 大小KB
         var fileMd5 = string.Empty;
-        if (_uploadOptions.EnableMd5)
+        if (_uploadOptions.EnableMd5 && string.IsNullOrEmpty(input.BucketName) && !input.ProviderId.HasValue)
         {
             await using (var fileStream = input.File.OpenReadStream())
             {
@@ -278,7 +325,10 @@ public class SysFileService : IDynamicApiController, ITransient
             }
             // Mysql8 中如果使用了 utf8mb4_general_ci 之外的编码会出错，尽量避免在条件里使用.ToString()
             // 因为 Squsugar 并不是把变量转换为字符串来构造SQL语句，而是构造了CAST(123 AS CHAR)这样的语句，这样这个返回值是utf8mb4_general_ci，所以容易出错。
-            var sysFile = await _sysFileRep.GetFirstAsync(u => u.FileMd5 == fileMd5 && u.SizeKb == sizeKb);
+            var sysFile = await _sysFileRep.GetFirstAsync(u => u.FileMd5 == fileMd5 && u.SizeKb == sizeKb &&
+                u.TenantId == _userManager.TenantId && u.CreateUserId == _userManager.UserId &&
+                u.IsPublic == input.IsPublic && u.FileType == input.FileType && u.DataId == input.DataId &&
+                u.FileName == sourceName && u.Suffix == storedSuffix && u.FilePath == path);
             if (sysFile != null) return sysFile;
         }
 
@@ -307,11 +357,9 @@ public class SysFileService : IDynamicApiController, ITransient
         //if (!VerifyFileExtensionName.IsSameType(file.OpenReadStream(), suffix)) throw Oops.Oh(ErrorCodeEnum.D8001);
 
         // 文件存储位置
-        var path = string.IsNullOrWhiteSpace(targetPath) ? _uploadOptions.Path : targetPath;
-        path = path.ParseToDateTimeForRep();
-
         var newFile = input.Adapt<SysFile>();
         newFile.Id = YitIdHelper.NextId();
+        newFile.TenantId = _userManager.TenantId;
 
         // 优先使用用户指定的存储桶名称，如果没有指定则使用默认配置
         if (!string.IsNullOrEmpty(input.BucketName))
@@ -346,7 +394,7 @@ public class SysFileService : IDynamicApiController, ITransient
     [DisplayName("上传头像")]
     public async Task<SysFile> UploadAvatar([Required] IFormFile file)
     {
-        var sysFile = await UploadFile(new UploadFileInput { File = file, AllowSuffix = _imageType }, "upload/avatar");
+        var sysFile = await UploadFile(new UploadFileInput { File = file, AllowSuffix = _imageType, IsPublic = true }, "upload/avatar");
 
         var sysUserRep = _sysFileRep.ChangeRepository<SqlSugarRepository<SysUser>>();
         var user = await sysUserRep.GetByIdAsync(_userManager.UserId);
@@ -355,7 +403,7 @@ public class SysFileService : IDynamicApiController, ITransient
         if (!string.IsNullOrWhiteSpace(user.Avatar))
         {
             var fileId = Path.GetFileNameWithoutExtension(user.Avatar);
-            if (long.TryParse(fileId, out var id))
+            if (long.TryParse(fileId, out var id) && id != sysFile.Id)
             {
                 try
                 {
@@ -387,7 +435,7 @@ public class SysFileService : IDynamicApiController, ITransient
         if (!string.IsNullOrWhiteSpace(user.Signature) && user.Signature.EndsWith(".png"))
         {
             var fileId = Path.GetFileNameWithoutExtension(user.Signature);
-            if (long.TryParse(fileId, out var id))
+            if (long.TryParse(fileId, out var id) && id != sysFile.Id)
             {
                 try
                 {

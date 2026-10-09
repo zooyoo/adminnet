@@ -212,6 +212,9 @@ catalog:
 
 allowBuilds:
   '@parcel/watcher': true
+  '@vue-office/docx': true
+  '@vue-office/excel': true
+  '@vue-office/pdf': true
   core-js: true
   es5-ext: false
   esbuild: true
