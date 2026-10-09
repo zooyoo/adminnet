@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.ADMINNET_E2E_BASE_URL || 'http://127.0.0.1:8890';
+const isCI = Boolean(process.env.CI);
 
 export default defineConfig({
 	testDir: './apps/web-antdv-next/e2e',
@@ -12,13 +13,12 @@ export default defineConfig({
 	reporter: 'list',
 	use: {
 		baseURL,
-		channel: process.platform === 'win32' ? 'msedge' : undefined,
-		trace: 'retain-on-failure',
+		channel: undefined,
+		trace: isCI ? 'retain-on-failure' : 'off',
 		screenshot: 'only-on-failure',
 	},
 	projects: [
-		{ name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1000 } } },
-		{ name: 'mobile', use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } },
+		{ name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1000 } } }
 	],
 	webServer: process.env.ADMINNET_E2E_BASE_URL
 		? undefined

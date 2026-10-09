@@ -17,6 +17,8 @@ dotnet run --project Admin.NET.Web.Entry/Admin.NET.Web.Entry.csproj
 dotnet test Admin.NET.Test/Admin.NET.Test.csproj
 ```
 
+### 不需要测试mobil端，只测试桌面端
+
 解决方案面向 .NET 8 和 .NET 10，Web 入口项目面向 .NET 10。在 `Web/` 中使用仓库指定版本的 pnpm 运行前端命令：
 
 ```powershell
