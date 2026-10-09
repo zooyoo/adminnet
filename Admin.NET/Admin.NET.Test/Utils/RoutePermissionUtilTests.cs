@@ -71,6 +71,7 @@ public class RoutePermissionUtilTests
     [InlineData("sysDatabase:list", true)]
     [InlineData("sysDatabase:addTable", true)]
     [InlineData("sysDatabase:moveColumn", true)]
+    [InlineData("sysDatabase:visualDbTable", true)]
     public void RequiresExplicitGrant_TranslationSensitiveAction_DoesNotDependOnMenuRegistration(string permission, bool expected)
     {
         Assert.Equal(expected, RoutePermissionUtil.RequiresExplicitGrant(permission));

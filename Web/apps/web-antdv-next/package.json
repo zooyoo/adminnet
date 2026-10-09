@@ -59,6 +59,7 @@
     "dompurify": "3.4.16",
     "pinia": "catalog:",
     "print-js": "1.6.0",
+    "relation-graph": "2.2.11",
     "signature_pad": "5.1.4",
     "sm-crypto-v2": "^1.15.1",
     "vue": "catalog:",

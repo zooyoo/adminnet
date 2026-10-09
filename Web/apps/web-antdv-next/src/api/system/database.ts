@@ -1,4 +1,4 @@
-import type { DbColumnInput, DbColumnOutput, DbTableInfo, DbTableInput, MoveDbColumnInput, UpdateDbColumnInput, UpdateDbTableInput } from '#/api-services/models';
+import type { DbColumnInput, DbColumnOutput, DbTableInfo, DbTableInput, MoveDbColumnInput, UpdateDbColumnInput, UpdateDbTableInput, VisualDbTable } from '#/api-services/models';
 
 import { SysDatabaseApi } from '#/api-services/apis/sys-database-api';
 import { requestClient } from '#/api/request';
@@ -14,7 +14,13 @@ export interface DatabaseTarget {
 	configId: string;
 	tableName: string;
 }
+export interface DatabaseGraphTarget {
+	configId: string;
+	tableName?: string;
+}
 export const databaseConnections = (signal?: AbortSignal) => requestClient.get<DatabaseConnection[]>('/api/sysDatabase/list', { signal });
+export const databaseGraph = (target: DatabaseGraphTarget, signal?: AbortSignal) =>
+	requestClient.get<VisualDbTable>('/api/sysDatabase/visualDbTable', { params: target, signal });
 export async function databaseTables(configId: string, signal?: AbortSignal): Promise<DbTableInfo[]> {
 	return (await getAPI(SysDatabaseApi).apiSysDatabaseTableListConfigIdGet(configId, { signal })).data.result ?? [];
 }

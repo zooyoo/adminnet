@@ -68,6 +68,12 @@ const coreRoutes: RouteRecordRaw[] = [
         meta: { title: '任务看板', requiresAuth: true, hideInMenu: true },
       },
       {
+        name: 'DatabaseVisual',
+        path: '/develop/database/visual',
+        component: () => import('#/views/system/database/visual.vue'),
+        meta: { title: '库表关系图', requiresAuth: true, hideInMenu: true },
+      },
+      {
         name: 'HomeWorkbench',
         path: '/dashboard/home',
         component: () => import('#/views/home/index.vue'),

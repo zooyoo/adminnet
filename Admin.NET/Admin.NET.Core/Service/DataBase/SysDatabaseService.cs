@@ -42,64 +42,47 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     }
 
     /// <summary>
-    /// 获取可视化库表结构 🔖
+    /// 获取指定数据库的真实库表结构关系图 🔖
     /// </summary>
+    /// <param name="configId">数据库配置 ID</param>
+    /// <param name="tableName">入口选中的表名，用于校验上下文；关系图仍展示所选库的完整结构</param>
     /// <returns></returns>
     [DisplayName("获取可视化库表结构")]
-    public VisualDbTable GetVisualDbTable()
+    public VisualDbTable GetVisualDbTable([FromQuery] string configId = SqlSugarConst.MainConfigId, [FromQuery] string tableName = null)
     {
-        var visualTableList = new List<VisualTable>();
+        var db = GetMaintenanceConnection(configId);
+        var tables = db.DbMaintenance.GetTableInfoList(false)
+            .Where(u => !string.IsNullOrWhiteSpace(u.Name))
+            .OrderBy(u => u.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (!string.IsNullOrWhiteSpace(tableName) && !tables.Any(u => u.Name.Equals(tableName, StringComparison.Ordinal)))
+            throw Oops.Oh("目标表不存在，请重新选择");
+
+        var visualTableList = new List<VisualTable>(tables.Count);
         var visualColumnList = new List<VisualColumn>();
-        var columnRelationList = new List<ColumnRelation>();
-        var dbOptions = App.GetOptions<DbConnectionOptions>().ConnectionConfigs.First(u => u.ConfigId.ToString() == SqlSugarConst.MainConfigId);
-
-        // 遍历所有实体获取所有库表结构
-        var random = new Random();
-        var entityTypes = App.EffectiveTypes.Where(u => !u.IsInterface && !u.IsAbstract && u.IsClass && u.IsDefined(typeof(SugarTable), false)).ToList();
-        foreach (var entityType in entityTypes)
+        foreach (var table in tables.Select((value, index) => new { value, index }))
         {
-            var entityInfo = _db.EntityMaintenance.GetEntityInfoNoCache(entityType);
-
-            var visualTable = new VisualTable
+            var columns = db.DbMaintenance.GetColumnInfosByTableName(table.value.Name, false);
+            visualTableList.Add(new VisualTable
             {
-                TableName = entityInfo.DbTableName,
-                TableComents = entityInfo.TableDescription + entityInfo.DbTableName,
-                X = random.Next(5000),
-                Y = random.Next(5000)
-            };
-            visualTableList.Add(visualTable);
-
-            foreach (EntityColumnInfo columnInfo in entityInfo.Columns)
+                TableName = table.value.Name,
+                TableComents = string.IsNullOrWhiteSpace(table.value.Description) ? table.value.Name : table.value.Description,
+                X = (table.index % 4) * 420,
+                Y = (table.index / 4) * 300,
+            });
+            visualColumnList.AddRange(columns.Select(column => new VisualColumn
             {
-                var visualColumn = new VisualColumn
-                {
-                    TableName = columnInfo.DbTableName,
-                    ColumnName = dbOptions.DbSettings.EnableUnderLine ? columnInfo.DbColumnName.ToUnderLine() : columnInfo.DbColumnName,
-                    DataType = columnInfo.PropertyInfo.PropertyType.Name,
-                    DataLength = columnInfo.Length.ToString(),
-                    ColumnDescription = columnInfo.ColumnDescription,
-                };
-                visualColumnList.Add(visualColumn);
-
-                // 根据导航配置获取表之间关联关系
-                if (columnInfo.Navigat != null)
-                {
-                    var name1 = columnInfo.Navigat.GetName();
-                    var name2 = columnInfo.Navigat.GetName2();
-                    var targetColumnName = string.IsNullOrEmpty(name2) ? "Id" : name2;
-                    var relation = new ColumnRelation
-                    {
-                        SourceTableName = columnInfo.DbTableName,
-                        SourceColumnName = dbOptions.DbSettings.EnableUnderLine ? name1.ToUnderLine() : name1,
-                        Type = columnInfo.Navigat.GetNavigateType() == NavigateType.OneToOne ? "ONE_TO_ONE" : "ONE_TO_MANY",
-                        TargetTableName = dbOptions.DbSettings.EnableUnderLine ? columnInfo.DbColumnName.ToUnderLine() : columnInfo.DbColumnName,
-                        TargetColumnName = dbOptions.DbSettings.EnableUnderLine ? targetColumnName.ToUnderLine() : targetColumnName
-                    };
-                    columnRelationList.Add(relation);
-                }
-            }
+                TableName = table.value.Name,
+                ColumnName = column.DbColumnName,
+                DataType = column.DataType,
+                DataLength = column.Length > 0 ? column.Length.ToString() : string.Empty,
+                ColumnDescription = column.ColumnDescription,
+            }));
         }
 
+        var columnRelationList = db.CurrentConnectionConfig.DbType == SqlSugar.DbType.PostgreSQL
+            ? GetPostgreSqlRelations(db)
+            : new List<ColumnRelation>();
         return new VisualDbTable { VisualTableList = visualTableList, VisualColumnList = visualColumnList, ColumnRelationList = columnRelationList };
     }
 
@@ -456,6 +439,35 @@ public class SysDatabaseService : IDynamicApiController, ITransient
         if (string.IsNullOrWhiteSpace(configId) || !App.GetOptions<DbConnectionOptions>().ConnectionConfigs.Any(u => u.ConfigId.ToString() == configId))
             throw Oops.Oh("请选择有效的数据库连接");
         return _db.AsTenant().GetConnectionScope(configId);
+    }
+
+    private static List<ColumnRelation> GetPostgreSqlRelations(ISqlSugarClient db)
+    {
+        const string sql = """
+            SELECT
+                child.relname AS "SourceTableName",
+                child_column.attname AS "SourceColumnName",
+                'ONE_TO_MANY' AS "Type",
+                parent.relname AS "TargetTableName",
+                parent_column.attname AS "TargetColumnName"
+            FROM pg_constraint foreign_key
+            JOIN pg_class child ON child.oid = foreign_key.conrelid
+            JOIN pg_namespace child_schema ON child_schema.oid = child.relnamespace
+            JOIN pg_class parent ON parent.oid = foreign_key.confrelid
+            JOIN pg_namespace parent_schema ON parent_schema.oid = parent.relnamespace
+            CROSS JOIN LATERAL unnest(foreign_key.conkey) WITH ORDINALITY AS source_column(attnum, ordinal)
+            JOIN LATERAL unnest(foreign_key.confkey) WITH ORDINALITY AS target_column(attnum, ordinal)
+                ON target_column.ordinal = source_column.ordinal
+            JOIN pg_attribute child_column
+                ON child_column.attrelid = child.oid AND child_column.attnum = source_column.attnum
+            JOIN pg_attribute parent_column
+                ON parent_column.attrelid = parent.oid AND parent_column.attnum = target_column.attnum
+            WHERE foreign_key.contype = 'f'
+              AND child_schema.nspname = current_schema()
+              AND parent_schema.nspname = current_schema()
+            ORDER BY child.relname, child_column.attnum, parent.relname, parent_column.attnum
+            """;
+        return db.Ado.SqlQuery<ColumnRelation>(sql);
     }
 
     internal static void ValidateIdentifier(string name)

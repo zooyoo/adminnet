@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 export default {
 	testDir: join(root, 'Web/apps/web-antdv-next/e2e'),
-	testMatch: 'database-contract.spec.ts',
+	testMatch: ['database-contract.spec.ts', 'database-visual-contract.spec.ts'],
 	workers: 2,
 	fullyParallel: true,
 	retries: 0,

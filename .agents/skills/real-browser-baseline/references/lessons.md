@@ -170,3 +170,10 @@
 - 原 Sundial.Dashboard 的路由、静态资源、POST 数据接口与事件流位于 `/schedule`。相对业务 API 前缀不能直接作为看板页面前缀；根路径需在开发、生产和验收代理均转发。仅检查 iframe 文档与脚本 HTTP 200 会漏掉白屏；还要实际登录、检查作业内容并用无认证请求验证数据拒绝。
 - 原看板有“显示密码”和“登录”两个按钮，任务编号也在多个标签重复。按登录按钮名和作业列表面板中的标题节点限定，等待成功通知消失后截图；异步响应等待与点击使用 `Promise.all`，防止点击失败后留下未处理拒绝。
 - 归档：提案 21、22、23 的任务记录与 `run-job-browser-baseline.mjs`。本机测试产物与凭据不写入通用配置。
+### 2026-10-10：关系图自定义节点尺寸与 Spin 满高链
+
+- 适用条件：`relation-graph 2.2.11`、Antdv-Next `1.5.2`、Vue 3.5、Edge 桌面生产构建。
+- 症状：关系图选择器和接口均通过，但截图中节点被压在画布顶部一条窄带，表格内容不可读。根因是 `Spin` 包装器没有继承父级高度，`relation-graph` 的 `height: 100%` 计算为零；同时自定义 HTML 节点未给引擎提供可用尺寸。
+- 处理：给 `Spin` 设置 `wrapperClassName`，让 visual stage、Spin wrapper、`ant-spin-container` 和 graph 均形成 `height: 100%` / flex 链；给节点提供实际 `width` / `height` 和 fixed layout。节点高度按字段数计算，保留外键锚点可见。
+- 交互：引擎拖动结束约 200 ms 内会抑制节点点击；页面节点自身事件同步表详情，并提供 Enter / Space 键盘选择。连线详情仍使用引擎 `onLineClick`。
+- 验证：真实 PostgreSQL 三表三外键、无外键、空库、停机失败和 Edge 明暗截图均通过；不能用 `.graph-node` 数量或 API 返回代替截图复核。

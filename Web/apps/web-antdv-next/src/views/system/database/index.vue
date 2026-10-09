@@ -4,6 +4,7 @@ import type { TableProps } from 'antdv-next';
 import type { DbColumnOutput } from '#/api-services/models';
 
 import { computed, h, onActivated, onDeactivated, onMounted, onScopeDispose, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { useAccess } from '@vben/access';
 import { createIconifyIcon } from '@vben/icons';
@@ -23,8 +24,9 @@ const { hasAccessByCodes } = useAccess();
 const can = (action: string) => hasAccessByCodes([`sysDatabase:${action}`]);
 const selection = useDatabaseSelection();
 const { columns, configId, tableName, loading, error, ready, connection, target } = selection;
+const router = useRouter();
 const title = computed(() => connection.value?.dbNickName || configId.value);
-const icons = Object.fromEntries(['plus', 'pencil', 'trash-2', 'arrow-up', 'arrow-down', 'refresh-cw'].map((name) => [name, h(createIconifyIcon(`lucide:${name}`))]));
+const icons = Object.fromEntries(['plus', 'pencil', 'trash-2', 'arrow-up', 'arrow-down', 'refresh-cw', 'share-2'].map((name) => [name, h(createIconifyIcon(`lucide:${name}`))]));
 const editing = ref(false);
 const mode = ref<'addColumn' | 'addTable' | 'updateColumn' | 'updateTable'>('addTable');
 const selectedColumn = ref<DbColumnOutput>();
@@ -61,6 +63,10 @@ function edit(next: typeof mode.value, column?: DbColumnOutput) {
 	mode.value = next;
 	selectedColumn.value = column;
 	editing.value = true;
+}
+function openGraph() {
+	if (!configId.value || !can('visualDbTable')) return;
+	void router.push({ path: '/develop/database/visual', query: { configId: configId.value, tableName: tableName.value || undefined } });
 }
 async function saved(name: string) {
 	await selection.selectConnection(configId.value, name);
@@ -123,6 +129,7 @@ onScopeDispose(() => {
 					/></Tooltip>
 					<Button v-if="can('addTable')" :icon="icons.plus" type="primary" :disabled="!ready || unavailable" @click="edit('addTable')">增加表</Button>
 					<Button v-if="can('updateTable')" :icon="icons.pencil" :disabled="!tableName || unavailable || !!error" @click="edit('updateTable')">编辑表</Button>
+					<Button v-if="can('visualDbTable')" :icon="icons['share-2']" :disabled="!ready || unavailable || !!error" @click="openGraph">查看关系图</Button>
 					<Button v-if="can('addColumn')" :icon="icons.plus" :disabled="!tableName || unavailable || !!error" @click="edit('addColumn')">增加字段</Button>
 					<Tooltip title="沿用原系统禁用删除表的策略"><Button :icon="icons['trash-2']" disabled danger>删除表</Button></Tooltip>
 				</div>
