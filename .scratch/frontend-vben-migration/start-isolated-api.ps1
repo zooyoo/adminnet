@@ -91,12 +91,12 @@ $configuration['OSSProvider'] = @{
     SecretKey = 'isolated-unused'
     IsEnableCache = $false
 }
-# 导入工作簿临时文件限定在隔离运行目录的 wwwroot，不使用开发上传配置。
+# 工作簿与个人图片限定在隔离运行目录的 wwwroot，不使用开发上传配置。
 $configuration['Upload'] = @{
     Path = 'isolated-upload'
     MaxSize = 10240
     EnableMd5 = $false
-    ContentType = @('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'application/octet-stream')
+    ContentType = @('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'application/octet-stream', 'image/png', 'image/jpeg', 'image/gif', 'image/bmp')
 }
 if ($SmsTestService) {
     if ($SmsTestService.Scheme -ne 'http' -or $SmsTestService.Host -ne '127.0.0.1' -or

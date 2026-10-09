@@ -318,7 +318,8 @@ public class SysAuthService : IDynamicApiController, ITransient
         var roleIds = await _sysUserRep.ChangeRepository<SqlSugarRepository<SysUserRole>>().AsQueryable()
             .Where(u => u.UserId == user.Id).Select(u => u.RoleId).ToListAsync();
         // 获取水印文字（若系统水印为空则全局为空）
-        var watermarkText = (await _sysUserRep.Context.Queryable<SysTenant>().FirstAsync(u => u.Id == user.TenantId))?.Watermark;
+        var watermarkTenantId = _userManager.TenantId > 0 ? _userManager.TenantId : user.TenantId;
+        var watermarkText = (await _sysUserRep.Context.Queryable<SysTenant>().FirstAsync(u => u.Id == watermarkTenantId))?.Watermark;
         if (!string.IsNullOrWhiteSpace(watermarkText)) watermarkText += $"-{user.RealName}";
         var loginUser = new LoginUserOutput
         {

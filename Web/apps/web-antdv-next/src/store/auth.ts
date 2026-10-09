@@ -4,7 +4,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { LOGIN_PATH } from '@vben/constants';
-import { preferences } from '@vben/preferences';
+import { preferences, updatePreferences } from '@vben/preferences';
 import { resetAllStores, useAccessStore, useUserStore } from '@vben/stores';
 
 import { notification } from 'antdv-next';
@@ -32,6 +32,7 @@ export const useAuthStore = defineStore(
 			sessionBoundary.invalidate();
 			resetRoutes();
 			resetAllStores();
+			updatePreferences({ app: { watermarkContent: '', watermark: false } });
 		}
 
 		async function completeLogin(result: AuthApi.LoginResult, version: number, onSuccess?: () => Promise<void> | void, preparedUser?: Awaited<ReturnType<typeof getUserInfoApi>>) {

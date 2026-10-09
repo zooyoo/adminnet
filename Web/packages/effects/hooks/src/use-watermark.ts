@@ -1,9 +1,12 @@
 import type { Watermark, WatermarkOptions } from 'watermark-js-plus';
 
-import { nextTick, onUnmounted, readonly, ref } from 'vue';
+import { nextTick, onScopeDispose, readonly, ref, shallowRef } from 'vue';
 
-const watermark = ref<Watermark>();
-const unmountedHooked = ref<boolean>(false);
+export function useWatermark() {
+const watermark = shallowRef<Watermark>();
+let generation = 0;
+let disposed = false;
+let pending = Promise.resolve();
 const cachedOptions = ref<Partial<WatermarkOptions>>({
   advancedStyle: {
     colorStops: [
@@ -37,44 +40,57 @@ const cachedOptions = ref<Partial<WatermarkOptions>>({
   width: 160,
 });
 
-export function useWatermark() {
-  async function initWatermark(options: Partial<WatermarkOptions>) {
+  async function initWatermark(options: Partial<WatermarkOptions>, current: number) {
     const { Watermark } = await import('watermark-js-plus');
+    if (disposed || current !== generation) return;
 
     cachedOptions.value = {
       ...cachedOptions.value,
       ...options,
     };
-    watermark.value = new Watermark(cachedOptions.value);
-    await watermark.value?.create();
-  }
-
-  async function updateWatermark(options: Partial<WatermarkOptions>) {
-    if (watermark.value) {
-      await nextTick();
-      await watermark.value?.changeOptions({
-        ...cachedOptions.value,
-        ...options,
-      });
-    } else {
-      await initWatermark(options);
+    const instance = new Watermark(cachedOptions.value);
+    watermark.value = instance;
+    await instance.create();
+    if (disposed || current !== generation) {
+      instance.destroy();
+      if (watermark.value === instance) watermark.value = undefined;
     }
   }
 
+  function updateWatermark(options: Partial<WatermarkOptions>) {
+    const current = ++generation;
+    pending = pending.catch(() => {}).then(async () => {
+      if (disposed || current !== generation) return;
+      const instance = watermark.value;
+      if (instance) {
+        await nextTick();
+        if (disposed || current !== generation) return;
+        await instance.changeOptions({ ...cachedOptions.value, ...options });
+        if (disposed || current !== generation) {
+          instance.destroy();
+          if (watermark.value === instance) watermark.value = undefined;
+        }
+      } else {
+        await initWatermark(options, current);
+      }
+    });
+    return pending;
+  }
+
   function destroyWatermark() {
+    generation++;
     if (watermark.value) {
       watermark.value.destroy();
       watermark.value = undefined;
     }
   }
 
-  // 只在第一次调用时注册卸载钩子，防止重复注册以致于在路由切换时销毁了水印
-  if (!unmountedHooked.value) {
-    unmountedHooked.value = true;
-    onUnmounted(() => {
-      destroyWatermark();
-    });
-  }
+  // 每个布局拥有独立水印，退出后的异步创建不能污染下一次登录。
+  onScopeDispose(() => {
+    disposed = true;
+    destroyWatermark();
+    cachedOptions.value.content = '';
+  });
 
   return {
     destroyWatermark,

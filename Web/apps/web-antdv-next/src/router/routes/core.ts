@@ -23,6 +23,18 @@ const fallbackNotFoundRoute: RouteRecordRaw = {
 /** 基本路由，这些路由是必须存在的 */
 const coreRoutes: RouteRecordRaw[] = [
   {
+    name: 'ProfileLayout',
+    path: '/profile',
+    component: BasicLayout,
+    meta: { requiresAuth: true, hideInMenu: true, hideInBreadcrumb: true, title: '个人中心' },
+    children: [{
+      name: 'Profile',
+      path: '',
+      component: () => import('#/views/_core/profile/index.vue'),
+      meta: { requiresAuth: true, hideInMenu: true, title: '个人中心' },
+    }],
+  },
+  {
     name: 'LegacyHome',
     path: '/home',
     redirect: '/dashboard/notice',

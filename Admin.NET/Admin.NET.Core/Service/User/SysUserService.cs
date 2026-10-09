@@ -333,8 +333,18 @@ public class SysUserService : IDynamicApiController, ITransient
     [DisplayName("更新用户基本信息")]
     public virtual async Task<int> UpdateBaseInfo(SysUser user)
     {
+        if (user.Id != _userManager.UserId) throw Oops.Oh(ErrorCodeEnum.D1013).StatusCode(403);
+        if (await _sysUserRep.AsQueryable().ClearFilter().Where(u => u.Id == _userManager.UserId).CountAsync() == 0)
+            throw Oops.Oh(ErrorCodeEnum.D1011).StatusCode(401);
+        if (string.IsNullOrWhiteSpace(user.RealName)) throw Oops.Oh("真实姓名不能为空");
+        var currentPhone = await _sysUserRep.AsQueryable().ClearFilter().Where(u => u.Id == _userManager.UserId).Select(u => u.Phone).FirstAsync();
+        if (!string.IsNullOrWhiteSpace(user.Phone) && user.Phone != currentPhone &&
+            await _sysUserRep.AsQueryable().ClearFilter().Where(u => u.Phone == user.Phone && u.Id != _userManager.UserId).CountAsync() > 0)
+            throw Oops.Oh(ErrorCodeEnum.D1032);
+        // 个人资料仅更新旧个人中心可编辑字段，不能修改身份、租户、组织、状态和审计信息。
         return await _sysUserRep.AsUpdateable(user)
-            .IgnoreColumns(u => new { u.CreateTime, u.Account, u.Password, u.AccountType, u.OrgId, u.PosId }).ExecuteCommandAsync();
+            .UpdateColumns(u => new { u.RealName, u.NickName, u.Phone, u.Email, u.Birthday, u.Sex, u.LangCode, u.Homepage, u.Address, u.Remark, u.Avatar, u.Signature })
+            .ExecuteCommandAsync();
     }
 
     /// <summary>
@@ -407,6 +417,7 @@ public class SysUserService : IDynamicApiController, ITransient
     /// <param name="input"></param>
     /// <returns></returns>
     [DisplayName("修改用户密码")]
+    [SuppressMonitor]
     public virtual async Task<int> ChangePwd(ChangePwdInput input)
     {
         // 国密SM2解密（前端密码传输SM2加密后的）
@@ -447,7 +458,8 @@ public class SysUserService : IDynamicApiController, ITransient
             await _eventPublisher.PublishAsync(SysUserEventTypeEnum.ChangePwd, new
             {
                 Entity = user,
-                Input = input
+                // 审计只记录修改动作，不传播解密后的新旧密码。
+                Input = new { PasswordChanged = true }
             });
 
         return rows;

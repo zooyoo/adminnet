@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import type { ComputedRef } from 'vue';
+
 import type { LanguageOption } from '@vben/constants';
 
-import { onMounted, onUnmounted, ref, unref } from 'vue';
+import { inject, onMounted, onUnmounted, ref, unref } from 'vue';
 
 import { onSupportLanguagesChange } from '@vben/constants';
 import { $t } from '@vben/locales';
@@ -34,6 +36,8 @@ const appEnableCopyPreferences = defineModel<boolean>(
   'appEnableCopyPreferences',
 );
 const timezoneStore = useTimezoneStore();
+// 应用提供受管理的水印时，仅展示服务端值，不将账号文字写入共享偏好。
+const managedWatermark = inject<ComputedRef<string> | undefined>('vben-managed-watermark', undefined);
 
 const languageList = ref<LanguageOption[]>([]);
 const unsubscribe = onSupportLanguagesChange((langs) => {
@@ -69,6 +73,7 @@ onMounted(async () => {
     {{ $t('preferences.dynamicTitle') }}
   </SwitchItem>
   <SwitchItem
+    v-if="managedWatermark === undefined"
     v-model="appWatermark"
     @update:model-value="
       (val) => {
@@ -79,12 +84,16 @@ onMounted(async () => {
     {{ $t('preferences.watermark') }}
   </SwitchItem>
   <InputItem
-    v-if="appWatermark"
+    v-if="managedWatermark === undefined && appWatermark"
     v-model="appWatermarkContent"
     :placeholder="$t('preferences.watermarkContent')"
   >
     {{ $t('preferences.watermarkContent') }}
   </InputItem>
+  <template v-if="managedWatermark !== undefined">
+    <SwitchItem :model-value="!!managedWatermark" disabled>{{ $t('preferences.watermark') }}</SwitchItem>
+    <InputItem :model-value="managedWatermark" disabled>{{ $t('preferences.watermarkContent') }}</InputItem>
+  </template>
   <SwitchItem v-model="appEnableCheckUpdates">
     {{ $t('preferences.checkUpdates') }}
   </SwitchItem>

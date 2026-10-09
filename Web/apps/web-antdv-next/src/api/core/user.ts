@@ -3,6 +3,7 @@ import type { UserInfo } from '@vben/types';
 import type { SessionTokens } from '#/api/session';
 
 import { requestClient } from '#/api/request';
+import { siteLogoUrl } from '#/utils/site-logo';
 
 export interface AdminUserInfo extends UserInfo {
 	id: number | string;
@@ -18,6 +19,7 @@ export async function getUserInfoApi(identity?: SessionTokens, signal?: AbortSig
 	const data = await requestClient.get<AdminUserInfo>('/api/sysAuth/userInfo', { adminIdentity: identity, signal });
 	return {
 		...data,
+		avatar: siteLogoUrl(data.avatar),
 		userId: String(data.id),
 		username: data.account,
 		roles: (data.roleIds ?? []).map(String),

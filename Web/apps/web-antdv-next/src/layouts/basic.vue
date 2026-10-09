@@ -7,13 +7,10 @@ import { computed, onScopeDispose, provide, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
-import { VBEN_DOC_URL, VBEN_GITHUB_URL } from '@vben/constants';
 import { useWatermark } from '@vben/hooks';
-import { BookOpenText, CircleHelp, SvgGithubIcon } from '@vben/icons';
 import { BasicLayout, UserDropdown } from '@vben/layouts';
 import { preferences, usePreferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
-import { openWindow } from '@vben/utils';
 
 import { Alert, Button, Drawer, Modal } from 'antdv-next';
 
@@ -63,6 +60,8 @@ watch(
 );
 const { destroyWatermark, updateWatermark } = useWatermark();
 const { isDark } = usePreferences();
+const managedWatermark = computed(() => String(userStore.userInfo?.watermarkText ?? ''));
+provide('vben-managed-watermark', managedWatermark);
 
 const menus = computed(() => [
 	{
@@ -71,33 +70,6 @@ const menus = computed(() => [
 		},
 		icon: 'lucide:user',
 		text: $t('page.auth.profile'),
-	},
-	{
-		handler: () => {
-			openWindow(VBEN_DOC_URL, {
-				target: '_blank',
-			});
-		},
-		icon: BookOpenText,
-		text: $t('ui.widgets.document'),
-	},
-	{
-		handler: () => {
-			openWindow(VBEN_GITHUB_URL, {
-				target: '_blank',
-			});
-		},
-		icon: SvgGithubIcon,
-		text: 'GitHub',
-	},
-	{
-		handler: () => {
-			openWindow(`${VBEN_GITHUB_URL}/issues`, {
-				target: '_blank',
-			});
-		},
-		icon: CircleHelp,
-		text: $t('ui.widgets.qa'),
 	},
 ]);
 
@@ -190,12 +162,11 @@ onScopeDispose(() => {
 
 watch(
 	() => ({
-		enable: preferences.app.watermark,
-		content: preferences.app.watermarkContent,
+		content: managedWatermark.value,
 		isDark: isDark.value,
 	}),
-	async ({ enable, content, isDark: isDarkValue }) => {
-		if (enable) {
+	async ({ content, isDark: isDarkValue }) => {
+		if (content) {
 			const watermarkColor = isDarkValue ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)';
 
 			await updateWatermark({
@@ -212,7 +183,7 @@ watch(
 					],
 					type: 'linear',
 				},
-				content: content || `${userStore.userInfo?.username} - ${userStore.userInfo?.realName}`,
+				content,
 			});
 		} else {
 			destroyWatermark();
