@@ -4,6 +4,6 @@
   "DeepSeekSettings": {
     "SourceLang": "zh-cn",
     "ApiUrl": "https://api.deepseek.com/v1/chat/completions",
-    "ApiKey": "你的 API KEY"
+    "ApiKey": "sk-bd50f6b1b1174f4bb83c1dc043912cfc"
   }
 }
