@@ -56,6 +56,8 @@ public class PageLogInput : BasePageTimeInput
 
 public class LogInput
 {
+    /// <summary>超级管理员可选择导出的租户；其他账号固定当前租户</summary>
+    public long? TenantId { get; set; }
     /// <summary>
     /// 开始时间
     /// </summary>

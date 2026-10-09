@@ -307,7 +307,7 @@ public static class SqlSugarSetup
     {
         if (!config.DbSettings.EnableDiffLog) return;
 
-        async void AopOnDiffLogEvent(DiffLogModel u)
+        void AopOnDiffLogEvent(DiffLogModel u)
         {
             // 记录差异数据
             var diffData = new List<dynamic>();
@@ -318,14 +318,14 @@ public static class SqlSugarSetup
                 var beforeColumns = u.BeforeData[i].Columns;
                 for (int j = 0; j < afterColumns.Count; j++)
                 {
-                    if (afterColumns[j].Value.Equals(beforeColumns[j].Value)) continue;
+                    if (Equals(afterColumns[j].Value, beforeColumns[j].Value)) continue;
                     diffColumns.Add(new
                     {
                         afterColumns[j].IsPrimaryKey,
                         afterColumns[j].ColumnName,
                         afterColumns[j].ColumnDescription,
-                        BeforeValue = beforeColumns[j].Value,
-                        AfterValue = afterColumns[j].Value,
+                        BeforeValue = LogDataSanitizer.IsSensitiveName(afterColumns[j].ColumnName) ? "[redacted]" : beforeColumns[j].Value,
+                        AfterValue = LogDataSanitizer.IsSensitiveName(afterColumns[j].ColumnName) ? "[redacted]" : afterColumns[j].Value,
                     });
                 }
 
@@ -334,18 +334,22 @@ public static class SqlSugarSetup
 
             var logDiff = new SysLogDiff
             {
+                TenantId = App.User?.FindFirst(ClaimConst.TenantId)?.Value.ToLong(),
+                CreateUserId = App.User?.FindFirst(ClaimConst.UserId)?.Value.ToLong(),
+                CreateUserName = App.User?.FindFirst(ClaimConst.RealName)?.Value,
                 // 差异数据（字段描述、列名、值、表名、表描述）
-                DiffData = JSON.Serialize(diffData),
+                DiffData = LogDataSanitizer.Sanitize(JSON.Serialize(diffData)),
                 // 传进来的对象（如果对象为空，则使用首个数据的表名作为业务对象）
-                BusinessData = u.BusinessData == null ? u.AfterData.FirstOrDefault()?.TableName : JSON.Serialize(u.BusinessData),
+                BusinessData = u.BusinessData == null ? u.AfterData.FirstOrDefault()?.TableName : LogDataSanitizer.Sanitize(JSON.Serialize(u.BusinessData)),
                 // 枚举（insert、update、delete）
                 DiffType = u.DiffType.ToString(),
-                Sql = u.Sql,
-                Parameters = JSON.Serialize(u.Parameters.Select(e => new { e.ParameterName, e.Value, TypeName = e.DbType.ToString() })),
+                // SQL 与位置参数缺少可靠字段上下文，不持久化可能包含的认证值。
+                Sql = null,
+                Parameters = null,
                 Elapsed = u.Time == null ? 0 : (long)u.Time.Value.TotalMilliseconds
             };
             var logDb = ITenant.IsAnyConnection(SqlSugarConst.LogConfigId) ? ITenant.GetConnectionScope(SqlSugarConst.LogConfigId) : ITenant.GetConnectionScope(SqlSugarConst.MainConfigId);
-            await logDb.CopyNew().Insertable(logDiff).ExecuteCommandAsync();
+            logDb.CopyNew().Insertable(logDiff).ExecuteCommand();
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine(DateTime.Now + $"\r\n*****开始差异日志*****\r\n{Environment.NewLine}{JSON.Serialize(logDiff)}{Environment.NewLine}*****结束差异日志*****\r\n");
         }

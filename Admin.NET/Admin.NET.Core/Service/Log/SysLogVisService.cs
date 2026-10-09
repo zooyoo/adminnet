@@ -29,8 +29,10 @@ public class SysLogVisService : IDynamicApiController, ITransient
     [DisplayName("获取访问日志分页列表")]
     public async Task<SqlSugarPagedList<SysLogVis>> Page(PageVisLogInput input)
     {
+        if (!_userManager.SuperAdmin) input.TenantId = _userManager.TenantId;
+        if (input.StartTime > input.EndTime) throw Oops.Oh("开始时间不能晚于结束时间");
         return await _sysLogVisRep.AsQueryable()
-            .WhereIF(_userManager.SuperAdmin && input.TenantId > 0, u => u.TenantId == input.TenantId)
+            .WhereIF(input.TenantId > 0, u => u.TenantId == input.TenantId)
             .WhereIF(!string.IsNullOrWhiteSpace(input.StartTime.ToString()), u => u.CreateTime >= input.StartTime)
             .WhereIF(!string.IsNullOrWhiteSpace(input.EndTime.ToString()), u => u.CreateTime <= input.EndTime)
             .WhereIF(!string.IsNullOrWhiteSpace(input.Account), u => u.Account == input.Account)
@@ -51,7 +53,8 @@ public class SysLogVisService : IDynamicApiController, ITransient
     [DisplayName("清空访问日志")]
     public void Clear()
     {
-        _sysLogVisRep.AsSugarClient().DbMaintenance.TruncateTable<SysLogVis>();
+        if (!_userManager.SuperAdmin) throw Oops.Oh("仅超级管理员可清空全部访问日志");
+        _sysLogVisRep.AsSugarClient().Deleteable<SysLogVis>().ExecuteCommand();
     }
 
     /// <summary>
@@ -62,7 +65,8 @@ public class SysLogVisService : IDynamicApiController, ITransient
     public async Task<List<LogVisOutput>> GetList()
     {
         return await _sysLogVisRep.AsQueryable()
-            .Where(u => u.Longitude > 0 && u.Longitude > 0)
+            .WhereIF(!_userManager.SuperAdmin, u => u.TenantId == _userManager.TenantId)
+            .Where(u => u.Longitude > 0 && u.Latitude > 0)
             .Select(u => new LogVisOutput
             {
                 Location = u.Location,

@@ -574,7 +574,7 @@ public static class CommonHelper
         }
 
         // 登录时从请求参数获取用户信息
-        if (result.UserId == null && loggingMonitor.ActionName == "login" && loggingMonitor.Parameters?.FirstOrDefault()?.Value is JsonElement jsonElement)
+        if (result.UserId == null && string.Equals(loggingMonitor.ActionName, "login", StringComparison.OrdinalIgnoreCase) && loggingMonitor.Parameters?.FirstOrDefault()?.Value is JsonElement jsonElement)
         {
             result.Account = jsonElement.TryGetProperty("account", out var account) ? account.GetString() : null;
             if (string.IsNullOrWhiteSpace(result.Account)) return result;

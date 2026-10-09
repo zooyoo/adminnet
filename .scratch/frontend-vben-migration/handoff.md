@@ -2,6 +2,17 @@
 
 日期：2026-10-10（Asia/Shanghai）。
 
+## 最新接续：提案 27 已完成，下一项 28
+
+- 提案 27 已完成并准备提交，总进度 27 / 48；继续严格编号、逐项验收后提交，仅桌面和隔离 PostgreSQL。
+- 新增 Vben system/log 四类页面（访问、操作、异常、数据差异），复用真实 SysLog* API，支持分页、日期 / 账号 / 租户 / 状态筛选、详情、差异表格、操作 / 异常导出和超级管理员清空确认。
+- 后端日志服务补齐租户过滤、详情边界、日期范围校验、超级管理员清空和导出租户过滤；SysConfig 更新使用真实差异日志。访问日志对 login / loginPhone / logout 分类写入。
+- LogDataSanitizer 处理历史日志详情、导出、请求 / 返回 / 异常、差异敏感字段；差异 SQL 与无上下文参数不返回。新增 LogDataSanitizerTests，路由权限回归扩展到日志端点。
+- 隔离启动脚本 -LogFixture 使用同一 PostgreSQL 18 主库 / 日志库并关闭验证码；真实脚本覆盖四类日志、日期空结果、分页 / 详情 / 差异 / 导出、匿名 / 普通 / 授权租户边界、清空取消与确认、Edge 明暗桌面和停机反馈。
+- 最终报告：C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-3061b2b9c3da4f279ecf6bf09b0cad08/evidence/log-browser-baseline.json，功能、清理和视觉通过。已检查操作日志明色、差异详情暗色和差异列表暗色；API、代理、Edge 与 PostgreSQL 容器已停止 / 清理。
+- 工程：API / Test 构建、前端生产构建、类型检查、ESLint、node --check 和日志脱敏 / 路由权限回归合计 56 / 56 通过。dotnet test 旧 VSTest target 被 .NET 10 Microsoft Testing Platform 拒绝，使用测试 DLL 直接执行；antdv lint 仅回显参数。
+- 不提交用户已有 AGENTS.md 和 doc/frontend-vben-tickets-draft.md 改动。下一项 28：服务器与运行时监控；先核对旧 SysServerService 返回合同和新前端 API / 图表，再做真实授权隔离、轮询释放、Edge 桌面与停机验收。
+
 ## 最新接续：提案 26 已完成，下一项 27
 
 - 提案 25 已提交 `459ce0f83`；26 已完成并准备提交，总进度 26 / 48。继续严格编号、逐项验收后提交，仅桌面和隔离 PostgreSQL。

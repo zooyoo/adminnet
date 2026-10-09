@@ -90,7 +90,7 @@ public class DatabaseLoggingWriter : IDatabaseLoggingWriter, IDisposable
         //await Task.Delay(50); // 延迟 0.05 秒写入数据库，有效减少高频写入数据库导致死锁问题
 
         // 批量发送异常邮件
-        if (exceptions.Count != 0) await _eventPublisher.PublishAsync(nameof(CommonConst.SendErrorMail), exceptions);
+        if (exceptions.Count != 0 && App.GetConfig<bool>("Logging:NotifyErrorMail", true)) await _eventPublisher.PublishAsync(nameof(CommonConst.SendErrorMail), exceptions);
     }
 
     /// <summary>
@@ -120,7 +120,9 @@ public class DatabaseLoggingWriter : IDatabaseLoggingWriter, IDisposable
             return (LogTypeEnum.Exception, detailedLog.Adapt<SysLogEx>());
 
         // 访问日志（登录/退出）
-        if (loggingMonitor.ActionName is "login" or "loginPhone" or "logout")
+        if (string.Equals(loggingMonitor.ActionName, "login", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(loggingMonitor.ActionName, "loginPhone", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(loggingMonitor.ActionName, "logout", StringComparison.OrdinalIgnoreCase))
             return (LogTypeEnum.Visit, detailedLog.Adapt<SysLogVis>());
 
         // 操作日志
@@ -145,11 +147,11 @@ public class DatabaseLoggingWriter : IDatabaseLoggingWriter, IDisposable
             EventId = logMsg.EventId.Id,                                                     // 事件ID
             ThreadId = logMsg.ThreadId,                                                      // 线程ID
             TraceId = logMsg.TraceId,                                                        // 追踪ID（用于链路追踪）
-            Exception = ExceptionSanitizer.ToJson(logMsg.Exception, o => JSON.Serialize(o)),  // 异常信息
-            Message = logMsg.Message,                                                        // 日志消息内容
+            Exception = LogDataSanitizer.Sanitize(ExceptionSanitizer.ToJson(logMsg.Exception, o => JSON.Serialize(o))),
+            Message = LogDataSanitizer.Sanitize(logMsg.Message),                              // 日志消息内容
             LogLevel = logMsg.LogLevel,                                                      // 日志级别
             HttpMethod = logMsg.Context?.Get("Method")?.ToString() ?? "",                    // HTTP方法
-            RequestUrl = logMsg.Context?.Get("Url")?.ToString() ?? "",                       // 请求URL
+            RequestUrl = LogDataSanitizer.Sanitize(logMsg.Context?.Get("Url")?.ToString() ?? ""), // 请求URL
             Status = "200"                                                                   // 默认状态码
         };
     }
@@ -194,14 +196,14 @@ public class DatabaseLoggingWriter : IDatabaseLoggingWriter, IDisposable
             Elapsed = loggingMonitor.TimeOperationElapsedMilliseconds,                // 接口执行耗时（毫秒）
 
             // 请求信息
-            Message = logMsg.Message,                                                 // 日志消息
+            Message = LogDataSanitizer.Sanitize(logMsg.Message),                       // 日志消息
             HttpMethod = loggingMonitor.HttpMethod,                                   // HTTP方法（GET/POST等）
-            RequestUrl = loggingMonitor.RequestUrl,                                   // 请求URL
-            RequestParam = loggingMonitor.Parameters?.FirstOrDefault()?.Value != null ? JSON.Serialize(loggingMonitor.Parameters.First().Value) : null,  // 请求参数
-            ReturnResult = loggingMonitor.ReturnInformation?.Value != null ? JSON.Serialize(loggingMonitor.ReturnInformation.Value) : null,              // 返回结果
+            RequestUrl = LogDataSanitizer.Sanitize(loggingMonitor.RequestUrl),          // 请求URL
+            RequestParam = loggingMonitor.Parameters?.FirstOrDefault()?.Value != null ? LogDataSanitizer.Sanitize(JSON.Serialize(loggingMonitor.Parameters.First().Value)) : null,
+            ReturnResult = loggingMonitor.ReturnInformation?.Value != null ? LogDataSanitizer.Sanitize(JSON.Serialize(loggingMonitor.ReturnInformation.Value)) : null,
 
             // 异常信息
-            Exception = ExceptionSanitizer.ToJson(logMsg.Exception ?? loggingMonitor.Exception, o => JSON.Serialize(o)), // 异常详情
+            Exception = LogDataSanitizer.Sanitize(ExceptionSanitizer.ToJson(logMsg.Exception ?? loggingMonitor.Exception, o => JSON.Serialize(o))),
 
             // 日志元数据
             LogDateTime = logMsg.LogDateTime,                        // 日志时间

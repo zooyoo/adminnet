@@ -7,6 +7,7 @@ param(
     [switch]$JobFixture,
     [switch]$PostgreSqlFixture,
     [switch]$CodeGenFixture,
+    [switch]$LogFixture,
     [switch]$FileDeduplication,
     [switch]$TranslationTestService,
     [uri]$SmsTestService,
@@ -87,6 +88,13 @@ $configuration['Logging'] = @{
     Database = @{ Enabled = $false }
     ElasticSearch = @{ Enabled = $false }
     Monitor = @{ GlobalEnabled = $false; WithReturnValue = $false; ConsoleLog = $true }
+}
+if ($LogFixture) {
+    if (-not $PostgreSqlFixture) { throw 'LogFixture requires PostgreSqlFixture.' }
+    $configuration['Logging']['Database']['Enabled'] = $true
+    $configuration['Logging']['Monitor'] = @{ GlobalEnabled = $true; LogLevel = 'Information'; BahLogLevel = 'Information'; WithReturnValue = $true; ConsoleLog = $false; JsonBehavior = 'All' }
+    $configuration['Logging']['LogLevel']['Default'] = 'Information'
+    $configuration['Logging']['NotifyErrorMail'] = $false
 }
 $configuration['JWTSettings'] = @{
     ValidateIssuerSigningKey = $true
@@ -193,6 +201,16 @@ if ($PostgreSqlFixture) {
             TableSettings = @{ EnableInitTable = $false; EnableIncreTable = $false }
             SeedSettings = @{ EnableInitSeed = $false; EnableIncreSeed = $false }
         }
+        if ($LogFixture) {
+            $mainConnection = $configuration['DbConnection']['ConnectionConfigs'][0]
+            $mainConnection['DbType'] = 'PostgreSQL'
+            $mainConnection['ConnectionString'] = "Host=127.0.0.1;Port=$pgPort;Database=maintenance;Username=postgres;Password=$pgPassword"
+            $logConnection = $configuration['DbConnection']['ConnectionConfigs'][1]
+            $logConnection['DbType'] = 'PostgreSQL'
+            $logConnection['ConnectionString'] = "Host=127.0.0.1;Port=$pgPort;Database=maintenance;Username=postgres;Password=$pgPassword"
+            $logConnection['SeedSettings']['EnableInitSeed'] = $false
+            $configuration['DbConnection']['ConnectionConfigs'][0]['DbSettings']['EnableDiffLog'] = $true
+        }
         @{ containerName = $containerName; runtimeRoot = $runtimeRoot; configId = '1300000000003' } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtimeRoot 'isolated-postgres.json') -Encoding UTF8
     }
     catch {
@@ -245,8 +263,14 @@ try {
         Stop-Process -Id $process.Id
         $process.WaitForExit()
         $fixtureScript = if ($AuthFixture) { 'prepare-auth-db.mjs' } elseif ($OnlineFixture) { 'prepare-online-db.mjs' } else { 'prepare-crud-db.mjs' }
-        & node (Join-Path $PSScriptRoot $fixtureScript) $runtimeRoot
-        if ($LASTEXITCODE -ne 0) { throw 'Isolated fixture preparation failed.' }
+        if ($LogFixture) {
+            & docker exec $containerName psql -U postgres -d maintenance -v ON_ERROR_STOP=1 -c "UPDATE sysconfig SET value = 'False' WHERE code = 'sys_captcha'" | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'Isolated PostgreSQL fixture preparation failed.' }
+        }
+        else {
+            & node (Join-Path $PSScriptRoot $fixtureScript) $runtimeRoot
+            if ($LASTEXITCODE -ne 0) { throw 'Isolated fixture preparation failed.' }
+        }
         $process = Start-IsolatedProcess
         Wait-IsolatedApi $process
     }

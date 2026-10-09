@@ -93,7 +93,7 @@ public class SysConfigService : IDynamicApiController, ITransient
         if (isExist) throw Oops.Oh(ErrorCodeEnum.D9000);
 
         var config = input.Adapt<SysConfig>();
-        await _sysConfigRep.AsUpdateable(config).IgnoreColumns(true).ExecuteCommandAsync();
+        await _sysConfigRep.Context.UpdateWithDiffLogAsync(config);
 
         Remove(existing);
         Remove(config);

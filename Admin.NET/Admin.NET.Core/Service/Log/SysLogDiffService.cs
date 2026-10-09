@@ -29,12 +29,16 @@ public class SysLogDiffService : IDynamicApiController, ITransient
     [DisplayName("获取差异日志分页列表")]
     public async Task<SqlSugarPagedList<SysLogDiff>> Page(PageLogInput input)
     {
-        return await _sysLogDiffRep.AsQueryable()
-            .WhereIF(_userManager.SuperAdmin && input.TenantId > 0, u => u.TenantId == input.TenantId)
+        if (!_userManager.SuperAdmin) input.TenantId = _userManager.TenantId;
+        if (input.StartTime > input.EndTime) throw Oops.Oh("开始时间不能晚于结束时间");
+        var result = await _sysLogDiffRep.AsQueryable()
+            .WhereIF(input.TenantId > 0, u => u.TenantId == input.TenantId)
             .WhereIF(!string.IsNullOrWhiteSpace(input.StartTime.ToString()), u => u.CreateTime >= input.StartTime)
             .WhereIF(!string.IsNullOrWhiteSpace(input.EndTime.ToString()), u => u.CreateTime <= input.EndTime)
             .OrderBy(u => u.CreateTime, OrderByType.Desc)
             .ToPagedListAsync(input.Page, input.PageSize);
+        foreach (var item in result.Items) LogDataSanitizer.SanitizeRecord(item);
+        return result;
     }
 
     /// <summary>
@@ -45,6 +49,6 @@ public class SysLogDiffService : IDynamicApiController, ITransient
     [DisplayName("获取差异日志详情")]
     public async Task<SysLogDiff> GetDetail(long id)
     {
-        return await _sysLogDiffRep.GetFirstAsync(u => u.Id == id);
+        return LogDataSanitizer.SanitizeRecord(await _sysLogDiffRep.GetFirstAsync(u => u.Id == id && (_userManager.SuperAdmin || u.TenantId == _userManager.TenantId)));
     }
 }

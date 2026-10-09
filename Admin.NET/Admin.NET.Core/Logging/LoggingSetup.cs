@@ -17,7 +17,7 @@ public static class LoggingSetup
         // 日志监听
         services.AddMonitorLogging(options =>
         {
-            options.IgnorePropertyNames = new[] { "Byte" };
+            options.IgnorePropertyNames = new[] { "Byte", "Password", "password", "AccessToken", "accessToken", "RefreshToken", "refreshToken", "ApiKey", "apiKey", "SecretKey", "secretKey" };
             options.IgnorePropertyTypes = new[] { typeof(byte[]) };
         });
 

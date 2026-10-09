@@ -37,6 +37,13 @@ public class RoutePermissionUtilTests
     [InlineData("/api/sysDatabase/previewEntity", "/api/sysDatabase/previewEntity", "sysDatabase:createEntity")]
     [InlineData("/api/sysDatabase/previewSeedData", "/api/sysDatabase/previewSeedData", "sysDatabase:createSeedData")]
     [InlineData("/api/sysDatabase/generationOptions", "/api/sysDatabase/generationOptions", "sysDatabase:list")]
+    [InlineData("/api/sysLogOp/detail/{id}", "/api/sysLogOp/detail/17", "sysOplog:page")]
+    [InlineData("/api/sysLogEx/detail/{id}", "/api/sysLogEx/detail/17", "sysExlog:page")]
+    [InlineData("/api/sysLogDiff/detail/{id}", "/api/sysLogDiff/detail/17", "sysDifflog:page")]
+    [InlineData("/api/sysLogVis/page", "/api/sysLogVis/page", "sysVislog:page")]
+    [InlineData("/api/sysLogOp/export", "/api/sysLogOp/export", "sysOplog:export")]
+    [InlineData("/api/sysLogEx/export", "/api/sysLogEx/export", "sysExlog:export")]
+    [InlineData("/api/sysLogVis/clear", "/api/sysLogVis/clear", "sysVislog:clear")]
     public void GetPermissionName_MatchedRoute_ExcludesParameterValues(string template, string path, string expected)
     {
         // 准备
@@ -75,6 +82,10 @@ public class RoutePermissionUtilTests
     [InlineData("sysDatabase:addTable", true)]
     [InlineData("sysDatabase:moveColumn", true)]
     [InlineData("sysDatabase:visualDbTable", true)]
+    [InlineData("sysOplog:page", true)]
+    [InlineData("sysExlog:export", true)]
+    [InlineData("sysVislog:clear", true)]
+    [InlineData("sysLogDiff:detail", true)]
     public void RequiresExplicitGrant_TranslationSensitiveAction_DoesNotDependOnMenuRegistration(string permission, bool expected)
     {
         Assert.Equal(expected, RoutePermissionUtil.RequiresExplicitGrant(permission));

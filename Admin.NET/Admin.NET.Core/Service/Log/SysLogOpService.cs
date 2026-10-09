@@ -29,8 +29,10 @@ public class SysLogOpService : IDynamicApiController, ITransient
     [DisplayName("获取操作日志分页列表")]
     public async Task<SqlSugarPagedList<SysLogOp>> Page(PageOpLogInput input)
     {
-        return await _sysLogOpRep.AsQueryable()
-            .WhereIF(_userManager.SuperAdmin && input.TenantId > 0, u => u.TenantId == input.TenantId)
+        if (!_userManager.SuperAdmin) input.TenantId = _userManager.TenantId;
+        if (input.StartTime > input.EndTime) throw Oops.Oh("开始时间不能晚于结束时间");
+        var result = await _sysLogOpRep.AsQueryable()
+            .WhereIF(input.TenantId > 0, u => u.TenantId == input.TenantId)
             .WhereIF(!string.IsNullOrWhiteSpace(input.StartTime.ToString()), u => u.CreateTime >= input.StartTime)
             .WhereIF(!string.IsNullOrWhiteSpace(input.EndTime.ToString()), u => u.CreateTime <= input.EndTime)
             .WhereIF(!string.IsNullOrWhiteSpace(input.Account), u => u.Account == input.Account)
@@ -38,10 +40,14 @@ public class SysLogOpService : IDynamicApiController, ITransient
             .WhereIF(!string.IsNullOrWhiteSpace(input.ControllerName), u => u.ControllerName == input.ControllerName)
             .WhereIF(!string.IsNullOrWhiteSpace(input.ActionName), u => u.ActionName == input.ActionName)
             .WhereIF(!string.IsNullOrWhiteSpace(input.Elapsed.ToString()), u => u.Elapsed >= input.Elapsed)
+            .WhereIF(!string.IsNullOrWhiteSpace(input.Status) && input.Status == "200", u => u.Status == "200")
+            .WhereIF(!string.IsNullOrWhiteSpace(input.Status) && input.Status != "200", u => u.Status != "200")
             //.OrderBy(u => u.CreateTime, OrderByType.Desc)
             .IgnoreColumns(u => new { u.RequestParam, u.ReturnResult, u.Message })
             .OrderBuilder(input)
             .ToPagedListAsync(input.Page, input.PageSize);
+        foreach (var item in result.Items) LogDataSanitizer.SanitizeRecord(item);
+        return result;
     }
 
     /// <summary>
@@ -52,7 +58,7 @@ public class SysLogOpService : IDynamicApiController, ITransient
     [DisplayName("获取操作日志详情")]
     public async Task<SysLogOp> GetDetail(long id)
     {
-        return await _sysLogOpRep.GetFirstAsync(u => u.Id == id);
+        return LogDataSanitizer.SanitizeRecord(await _sysLogOpRep.GetFirstAsync(u => u.Id == id && (_userManager.SuperAdmin || u.TenantId == _userManager.TenantId)));
     }
 
     /// <summary>
@@ -63,7 +69,8 @@ public class SysLogOpService : IDynamicApiController, ITransient
     [DisplayName("清空操作日志")]
     public void Clear()
     {
-        _sysLogOpRep.AsSugarClient().DbMaintenance.TruncateTable<SysLogOp>();
+        if (!_userManager.SuperAdmin) throw Oops.Oh("仅超级管理员可清空全部操作日志");
+        _sysLogOpRep.AsSugarClient().Deleteable<SysLogOp>().ExecuteCommand();
     }
 
     /// <summary>
@@ -74,12 +81,19 @@ public class SysLogOpService : IDynamicApiController, ITransient
     [DisplayName("导出操作日志")]
     public async Task<IActionResult> ExportLogOp(LogInput input)
     {
+        if (input.StartTime > input.EndTime) throw Oops.Oh("开始时间不能晚于结束时间");
         var logOpList = await _sysLogOpRep.AsQueryable()
-            .WhereIF(!string.IsNullOrWhiteSpace(input.StartTime.ToString()) && !string.IsNullOrWhiteSpace(input.EndTime.ToString()),
-                    u => u.CreateTime >= input.StartTime && u.CreateTime <= input.EndTime)
+            .WhereIF(!_userManager.SuperAdmin || input.TenantId > 0, u => u.TenantId == (_userManager.SuperAdmin ? input.TenantId : _userManager.TenantId))
+            .WhereIF(input.StartTime.HasValue, u => u.CreateTime >= input.StartTime)
+            .WhereIF(input.EndTime.HasValue, u => u.CreateTime <= input.EndTime)
             .OrderBy(u => u.CreateTime, OrderByType.Desc)
             .Select<ExportLogDto>().ToListAsync();
 
+        foreach (var item in logOpList)
+        {
+            item.Message = LogDataSanitizer.Sanitize(item.Message);
+            item.Exception = LogDataSanitizer.Sanitize(item.Exception);
+        }
         IExcelExporter excelExporter = new ExcelExporter();
         var res = await excelExporter.ExportAsByteArray(logOpList);
         return new FileStreamResult(new MemoryStream(res), "application/octet-stream") { FileDownloadName = DateTime.Now.ToString("yyyyMMddHHmm") + "操作日志.xlsx" };

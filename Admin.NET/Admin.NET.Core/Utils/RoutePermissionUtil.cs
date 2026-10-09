@@ -17,6 +17,11 @@ public static class RoutePermissionUtil
     public static bool RequiresExplicitGrant(string permission)
     {
         return permission?.StartsWith("sysJob:", StringComparison.OrdinalIgnoreCase) == true ||
+            permission?.StartsWith("sysVislog:", StringComparison.OrdinalIgnoreCase) == true ||
+            permission?.StartsWith("sysOplog:", StringComparison.OrdinalIgnoreCase) == true ||
+            permission?.StartsWith("sysExlog:", StringComparison.OrdinalIgnoreCase) == true ||
+            permission?.StartsWith("sysDifflog:", StringComparison.OrdinalIgnoreCase) == true ||
+            permission?.StartsWith("sysLog", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysDatabase:", StringComparison.OrdinalIgnoreCase) == true || permission?.ToLowerInvariant() is "syslangtext:export" or "syslangtext:import" or
             "syslangtext:batchdelete" or "syslangtext:batchsave" or "syslangtext:aitranslatetext" or "sysconfig:savesysinfo" or
             "sysfile:page" or "sysfile:uploadfile" or "sysfile:downloadfile" or "sysfile:update" or "sysfile:delete";
@@ -36,6 +41,15 @@ public static class RoutePermissionUtil
         // 缓存值和前缀操作复用现有查询、删除权限，不新增 API 或菜单权限。
         return permission.ToLowerInvariant() switch
         {
+            "syslogvis:page" or "syslogvis:list" => "sysVislog:page",
+            "syslogvis:clear" => "sysVislog:clear",
+            "syslogop:page" or "syslogop:detail" => "sysOplog:page",
+            "syslogop:clear" => "sysOplog:clear",
+            "syslogop:export" => "sysOplog:export",
+            "syslogex:page" or "syslogex:detail" => "sysExlog:page",
+            "syslogex:clear" => "sysExlog:clear",
+            "syslogex:export" => "sysExlog:export",
+            "syslogdiff:page" or "syslogdiff:detail" => "sysDifflog:page",
             "sysdatabase:previewentity" => "sysDatabase:createEntity",
             "sysdatabase:previewseeddata" => "sysDatabase:createSeedData",
             "sysdatabase:generationoptions" => "sysDatabase:list",
