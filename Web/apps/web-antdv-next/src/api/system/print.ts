@@ -8,8 +8,7 @@ export async function listPrintTemplates(input: PagePrintInput, signal?: AbortSi
 	return { items: result?.items ?? [], total: result?.total ?? 0 };
 }
 
-export const savePrintTemplate = (input: AddPrintInput | UpdatePrintInput) =>
-	' id' in input && input.id ? getAPI(SysPrintApi).apiSysPrintUpdatePost(input) : getAPI(SysPrintApi).apiSysPrintAddPost(input as AddPrintInput);
+export const savePrintTemplate = (input: AddPrintInput | UpdatePrintInput) => (input.id ? getAPI(SysPrintApi).apiSysPrintUpdatePost(input) : getAPI(SysPrintApi).apiSysPrintAddPost(input));
 
 export const removePrintTemplate = (id: number) => getAPI(SysPrintApi).apiSysPrintDeletePost({ id });
 

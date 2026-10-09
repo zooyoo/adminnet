@@ -31,7 +31,7 @@ const table = useAdminTable<Position, PositionQuery>({
 	query: { ...filters },
 	load: async (query, signal) => {
 		const items = await listPositions({ name: query.name, code: query.code, tenantId: query.tenantId }, signal);
-		return { items, total: items.length };
+		return { items: items.slice((query.page - 1) * query.pageSize, query.page * query.pageSize), total: items.length };
 	},
 });
 const columns: NonNullable<TableProps<Position>['columns']> = [
@@ -93,6 +93,14 @@ function reset() {
 	void table.search({ ...filters });
 }
 
+const outputOptions = {
+	fileName: '职位清单',
+	formatters: {
+		count: (row: Position) => row.userList?.length ?? 0,
+		status: (row: Position) => (row.status === 1 ? '启用' : '禁用'),
+	},
+};
+
 onMounted(async () => {
 	if (isSuperAdmin.value) tenants.value = await getTenantOptionsApi();
 	await table.reload();
@@ -110,10 +118,10 @@ onMounted(async () => {
 				<Button @click="reset"><RotateCcw :size="16" />重置</Button>
 			</div>
 		</Form>
-		<AdminTable :controller="table" :columns="columns" :pagination="false">
-			<template #toolbar
-				><Button v-if="can('add')" type="primary" @click="edit()"><Plus :size="16" />新增职位</Button></template
-			>
+		<AdminTable :controller="table" :columns="columns" :output="can('list') ? outputOptions : undefined" selection>
+			<template #toolbar>
+				<Button v-if="can('add')" type="primary" @click="edit()"><Plus :size="16" />新增职位</Button>
+			</template>
 			<template #bodyCell="{ column, record, index }">
 				<template v-if="column.key === 'index'">{{ index + 1 }}</template>
 				<template v-else-if="column.key === 'count'">{{ record.userList?.length ?? 0 }}</template>
@@ -182,6 +190,9 @@ onMounted(async () => {
 	gap: 6px;
 }
 .tenant-select {
+	min-width: 180px;
+}
+.print-template-select {
 	min-width: 180px;
 }
 @media (max-width: 640px) {

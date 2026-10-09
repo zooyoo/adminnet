@@ -136,6 +136,14 @@
 - 第 16 项日程详情使用 `/api/sysSchedule/detail/{id}`，不是 `detail?id=...`。真实脚本须先核对 SDK 的完整路径，解析 JSON 前记录脱敏路径和 HTTP 状态；空 404 响应不能只留下 `Unexpected end of JSON input`。
 - 工作台内操作会使内容滚动容器停留在非零位置，`fullPage` 截图仍可能遗漏顶栏标题。成功态取证前恢复实际滚动容器，再等动画和通知结束；弹窗错误态保留当前可操作视角。此处理已在最终明暗桌面截图核验。
 
+### 2026-10-09：PDF 字体与浏览器打印
+
+- pdfme 6.2.4 的本地相对字体 URL 不能直接作为生成器字体字符串使用。本次 `Unknown font format` 经二进制下载、签名检查及 ArrayBuffer 输入后消失；设计器与生成器须共用相同字体数据。文件名不能证明字体身份，发布前核对字体内嵌名称、版本和对应许可证。
+- 本机 Playwright headless shell 的 PDF iframe 没有触发加载事件；在同一构建和脚本中改用已安装 Edge 后，PDF 加载和原生打印调用通过。PDF 打印验收应使用带 PDF 查看器的完整浏览器；未安装完整 Chromium 是环境前提，不应改写业务或伪造加载成功。
+- iframe 的 PDF 导航不可靠地触发父 document 的捕获监听。本次在 iframe 插入前包裹既有 onload，观察并继续调用原生 print，得到稳定证据。Mock 契约可替换 print 采集 PDF 字节，但必须与真实浏览器调用分别记录。
+- 不假设 bundled Poppler 包含 pdftotext。本机仅有 PDF 渲染工具时，已用 bundled pypdf 提取中文文本，再以 Poppler 渲染并目视检查布局。
+- KeepAlive 页面和通知可同时包含相同文字，停机断言限定当前可见业务页的 Alert；不能用全页宽泛“服务”正则。
+
 相对于仓库根目录：
 
 - `.scratch/frontend-vben-migration/run-user-browser-baseline.mjs`：真实桌面 CRUD、授权、错误草稿和停机示例。

@@ -5,7 +5,6 @@ import { ElMessageBox, ElMessage } from "element-plus";
 import { downloadStreamFile } from "/@@/utils/download";
 @if(Model.PrintType == "custom") {
 @:// 推荐设置操作 width 为 200
-@:import { hiprint } from 'vue-plugin-hiprint';
 @:import { getAPI } from '/@@/utils/axios-utils';
 @:import { SysPrintApi } from '/@@/api-services/api';
 @:import { SysPrint } from '/@@/api-services/models';
@@ -16,14 +15,12 @@ import { use@(Model.ClassName)Api } from '/@@/api/@(Model.PagePath)/@(Model.Lowe
 @:import { useUserInfo } from "/@@/stores/userInfo";
 }
 import editDialog from '/@@/views/@(Model.PagePath)/@(Model.LowerClassName)/component/editDialog.vue'
-import printDialog from '/@@/views/system/print/component/hiprint/preview.vue'
 import ModifyRecord from '/@@/components/table/modifyRecord.vue';
 @if(Model.ImportFieldList.Count > 0) {
 @:import ImportData from "/@@/components/table/importData.vue";
 }
 
 const @(Model.LowerClassName)Api = use@(Model.ClassName)Api();
-const printDialogRef = ref();
 const editDialogRef = ref();
 @if (Model.ImportFieldList.Count > 0) {
 @:const importDataRef = ref();
@@ -102,13 +99,15 @@ const batchDel@(Model.ClassName) = () => {
 };
 @if(Model.PrintType == "custom") {
 @:
-@:// 打开打印页面
+@:// 使用 pdfme 生成 PDF 预览
 @:const openPrint@(Model.ClassName) = async (row: any) => {
   @:var res = await getAPI(SysPrintApi).apiSysPrintPrintNameGet('@Model.PrintName');
   @:var printTemplate = res.data.result as SysPrint;
-  @:var template = JSON.parse(printTemplate.template);
   @:row['printDate'] = formatDate(new Date(), 'YYYY-mm-dd HH:MM:SS')
-  @:printDialogRef.value.showDialog(new hiprint.PrintTemplate({template: template}), row, template.panels[0].width);
+  @:const { printPdf } = await import('/@@/components/pdfme/output');
+  @:const { parsePdfmeTemplate } = await import('/@@/components/pdfme/template');
+  @:const inputs = Object.fromEntries(Object.entries(row).map(([key, value]) => [key, value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value)]));
+  @:await printPdf(parsePdfmeTemplate(printTemplate.template), [inputs]);
   @:}
 }
 @if (Model.HasSetStatus) {
@@ -314,7 +313,6 @@ handleQuery();
       @if (Model.ImportFieldList.Count > 0) {
       @:<ImportData ref="importDataRef" :import="@(Model.LowerClassName)Api.importData" :download="@(Model.LowerClassName)Api.downloadTemplate" v-auth="'@(Model.LowerClassName):import'" @@refresh="handleQuery"/>
       }
-      <printDialog ref="printDialogRef" :title="'打印@(Model.BusName)'" @@reloadTable="handleQuery" />
       <editDialog ref="editDialogRef" @@reloadTable="handleQuery" />
     </el-card>
   </div>

@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+
 import { expect, test } from '@playwright/test';
+
 import { loginAdmin, mockAdminSession } from './fixtures/admin-session';
+
+test.use({ channel: 'msedge' });
 
 const { read, utils } = createRequire(import.meta.url)('xlsx-js-style');
 const records = [
@@ -78,31 +82,36 @@ test('configuration export follows filters and visible columns without changing 
 	await expect(page.getByRole('textbox', { name: /配置名称/ })).toHaveValue('filter');
 });
 
-test('configuration printing renders an escaped real print document', async ({ page }) => {
+test('configuration printing generates PDF and invokes browser printing', async ({ page }) => {
+	test.setTimeout(60_000);
 	await mockAdminSession(page, 'config');
 	await page.route('**/prod-api/api/sysConfig/page', (route) => route.fulfill({ json: { code: 200, result: { items: [{ ...records[1], value: '<img src=x onerror=alert(1)>' }], total: 1 } } }));
 	await page.route('**/prod-api/api/sysConfig/groupList', (route) => route.fulfill({ json: { code: 200, result: [] } }));
 	await page.goto('/#/auth/login');
-	await page.addInitScript(() => {
-		window.print = () => {
-			// 打印引擎会在焦点恢复后移除 iframe，在真实打印调用时采集文档。
-			const target = window.top as Window & { printedDocument?: { heading: string; cells: string[]; images: number } };
-			target.printedDocument = {
-				heading: document.querySelector('h1')?.textContent ?? '',
-				cells: [...document.querySelectorAll('td')].map((cell) => cell.textContent ?? ''),
-				images: document.querySelectorAll('img').length,
-			};
+	await loginAdmin(page, 'config');
+	await page.evaluate(() => {
+		const append = document.body.append.bind(document.body);
+		document.body.append = (...nodes) => {
+			for (const frame of nodes) {
+				if (!(frame instanceof HTMLIFrameElement) || frame.title !== 'PDF 打印') continue;
+				const onload = frame.onload;
+				frame.onload = (event) => {
+					if (!frame.contentWindow) return;
+					frame.contentWindow.print = () => {
+						void fetch(frame.src)
+							.then((response) => response.arrayBuffer())
+							.then((bytes) => {
+								(window as Window & { printedPdf?: string }).printedPdf = new TextDecoder().decode(bytes.slice(0, 4));
+							});
+					};
+					onload?.call(frame, event);
+				};
+			}
+			append(...nodes);
 		};
 	});
-	await loginAdmin(page, 'config');
 	await page.getByRole('button', { name: '打印', exact: true }).click();
-	await expect
-		.poll(() => page.evaluate(() => (window as Window & { printedDocument?: unknown }).printedDocument))
-		.toEqual({
-			heading: '系统参数',
-			cells: ['业务配置', 'Business', '<img src=x onerror=alert(1)>', '否', 'business', '2'],
-			images: 0,
-		});
+	await expect.poll(() => page.evaluate(() => (window as Window & { printedPdf?: string }).printedPdf), { timeout: 30_000 }).toBe('%PDF');
 });
 
 test('read-only configuration hides mutations but retains read-only export', async ({ page }) => {

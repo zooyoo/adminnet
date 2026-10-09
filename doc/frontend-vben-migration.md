@@ -13,6 +13,8 @@
 
 ## 实施与验证
 
+2026-10-09 增量：提案 19、20 使用 pdfme 6.2.4 替换原打印引擎。公共 `AdminTable` 输出可见数据列，支持 PDF、Excel 和浏览器打印，范围为当前页、跨页选中项或全部匹配结果；`system/print` 使用既有 `SysPrint` API 保存模板，提供设计器、常用模板及隔离 HTTP 打印服务适配。最终证据及边界见 `.scratch/frontend-vben-migration/issues/19-pdfme-list-output.md`、`20-pdfme-template-designer.md`；下表其他阶段仍为历史记录。
+
 状态含义：待处理、进行中、已迁移、已验证。只有实际验证通过后才标记已验证。
 
 | 阶段 | 状态 | 验证要求 |

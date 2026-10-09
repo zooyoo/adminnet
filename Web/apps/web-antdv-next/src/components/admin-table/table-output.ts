@@ -80,13 +80,13 @@ export function printableTable(matrix: OutputCell[][], title: string): string {
 }
 
 export async function printTable(matrix: OutputCell[][], title: string, isCurrent = () => true) {
-	const { default: printJS } = await import('print-js');
+	const [{ createTableTemplate }, { printPdf }] = await Promise.all([import('../pdfme/template'), import('../pdfme/output')]);
 	if (!isCurrent()) return;
-	printJS({
-		printable: printableTable(matrix, title),
-		type: 'raw-html',
-		documentTitle: title,
-		style:
-			'body{font-family:Arial,sans-serif;color:#111}h1{font-size:18px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #aaa;padding:6px;text-align:left;overflow-wrap:anywhere}thead{display:table-header-group}tr{break-inside:avoid}',
-	});
+	await printPdf(createTableTemplate(matrix, title), [{ rows: JSON.stringify(matrix.slice(1).map((row) => row.map(String))) }], isCurrent);
+}
+
+export async function exportTablePdf(matrix: OutputCell[][], title: string, isCurrent = () => true) {
+	const [{ createTableTemplate }, { downloadPdf }] = await Promise.all([import('../pdfme/template'), import('../pdfme/output')]);
+	if (!isCurrent()) return;
+	await downloadPdf(createTableTemplate(matrix, title), [{ rows: JSON.stringify(matrix.slice(1).map((row) => row.map(String))) }], title, isCurrent);
 }

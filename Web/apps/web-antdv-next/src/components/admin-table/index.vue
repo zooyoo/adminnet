@@ -4,7 +4,7 @@ import type { TableProps } from 'antdv-next';
 import type { TableOutputOptions } from './table-output';
 import type { AdminTableController } from './use-admin-table';
 
-import { computed, ref } from 'vue';
+import { computed, onActivated, onBeforeUnmount, onDeactivated, ref } from 'vue';
 
 import { ArrowDown, ArrowUp, createIconifyIcon, RotateCw, Settings } from '@vben/icons';
 
@@ -13,7 +13,7 @@ import { isCancel } from 'axios';
 
 import { sessionBoundary } from '#/api/session';
 
-import { exportWorkbook, printTable, tableMatrix } from './table-output';
+import { exportTablePdf, exportWorkbook, printTable, tableMatrix } from './table-output';
 
 const props = withDefaults(
 	defineProps<{
@@ -30,6 +30,19 @@ const props = withDefaults(
 
 const hiddenKeys = ref<string[]>([]);
 const outputLoading = ref(false);
+let active = true;
+let outputGeneration = 0;
+onActivated(() => {
+	active = true;
+});
+onDeactivated(() => {
+	active = false;
+	outputGeneration += 1;
+});
+onBeforeUnmount(() => {
+	active = false;
+	outputGeneration += 1;
+});
 const Download = createIconifyIcon('lucide:download');
 const Printer = createIconifyIcon('lucide:printer');
 const orderedKeys = ref<string[]>([]);
@@ -70,21 +83,34 @@ const rowSelection = computed(() =>
 		: undefined
 );
 
-async function runOutput(mode: 'all' | 'page' | 'print') {
+const outputScope = ref<'all' | 'page' | 'selected'>('page');
+const scopeOptions = computed(() => [
+	{ key: 'page', label: props.pagination ? '当前页' : '当前列表' },
+	...(props.selection ? [{ key: 'selected', label: '选中项' }] : []),
+	{ key: 'all', label: '全部匹配结果' },
+]);
+
+async function runOutput(mode: 'all' | 'page' | 'pdf' | 'print' | 'selected') {
 	if (!props.output || outputLoading.value) return;
 	const version = sessionBoundary.version;
+	const generation = ++outputGeneration;
+	const selectedKeys = [...props.controller.selectedKeys.value];
+	const isCurrent = () => active && generation === outputGeneration && version === sessionBoundary.version;
 	const columns = [...visibleColumns.value];
 	const config = props.output;
 	outputLoading.value = true;
 	try {
-		const records = mode === 'all' ? await props.controller.collectAll() : [...props.controller.rows.value];
-		if (version !== sessionBoundary.version) return;
-		const matrix = tableMatrix(records, columns, config.formatters);
-		const isCurrent = () => version === sessionBoundary.version;
+		const scope = mode === 'print' || mode === 'pdf' ? outputScope.value : mode;
+		const records = scope === 'page' ? [...props.controller.rows.value] : await props.controller.collectAll();
+		const source = scope === 'selected' ? records.filter((record) => selectedKeys.includes(record[props.rowKey] as number | string)) : records;
+		if (!source.length) throw new Error(scope === 'selected' ? '请先选择数据' : '没有可输出的数据');
+		if (!isCurrent()) return;
+		const matrix = tableMatrix(source, columns, config.formatters);
 		if (mode === 'print') await printTable(matrix, config.fileName, isCurrent);
+		else if (mode === 'pdf') await exportTablePdf(matrix, config.fileName, isCurrent);
 		else await exportWorkbook(matrix, config.fileName, isCurrent);
 	} catch (cause) {
-		if (!isCancel(cause) && !(cause instanceof DOMException && cause.name === 'AbortError')) message.error(cause instanceof Error ? cause.message : '输出失败');
+		if (isCurrent() && !isCancel(cause) && !(cause instanceof DOMException && cause.name === 'AbortError')) message.error(cause instanceof Error ? cause.message : '输出失败');
 	} finally {
 		outputLoading.value = false;
 	}
@@ -125,16 +151,19 @@ function change(
 		<div class="table-toolbar">
 			<div class="table-actions"><slot name="toolbar"></slot></div>
 			<div class="table-actions">
+				<Dropdown v-if="props.output" :trigger="['click']" :menu="{ items: scopeOptions }" @menu-click="({ key }) => (outputScope = key as 'all' | 'page' | 'selected')">
+					<Button aria-label="输出范围">{{ scopeOptions.find((item) => item.key === outputScope)?.label }}</Button>
+				</Dropdown>
+				<Tooltip v-if="props.output" title="导出 PDF"
+					><Button aria-label="导出 PDF" :loading="outputLoading" @click="runOutput('pdf')"><Download :size="16" /></Button
+				></Tooltip>
 				<Dropdown
 					v-if="props.output"
 					:trigger="['click']"
 					:menu="{
-						items: [
-							{ key: 'page', label: '导出本页数据' },
-							{ key: 'all', label: '导出全部数据' },
-						],
+						items: [{ key: 'page', label: '导出本页数据' }, ...(props.selection ? [{ key: 'selected', label: '导出选中数据' }] : []), { key: 'all', label: '导出全部数据' }],
 					}"
-					@menu-click="({ key }) => runOutput(key === 'all' ? 'all' : 'page')"
+					@menu-click="({ key }) => runOutput(key === 'all' ? 'all' : key === 'selected' ? 'selected' : 'page')"
 				>
 					<Button aria-label="导出数据" :loading="outputLoading"><Download :size="16" />导出</Button>
 				</Dropdown>
