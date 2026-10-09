@@ -73,21 +73,22 @@ public class JwtHandler : AppAuthorizeHandler
     /// <returns></returns>
     private static async Task<bool> CheckAuthorizeAsync(DefaultHttpContext httpContext)
     {
+        var routeName = RoutePermissionUtil.GetPermissionName(httpContext);
         // 登录模式判断PC、APP
-        if (App.User.FindFirst(ClaimConst.LoginMode)?.Value == ((int)LoginModeEnum.APP).ToString())
+        if (App.User.FindFirst(ClaimConst.LoginMode)?.Value == ((int)LoginModeEnum.APP).ToString() &&
+            !RoutePermissionUtil.RequiresExplicitGrant(routeName))
             return true;
 
         // 排除超管
         if (App.User.FindFirst(ClaimConst.AccountType)?.Value == ((int)AccountTypeEnum.SuperAdmin).ToString())
             return true;
 
-        // 路由名称
-        var routeName = RoutePermissionUtil.GetPermissionName(httpContext);
-
         // 获取用户拥有按钮权限集合
         var ownBtnPermList = await SysMenuService.GetOwnBtnPermList();
         if (ownBtnPermList.Exists(u => routeName.Equals(u, StringComparison.CurrentCultureIgnoreCase)))
             return true;
+        if (RoutePermissionUtil.RequiresExplicitGrant(routeName))
+            return false;
 
         // 获取系统所有按钮权限集合
         var allBtnPermList = await SysMenuService.GetAllBtnPermList();

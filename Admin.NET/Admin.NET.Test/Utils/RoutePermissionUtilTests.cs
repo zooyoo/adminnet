@@ -48,4 +48,16 @@ public class RoutePermissionUtilTests
         context.Request.Path = "/api/sysPos/add";
         Assert.Equal("sysPos:add", RoutePermissionUtil.GetPermissionName(context));
     }
+
+    [Theory]
+    [InlineData("sysLangText:export", true)]
+    [InlineData("sysLangText:import", true)]
+    [InlineData("sysLangText:batchDelete", true)]
+    [InlineData("sysLangText:batchSave", true)]
+    [InlineData("sysLangText:aiTranslateText", true)]
+    [InlineData("sysConfig:sysInfo", false)]
+    public void RequiresExplicitGrant_TranslationSensitiveAction_DoesNotDependOnMenuRegistration(string permission, bool expected)
+    {
+        Assert.Equal(expected, RoutePermissionUtil.RequiresExplicitGrant(permission));
+    }
 }

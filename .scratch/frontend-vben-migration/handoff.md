@@ -2,6 +2,20 @@
 
 日期：2026-10-09（Asia/Shanghai）。
 
+## 最新接续：第 09 项已完成，下一项 10
+
+本节覆盖下方旧交接的当前编号。01 至 09 已完成，总进度 9 / 48，goal 仍 active。
+
+- 08 提交 `1e3f50a3b`，09 随本记录提交。用户明确要求每项完成后提交再推进，仅桌面验收。
+- 用户本轮新指令：“DeepSeek.example 里已配置了密钥，在试下”。已读取配置但未输出密钥；新增隔离开关 `-TranslationTestService`，只有显式传参才注入配置。真实 AI API、浏览器入口、译文占位符及保存落库通过。
+- 后端修复翻译空批量删除、旧标识缓存残留、不存在记录写缓存及重复记录；明确翻译文件/批量/AI 授权，补对应菜单种子。共享翻译的既有数据模型不改。
+- 前端表单/多语言补会话代次保护、长表单、保存关闭保护和权限按钮。隔离 Upload 配置补齐，真实 XLSX 部分错误、中文导出均通过。
+- 真实目录：`C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-1d5c2a2a6ceb45cd9464c6f5622d8a59/evidence/`，API/桌面 passed 和 cleanupPassed 均 true。API 已停，上传文件和 SysFile 均为 0；证据保留。
+- 后端 166 项、Vitest 19 项、生产桌面契约 18 项通过。契约目录 `C:/Users/zoyo/AppData/Local/Temp/adminnet-language-ui-ofTPMi/`。lint/type/build 通过。
+- 构建目录现为 `adminnet-vben-build-09` / `adminnet-vben-test-09`（系统 Temp 下）。后续不需要 AI 就不传 TranslationTestService。
+- **保留且不要提交**：用户的 `Admin.NET/Admin.NET.Application/Configuration/DeepSeek.example`（含密钥）、`doc/frontend-vben-tickets-draft.md` 排版修改。不要展示这些文件的 diff 或配置值。
+- 下一项 10：站点品牌、Logo、注册开关和注册方案真实验收。复用本地上传配置及第 07 项租户隔离环境，确认取消 Logo 不泄漏、失败不保存、租户选项刷新。先创建 issue 10，再实现验收并提交。
+
 ## 最新接续：第 08 项已完成，下一项 09
 
 本节覆盖下方第 07 项交接的“当前/下一项”状态；历史说明保留。

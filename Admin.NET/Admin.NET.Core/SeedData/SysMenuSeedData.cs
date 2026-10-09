@@ -186,6 +186,11 @@ public class SysMenuSeedData : ISqlSugarEntitySeedData<SysMenu>
             new SysMenu{ Id=1300200200301, Pid=1300200200101, Title="编辑", Permission="sysLangText:update", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=100 },
             new SysMenu{ Id=1300200200401, Pid=1300200200101, Title="增加", Permission="sysLangText:add", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=100 },
             new SysMenu{ Id=1300200200501, Pid=1300200200101, Title="删除", Permission="sysLangText:delete", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=100 },
+            new SysMenu{ Id=1300200200601, Pid=1300200200101, Title="批量删除", Permission="sysLangText:batchDelete", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2026-10-09 00:00:00"), OrderNo=110 },
+            new SysMenu{ Id=1300200200701, Pid=1300200200101, Title="导入", Permission="sysLangText:import", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2026-10-09 00:00:00"), OrderNo=120 },
+            new SysMenu{ Id=1300200200801, Pid=1300200200101, Title="导出", Permission="sysLangText:export", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2026-10-09 00:00:00"), OrderNo=130 },
+            new SysMenu{ Id=1300200200901, Pid=1300200200101, Title="保存多语言", Permission="sysLangText:batchSave", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2026-10-09 00:00:00"), OrderNo=140 },
+            new SysMenu{ Id=1300200201001, Pid=1300200200101, Title="AI 翻译", Permission="sysLangText:aiTranslateText", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2026-10-09 00:00:00"), OrderNo=150 },
 
             // 系统监控
             new SysMenu{ Id=1300300070101, Pid=1300300000101, Title="系统监控", Path="/platform/server", Name="sysServer", Component="/system/server/index", Icon="ele-Monitor", Type=MenuTypeEnum.Menu, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=150 },

@@ -82,6 +82,7 @@ public partial class SysLangTextService : IDynamicApiController, ITransient
     public async Task<long> Add(AddSysLangTextInput input)
     {
         var entity = input.Adapt<SysLangText>();
+        await EnsureUnique(entity);
         return await _sysLangTextRep.InsertAsync(entity) ? entity.Id : 0;
     }
 
@@ -94,10 +95,20 @@ public partial class SysLangTextService : IDynamicApiController, ITransient
     [ApiDescriptionSettings(Name = "Update"), HttpPost]
     public async Task Update(UpdateSysLangTextInput input)
     {
+        var existing = await _sysLangTextRep.GetByIdAsync(input.Id) ?? throw Oops.Oh(ErrorCodeEnum.D1002);
         var entity = input.Adapt<SysLangText>();
+        await EnsureUnique(entity);
         await _sysLangTextRep.AsUpdateable(entity)
         .ExecuteCommandAsync();
+        _sysLangTextCacheService.DeleteCache(existing.EntityName, existing.FieldName, existing.EntityId, existing.LangCode);
         _sysLangTextCacheService.UpdateCache(entity.EntityName, entity.FieldName, entity.EntityId, entity.LangCode, entity.Content);
+    }
+
+    private async Task EnsureUnique(SysLangText entity)
+    {
+        if (await _sysLangTextRep.IsAnyAsync(row => row.Id != entity.Id && row.EntityName == entity.EntityName &&
+            row.EntityId == entity.EntityId && row.FieldName == entity.FieldName && row.LangCode == entity.LangCode))
+            throw Oops.Oh("相同实体、字段和语言的翻译已存在");
     }
 
     /// <summary>
@@ -124,9 +135,9 @@ public partial class SysLangTextService : IDynamicApiController, ITransient
     [ApiDescriptionSettings(Name = "BatchDelete"), HttpPost]
     public async Task BatchDelete([Required(ErrorMessage = "主键列表不能为空")] List<DeleteSysLangTextInput> input)
     {
-        var exp = Expressionable.Create<SysLangText>();
-        foreach (var row in input) exp = exp.Or(it => it.Id == row.Id);
-        var list = await _sysLangTextRep.AsQueryable().Where(exp.ToExpression()).ToListAsync();
+        if (input == null || input.Count == 0) return;
+        var ids = input.Select(row => row.Id).Distinct().ToList();
+        var list = await _sysLangTextRep.AsQueryable().Where(row => ids.Contains(row.Id)).ToListAsync();
 
         await _sysLangTextRep.DeleteAsync(list);   //真删除
         foreach (var item in list)

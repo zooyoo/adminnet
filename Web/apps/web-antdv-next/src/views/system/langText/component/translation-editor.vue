@@ -3,10 +3,11 @@ import type { FormInstance } from 'antdv-next';
 
 import type { TranslationDraft } from '#/api/system/lang-text';
 
-import { ref } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
 
 import { Alert, Form, FormItem, Input, InputNumber, Modal, Spin, TextArea } from 'antdv-next';
 
+import { sessionBoundary } from '#/api/session';
 import { saveTranslation, translationDetail, translationDraft } from '#/api/system/lang-text';
 
 const emit = defineEmits<{ saved: [] }>();
@@ -17,15 +18,19 @@ const error = ref('');
 const form = ref<FormInstance>();
 const value = ref<TranslationDraft>(translationDraft());
 let generation = 0;
+let editorSession = sessionBoundary.version;
 async function show(id?: number) {
+	if (saving.value) return;
 	const current = ++generation;
+	const version = sessionBoundary.version;
+	editorSession = version;
 	open.value = true;
 	loading.value = true;
 	error.value = '';
 	value.value = translationDraft();
 	try {
 		const record = id ? await translationDetail(id) : undefined;
-		if (current !== generation) return;
+		if (current !== generation || version !== sessionBoundary.version) return;
 		value.value = translationDraft(record as Partial<TranslationDraft> | undefined);
 		form.value?.clearValidate();
 	} catch (cause) {
@@ -35,15 +40,19 @@ async function show(id?: number) {
 	}
 }
 async function save() {
-	if (loading.value || saving.value || error.value) return;
+	if (loading.value || saving.value || error.value || editorSession !== sessionBoundary.version) return;
+	const current = generation;
+	const version = editorSession;
 	try {
 		await form.value?.validate();
 	} catch {
 		return;
 	}
+	if (current !== generation || version !== sessionBoundary.version || !open.value || saving.value) return;
 	saving.value = true;
 	try {
 		await saveTranslation(value.value);
+		if (current !== generation || version !== sessionBoundary.version) return;
 		open.value = false;
 		emit('saved');
 	} catch {
@@ -52,6 +61,7 @@ async function save() {
 		saving.value = false;
 	}
 }
+onBeforeUnmount(() => generation++);
 defineExpose({ show });
 </script>
 
@@ -60,7 +70,12 @@ defineExpose({ show });
 		v-model:open="open"
 		:title="value.id ? '编辑翻译' : '新增翻译'"
 		:width="600"
-		:mask-closable="false"
+		:mask="{ closable: false }"
+		centered
+		:styles="{ body: { maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto' } }"
+		:closable="!saving"
+		:keyboard="!saving"
+		:cancel-button-props="{ disabled: saving }"
 		:confirm-loading="saving"
 		:ok-button-props="{ disabled: loading || !!error }"
 		@ok="save"

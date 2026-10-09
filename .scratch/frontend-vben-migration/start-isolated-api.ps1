@@ -4,6 +4,7 @@ param(
     [switch]$CrudFixture,
     [switch]$AuthFixture,
     [switch]$OnlineFixture,
+    [switch]$TranslationTestService,
     [string]$BuildRoot
 )
 
@@ -77,11 +78,27 @@ $configuration['JWTSettings'] = @{
     Algorithm = 'HS256'
 }
 $configuration['OSSProvider'] = @{
+    Enabled = $false
     Provider = 'Minio'
     Endpoint = '127.0.0.1:1'
     AccessKey = 'isolated-unused'
     SecretKey = 'isolated-unused'
     IsEnableCache = $false
+}
+# 导入工作簿临时文件限定在隔离运行目录的 wwwroot，不使用开发上传配置。
+$configuration['Upload'] = @{
+    Path = 'isolated-upload'
+    MaxSize = 10240
+    EnableMd5 = $false
+    ContentType = @('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'application/octet-stream')
+}
+if ($TranslationTestService) {
+    # 仅按用户授权从本地配置注入隔离进程，不回显密钥、不复制到仓库。
+    $translationConfiguration = Get-Content -LiteralPath (Join-Path $configurationRoot 'DeepSeek.example') -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+    $translationSettings = $translationConfiguration['DeepSeekSettings']
+    if (-not $translationSettings -or [string]::IsNullOrWhiteSpace($translationSettings['ApiKey']) -or
+        [string]::IsNullOrWhiteSpace($translationSettings['ApiUrl'])) { throw 'Translation test settings are incomplete.' }
+    $configuration['DeepSeekSettings'] = $translationSettings
 }
 $configuration['DbConnection'] = @{
     EnableConsoleSql = $false

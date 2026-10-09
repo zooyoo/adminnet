@@ -11,6 +11,15 @@ namespace Admin.NET.Core;
 
 public static class RoutePermissionUtil
 {
+    /// <summary>
+    /// 翻译文件、批量写入与付费服务不能因旧菜单未登记按钮而默认放行。
+    /// </summary>
+    public static bool RequiresExplicitGrant(string permission)
+    {
+        return permission?.ToLowerInvariant() is "syslangtext:export" or "syslangtext:import" or
+            "syslangtext:batchdelete" or "syslangtext:batchsave" or "syslangtext:aitranslatetext";
+    }
+
     public static string GetPermissionName(HttpContext context)
     {
         // 使用已匹配的路由模板，防止路径参数被误认为权限名的一部分。

@@ -29,7 +29,7 @@ const orgs = [
 ];
 const roles = [{ id: 1, name: '部门管理员', code: 'dept_admin', tenantId: 1, status: 1, dataScope: 5, orderNo: 100 }];
 
-async function login(page: Page, module: 'role' | 'menu' | 'org', readOnly = false) {
+async function login(page: Page, module: 'role' | 'menu' | 'org', readOnly = false, extraPermissions: string[] = []) {
 	await page.route('**/prod-api/**', (route) => route.fulfill({ status: 503, json: { message: 'Contract fixture: endpoint not declared' } }));
 	await page.route('**/prod-api/api/sysNotice/unReadList', (route) => route.fulfill({ json: { code: 200, result: [] } }));
 	const accessToken = `head.${Buffer.from(JSON.stringify({ exp: Date.now() / 1000 + 600 })).toString('base64url')}.signature`;
@@ -50,7 +50,7 @@ async function login(page: Page, module: 'role' | 'menu' | 'org', readOnly = fal
 					roleIds: [1],
 					tenantId: 1,
 					currentTenantId: 1,
-					buttons: (readOnly ? ['page', 'list'] : ['page', 'list', 'add', 'update', 'delete', 'setStatus', 'grantDataScope']).map((action) => `${prefix}:${action}`),
+					buttons: [...(readOnly ? ['page', 'list'] : ['page', 'list', 'add', 'update', 'delete', 'setStatus', 'grantDataScope']).map((action) => `${prefix}:${action}`), ...extraPermissions],
 				},
 			},
 		})
@@ -249,7 +249,7 @@ test('role mutation failures keep the authoritative state and editable draft', a
 });
 
 test('menu translations use the existing entity and language API contracts', async ({ page }) => {
-	await login(page, 'menu');
+	await login(page, 'menu', false, ['sysLangText:batchSave']);
 	await page.route('**/prod-api/api/sysLang/dropdownData', (route) =>
 		route.fulfill({
 			json: {
@@ -267,6 +267,7 @@ test('menu translations use the existing entity and language API contracts', asy
 	const menu = page.getByRole('dialog', { name: '编辑菜单' });
 	await menu.getByRole('button', { name: '多语言设置', exact: true }).click();
 	const translation = page.getByRole('dialog', { name: '多语言设置' });
+	await expect(translation.getByRole('button', { name: 'AI 翻译', exact: true })).toHaveCount(0);
 	await expect(translation.getByLabel('English', { exact: true })).toHaveValue('Users');
 	await translation.getByLabel('English', { exact: true }).fill('User Management');
 	const [saved] = await Promise.all([page.waitForRequest((req) => req.url().endsWith('/sysLangText/batchSave')), translation.getByRole('button', { name: '确认修改', exact: true }).click()]);
