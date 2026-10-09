@@ -10,7 +10,7 @@ import { resetAllStores, useAccessStore, useUserStore } from '@vben/stores';
 import { notification } from 'antdv-next';
 import { defineStore } from 'pinia';
 
-import { changeTenantApi, enterTenantApi, getUserInfoApi, loginApi, logoutApi, phoneLoginApi } from '#/api';
+import { changeTenantApi, enterTenantApi, getUserInfoApi, loginApi, logoutApi, phoneLoginApi, tokenLoginApi } from '#/api';
 import { getAllMenusApi, prepareSessionMenus } from '#/api/core/menu';
 import { onlineSession } from '#/api/realtime';
 import { isTokenExpired, sessionBoundary } from '#/api/session';
@@ -75,6 +75,32 @@ export const useAuthStore = defineStore(
 
 		function authPhoneLogin(params: AuthApi.PhoneLoginParams) {
 			return authenticate(() => phoneLoginApi(params));
+		}
+
+		async function authTokenLogin(token: string, redirect: string, signal: AbortSignal) {
+			if (!token || isTokenExpired(token)) throw new Error('登录令牌无效或已过期，请重新登录');
+			if (loginLoading.value || signal.aborted) throw new Error('登录操作已取消');
+			let version = sessionBoundary.version;
+			let adopted = false;
+			loginLoading.value = true;
+			try {
+				const result = await tokenLoginApi(token, signal);
+				if (version !== sessionBoundary.version || signal.aborted) return;
+				if (!result.accessToken || !result.refreshToken) throw new Error('登录响应缺少令牌');
+				const [userInfo, menus] = await Promise.all([getUserInfoApi(result, signal), getAllMenusApi(result, signal)]);
+				if (version !== sessionBoundary.version || signal.aborted) return;
+				clearSession();
+				adopted = true;
+				version = sessionBoundary.version;
+				loginLoading.value = true;
+				prepareSessionMenus(menus, version);
+				return await completeLogin(result, version, async () => { await router.replace(safeRedirect(redirect)); }, userInfo);
+			} catch (error) {
+				if (adopted && version === sessionBoundary.version) clearSession();
+				throw error;
+			} finally {
+				if (version === sessionBoundary.version) loginLoading.value = false;
+			}
 		}
 
 		async function redirectToLogin(redirect: boolean) {
@@ -169,7 +195,7 @@ export const useAuthStore = defineStore(
 			homePath.value = '';
 		}
 
-		return { $reset, authLogin, authPhoneLogin, changeTenant, expireSession, fetchUserInfo, homePath, loginLoading, logout };
+		return { $reset, authLogin, authPhoneLogin, authTokenLogin, changeTenant, expireSession, fetchUserInfo, homePath, loginLoading, logout };
 	},
 	{ persist: { pick: ['homePath'] } }
 );

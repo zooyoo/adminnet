@@ -2,6 +2,16 @@
 
 日期：2026-10-09（Asia/Shanghai）。
 
+## 最新接续：第 13 项已完成，下一项 14
+
+- 第 12 项提交 `573f0a189`，13 随本记录提交；总进度 13 / 48。继续严格编号、每项验收后提交，仅桌面。
+- 旧 `/#/login?token=...` 在地址栏移除令牌后交换双令牌，用户/菜单预检完成才采用身份；保留旧 `redirect`/`params`，避免编码分隔符被重复解码。新增入口序号处理组件复用，路由离开守卫提前取消请求。
+- 旧扫码只编码项目主页，未实现扫码认证；新页明确未开通。刷新接口增加 `SuppressMonitor`。
+- 后端 195 项、路由 19 项、生产桌面契约 9 项通过；类型/lint/前后端构建通过。Antdv CLI lint 仍只回显。构建 `Temp/adminnet-vben-build-13` / `Temp/adminnet-vben-test-13`。
+- 最终真实报告 `Temp/adminnet-vben-9c8d98dda15543a49378f09a6e9334a9/evidence/token-browser-baseline.json`：7 阶段及清理通过，稳定截图已查看；API/代理/浏览器均停止。契约目录 `Temp/adminnet-token-ui-M6WLUH`。
+- 自然过期使用隔离真实短令牌，等待超过 5 秒容差后核验服务端拒绝；不使用自造过期 payload 代替。截图需等待有限动画结束，`animations: disabled` 曾截到淡入空白。
+- 下一项 14：核对旧锁屏规则和当前 Vben 本地锁屏实现，完成真实解锁、刷新/失效/退出及迟到请求隔离。保留用户 DeepSeek.example 和提案改动，不提交。
+
 ## 最新接续：第 12 项已完成，下一项 13
 
 - 第 11 项提交 `0eb5382dd`；12 随本记录提交。进度 12 / 48，goal active，继续严格编号、每项提交，仅桌面。

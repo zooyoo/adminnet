@@ -10,6 +10,7 @@ import { accessRoutes, coreRouteNames } from '#/router/routes';
 import { useAuthStore } from '#/store';
 
 import { generateAccess } from './access';
+import { stageLegacyToken } from './legacy-token';
 import { safeRedirect } from './redirect';
 
 /**
@@ -47,10 +48,16 @@ function setupCommonGuard(router: Router) {
  * @param router
  */
 function setupAccessGuard(router: Router) {
+  let tokenLoginSequence = 0;
   router.beforeEach(async (to, from) => {
     const accessStore = useAccessStore();
     const userStore = useUserStore();
     const authStore = useAuthStore();
+
+    if ((to.path === LOGIN_PATH || to.path === '/login') && Object.hasOwn(to.query, 'token')) {
+      const redirect = stageLegacyToken(to.query);
+      return { path: '/auth/token', query: { redirect, entry: String(++tokenLoginSequence) }, replace: true };
+    }
 
     // 基本路由，这些路由不需要进入权限拦截
     if (coreRouteNames.includes(to.name as string) && !to.meta.requiresAuth) {

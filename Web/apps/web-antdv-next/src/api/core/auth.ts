@@ -78,6 +78,16 @@ export function phoneLoginApi(data: AuthApi.PhoneLoginParams) {
 	return requestClient.post<AuthApi.LoginResult>('/api/sysAuth/loginPhone', data, { adminAnonymous: true });
 }
 
+export function tokenLoginApi(accessToken: string, signal?: AbortSignal) {
+	return requestClient.get<AuthApi.LoginResult>('/api/sysAuth/refreshToken', {
+		params: { accessToken },
+		adminIdentity: { accessToken, refreshToken: '' },
+		adminManualTokens: true,
+		silentError: true,
+		signal,
+	});
+}
+
 export function registrationApi(data: AuthApi.RegistrationParams) {
 	return requestClient.post<void>('/api/sysAuth/userRegistration', data, { adminAnonymous: true });
 }

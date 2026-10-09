@@ -355,6 +355,7 @@ public class SysAuthService : IDynamicApiController, ITransient
     /// <param name="accessToken">旧的AccessToken</param>
     /// <returns>新的AccessToken和RefreshToken</returns>
     [DisplayName("获取刷新Token")]
+    [SuppressMonitor]
     public virtual async Task<LoginOutput> GetRefreshToken([FromQuery] string accessToken)
     {
         var httpContext = _httpContextAccessor.HttpContext;

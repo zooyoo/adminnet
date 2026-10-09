@@ -71,9 +71,19 @@ const coreRoutes: RouteRecordRaw[] = [
         name: 'Login',
         path: 'login',
         component: () => import('#/views/_core/authentication/login.vue'),
-        meta: {
-          title: $t('page.auth.login'),
-        },
+        meta: { title: $t('page.auth.login') },
+      },
+      {
+        name: 'TokenLogin',
+        path: 'token',
+        component: () => import('#/views/_core/authentication/token-login.vue'),
+        meta: { title: '第三方登录' },
+      },
+      {
+        name: 'QrCodeLogin',
+        path: 'qrcode-login',
+        component: () => import('#/views/_core/authentication/qrcode-login.vue'),
+        meta: { title: '扫码登录' },
       },
       {
         name: 'CodeLogin',

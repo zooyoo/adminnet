@@ -10,4 +10,9 @@ describe('safeRedirect', () => {
 	it('preserves local paths, query parameters and hashes', () => {
 		expect(safeRedirect('%2Fsystem%2Fuser%3Fpage%3D2%23details')).toBe('/system/user?page=2#details');
 	});
+
+	it('preserves encoded query delimiters across repeated safety checks', () => {
+		const path = '/system/user?name=a%26b%23c%25';
+		expect(safeRedirect(safeRedirect(path))).toBe(path);
+	});
 });
