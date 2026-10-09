@@ -15,10 +15,12 @@ namespace Admin.NET.Core;
 public class SysLdapService : IDynamicApiController, ITransient
 {
     private readonly SqlSugarRepository<SysLdap> _sysLdapRep;
+    private readonly UserManager _userManager;
 
-    public SysLdapService(SqlSugarRepository<SysLdap> sysLdapRep)
+    public SysLdapService(SqlSugarRepository<SysLdap> sysLdapRep, UserManager userManager)
     {
         _sysLdapRep = sysLdapRep;
+        _userManager = userManager;
     }
 
     /// <summary>
@@ -29,11 +31,16 @@ public class SysLdapService : IDynamicApiController, ITransient
     [DisplayName("获取系统域登录配置分页列表")]
     public async Task<SqlSugarPagedList<SysLdap>> Page(SysLdapInput input)
     {
-        return await _sysLdapRep.AsQueryable()
+        var page = await _sysLdapRep.AsQueryable()
+            .Where(u => !u.IsDelete)
+            .WhereIF(!_userManager.SuperAdmin, u => u.TenantId == _userManager.TenantId)
+            .WhereIF(_userManager.SuperAdmin && input.TenantId > 0, u => u.TenantId == input.TenantId)
             .WhereIF(!string.IsNullOrWhiteSpace(input.Keyword), u => u.Host.Contains(input.Keyword.Trim()))
             .WhereIF(!string.IsNullOrWhiteSpace(input.Host), u => u.Host.Contains(input.Host.Trim()))
             .OrderBy(u => u.CreateTime, OrderByType.Desc)
             .ToPagedListAsync(input.Page, input.PageSize);
+        foreach (var item in page.Items) item.BindPass = null;
+        return page;
     }
 
     /// <summary>
@@ -43,10 +50,17 @@ public class SysLdapService : IDynamicApiController, ITransient
     /// <returns></returns>
     [ApiDescriptionSettings(Name = "Add"), HttpPost]
     [DisplayName("增加系统域登录配置")]
+    [SuppressMonitor]
     public async Task<long> Add(AddSysLdapInput input)
     {
+        Validate(input, true);
         var entity = input.Adapt<SysLdap>();
-        entity.BindPass = CryptogramUtil.Encrypt(input.BindPass);
+        entity.Id = 0;
+        entity.TenantId = _userManager.SuperAdmin && input.TenantId > 0 ? input.TenantId : _userManager.TenantId;
+        if (!await _sysLdapRep.Context.Queryable<SysTenant>().AnyAsync(u => u.Id == entity.TenantId && u.Status == StatusEnum.Enable))
+            throw Oops.Oh(ErrorCodeEnum.D1002);
+        if (await _sysLdapRep.IsAnyAsync(u => !u.IsDelete && u.TenantId == entity.TenantId)) throw Oops.Oh("当前租户已有域配置");
+        entity.BindPass = CryptogramUtil.SM2Encrypt(input.BindPass);
         await _sysLdapRep.InsertAsync(entity);
         return entity.Id;
     }
@@ -58,15 +72,18 @@ public class SysLdapService : IDynamicApiController, ITransient
     /// <returns></returns>
     [ApiDescriptionSettings(Name = "Update"), HttpPost]
     [DisplayName("更新系统域登录配置")]
+    [SuppressMonitor]
     public async Task Update(UpdateSysLdapInput input)
     {
+        var current = await FindOwned(input.Id);
+        Validate(input, false);
+        if (input.TenantId > 0 && input.TenantId != current.TenantId) throw Oops.Oh(ErrorCodeEnum.D1013);
         var entity = input.Adapt<SysLdap>();
-        if (!string.IsNullOrEmpty(input.BindPass) && input.BindPass.Length < 32)
-        {
-            entity.BindPass = CryptogramUtil.Encrypt(input.BindPass); // 加密
-        }
-
-        await _sysLdapRep.AsUpdateable(entity).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommandAsync();
+        entity.BindPass = string.IsNullOrEmpty(input.BindPass) || input.BindPass == current.BindPass
+            ? current.BindPass : CryptogramUtil.SM2Encrypt(input.BindPass);
+        await _sysLdapRep.AsUpdateable(entity)
+            .UpdateColumns(u => new { u.Host, u.Port, u.BaseDn, u.BindDn, u.BindPass, u.AuthFilter, u.Version, u.BindAttrAccount, u.BindAttrEmployeeId, u.BindAttrCode, u.Status })
+            .ExecuteCommandAsync();
     }
 
     /// <summary>
@@ -76,10 +93,12 @@ public class SysLdapService : IDynamicApiController, ITransient
     /// <returns></returns>
     [ApiDescriptionSettings(Name = "Delete"), HttpPost]
     [DisplayName("删除系统域登录配置")]
+    [UnitOfWork]
     public async Task Delete(DeleteSysLdapInput input)
     {
-        var entity = await _sysLdapRep.GetFirstAsync(u => u.Id == input.Id) ?? throw Oops.Oh(ErrorCodeEnum.D1002);
+        var entity = await FindOwned(input.Id);
         await _sysLdapRep.FakeDeleteAsync(entity); // 假删除
+        await _sysLdapRep.Context.Deleteable<SysUserLdap>().Where(u => u.TenantId == entity.TenantId).ExecuteCommandAsync();
         //await _rep.DeleteAsync(entity); // 真删除
     }
 
@@ -91,7 +110,9 @@ public class SysLdapService : IDynamicApiController, ITransient
     [DisplayName("获取系统域登录配置详情")]
     public async Task<SysLdap> GetDetail([FromQuery] DetailSysLdapInput input)
     {
-        return await _sysLdapRep.GetFirstAsync(u => u.Id == input.Id);
+        var entity = await FindOwned(input.Id);
+        entity.BindPass = null;
+        return entity;
     }
 
     /// <summary>
@@ -101,8 +122,36 @@ public class SysLdapService : IDynamicApiController, ITransient
     [DisplayName("获取系统域登录配置列表")]
     public async Task<List<SysLdap>> GetList()
     {
-        return await _sysLdapRep.AsQueryable().Select<SysLdap>().ToListAsync();
+        var items = await _sysLdapRep.AsQueryable().Where(u => !u.IsDelete)
+            .WhereIF(!_userManager.SuperAdmin, u => u.TenantId == _userManager.TenantId).ToListAsync();
+        foreach (var item in items) item.BindPass = null;
+        return items;
     }
+
+    private async Task<SysLdap> FindOwned(long id) => await _sysLdapRep.AsQueryable()
+        .Where(u => u.Id == id && !u.IsDelete)
+        .WhereIF(!_userManager.SuperAdmin, u => u.TenantId == _userManager.TenantId)
+        .FirstAsync() ?? throw Oops.Oh(ErrorCodeEnum.D1002);
+
+    private static void Validate(SysLdap input, bool creating)
+    {
+        if (string.IsNullOrWhiteSpace(input.Host) || input.Port is < 1 or > 65535 || input.Version is < 2 or > 3 ||
+            string.IsNullOrWhiteSpace(input.BaseDn) || string.IsNullOrWhiteSpace(input.BindDn) ||
+            string.IsNullOrWhiteSpace(input.AuthFilter) || !input.AuthFilter.Contains("%s") ||
+            string.IsNullOrWhiteSpace(input.BindAttrAccount) || string.IsNullOrWhiteSpace(input.BindAttrEmployeeId) ||
+            string.IsNullOrWhiteSpace(input.BindAttrCode) || !Enum.IsDefined(input.Status) ||
+            (creating && string.IsNullOrEmpty(input.BindPass)) || input.BindPass?.Length > 512)
+            throw Oops.Oh("请完整填写有效的域配置");
+    }
+
+    private static string BindPassword(SysLdap configuration)
+    {
+        try { return CryptogramUtil.SM2Decrypt(configuration.BindPass); }
+        catch { return CryptogramUtil.Decrypt(configuration.BindPass); }
+    }
+
+    private static string EscapeFilter(string value) => (value ?? "").Replace("\\", "\\5c").Replace("*", "\\2a")
+        .Replace("(", "\\28").Replace(")", "\\29").Replace("\0", "\\00");
 
     /// <summary>
     /// 验证账号
@@ -114,14 +163,15 @@ public class SysLdapService : IDynamicApiController, ITransient
     [NonAction]
     public async Task<bool> AuthAccount(long? tenantId, string account, string password)
     {
-        var sysLdap = await _sysLdapRep.GetFirstAsync(u => u.TenantId == tenantId) ?? throw Oops.Oh(ErrorCodeEnum.D1002);
+        if (string.IsNullOrWhiteSpace(account) || string.IsNullOrEmpty(password)) return false;
+        var sysLdap = await _sysLdapRep.GetFirstAsync(u => u.TenantId == tenantId && !u.IsDelete && u.Status == StatusEnum.Enable) ?? throw Oops.Oh(ErrorCodeEnum.D1002);
         var ldapConn = new LdapConnection();
         try
         {
             await ldapConn.ConnectAsync(sysLdap.Host, sysLdap.Port);
-            string bindPass = CryptogramUtil.Decrypt(sysLdap.BindPass);
+            string bindPass = BindPassword(sysLdap);
             await ldapConn.BindAsync(sysLdap.Version, sysLdap.BindDn, bindPass);
-            var ldapSearchResults = await ldapConn.SearchAsync(sysLdap.BaseDn, LdapConnection.ScopeSub, sysLdap.AuthFilter.Replace("%s", account), null, false);
+            var ldapSearchResults = await ldapConn.SearchAsync(sysLdap.BaseDn, LdapConnection.ScopeSub, sysLdap.AuthFilter.Replace("%s", EscapeFilter(account)), null, false);
             string dn = string.Empty;
             while (await ldapSearchResults.HasMoreAsync())
             {
@@ -142,7 +192,7 @@ public class SysLdapService : IDynamicApiController, ITransient
             {
                 LdapException.NoSuchObject or LdapException.NoSuchAttribute => throw Oops.Oh(ErrorCodeEnum.D0009),
                 LdapException.InvalidCredentials => false,
-                _ => throw Oops.Oh(e.Message),
+                _ => throw Oops.Oh("域服务连接或查询失败，请检查配置"),
             };
         }
         finally
@@ -172,9 +222,11 @@ public class SysLdapService : IDynamicApiController, ITransient
     /// <param name="input"></param>
     /// <returns></returns>
     [DisplayName("同步域用户")]
+    [UnitOfWork]
     public async Task<List<SysUserLdap>> SyncUser(SyncSysLdapInput input)
     {
-        var sysLdap = await _sysLdapRep.GetByIdAsync(input.Id) ?? throw Oops.Oh(ErrorCodeEnum.D1002);
+        var sysLdap = await FindOwned(input.Id);
+        if (sysLdap.Status != StatusEnum.Enable) throw Oops.Oh("域配置已停用");
         return await SysLdapService.SyncUser(sysLdap);
     }
 
@@ -190,7 +242,7 @@ public class SysLdapService : IDynamicApiController, ITransient
         try
         {
             await ldapConn.ConnectAsync(sysLdap.Host, sysLdap.Port);
-            string bindPass = CryptogramUtil.Decrypt(sysLdap.BindPass);
+            string bindPass = BindPassword(sysLdap);
             await ldapConn.BindAsync(sysLdap.Version, sysLdap.BindDn, bindPass);
             var ldapSearchResults = await ldapConn.SearchAsync(sysLdap.BaseDn, LdapConnection.ScopeOne, "(objectClass=*)", null, false);
             var userLdapList = new List<SysUserLdap>();
@@ -204,7 +256,7 @@ public class SysLdapService : IDynamicApiController, ITransient
                 }
                 catch (LdapException)
                 {
-                    continue;
+                    throw Oops.Oh("域查询未完成，保留现有同步数据");
                 }
 
                 var attrs = ldapEntry.GetAttributeSet();
@@ -218,11 +270,9 @@ public class SysLdapService : IDynamicApiController, ITransient
                     var sysUserLdap = CreateSysUserLdap(attrs, sysLdap.BindAttrAccount, sysLdap.BindAttrEmployeeId, deptCode);
                     sysUserLdap.Dn = ldapEntry.Dn;
                     sysUserLdap.TenantId = sysLdap.TenantId;
-                    userLdapList.Add(sysUserLdap);
+                    if (!string.IsNullOrEmpty(sysUserLdap.EmployeeId) && !string.IsNullOrEmpty(sysUserLdap.Account)) userLdapList.Add(sysUserLdap);
                 }
             }
-
-            if (userLdapList.Count == 0) return null;
 
             await App.GetRequiredService<SysUserLdapService>().InsertUserLdapList(sysLdap.TenantId!.Value, userLdapList);
             return userLdapList;
@@ -232,7 +282,7 @@ public class SysLdapService : IDynamicApiController, ITransient
             throw e.ResultCode switch
             {
                 LdapException.NoSuchObject or LdapException.NoSuchAttribute => Oops.Oh(ErrorCodeEnum.D0009),
-                _ => Oops.Oh(e.Message),
+                _ => Oops.Oh("域服务连接或查询失败，请检查配置"),
             };
         }
         finally
@@ -249,9 +299,11 @@ public class SysLdapService : IDynamicApiController, ITransient
     /// <returns></returns>
     private static string GetDepartmentCode(LdapAttributeSet attrs, string bindAttrCode)
     {
-        return bindAttrCode == "objectGUID"
-            ? new Guid(attrs.GetAttribute(bindAttrCode)?.ByteValue!).ToString()
-            : attrs.GetAttribute(bindAttrCode)?.StringValue ?? "0";
+        if (!attrs.ContainsKey(bindAttrCode)) return null;
+        var attribute = attrs.GetAttribute(bindAttrCode);
+        return bindAttrCode.Equals("objectGUID", StringComparison.OrdinalIgnoreCase)
+            ? attribute.ByteValue?.Length == 16 ? new Guid(attribute.ByteValue).ToString() : null
+            : attribute.StringValue;
     }
 
     /// <summary>
@@ -269,7 +321,8 @@ public class SysLdapService : IDynamicApiController, ITransient
             Account = attrs.ContainsKey(bindAttrAccount) ? attrs.GetAttribute(bindAttrAccount)?.StringValue : null,
             EmployeeId = attrs.ContainsKey(bindAttrEmployeeId) ? attrs.GetAttribute(bindAttrEmployeeId)?.StringValue : null,
             DeptCode = deptCode,
-            UserName = attrs.ContainsKey("name") ? attrs.GetAttribute("name")?.StringValue : null,
+            UserName = attrs.ContainsKey("name") ? attrs.GetAttribute("name")?.StringValue :
+                attrs.ContainsKey("cn") ? attrs.GetAttribute("cn")?.StringValue : "",
             Mail = attrs.ContainsKey("mail") ? attrs.GetAttribute("mail")?.StringValue : null
         };
         var pwdLastSet = attrs.ContainsKey("pwdLastSet") ? attrs.GetAttribute("pwdLastSet")?.StringValue : null;
@@ -303,20 +356,20 @@ public class SysLdapService : IDynamicApiController, ITransient
             }
             catch (LdapException)
             {
-                continue;
+                throw Oops.Oh("域查询未完成，保留现有同步数据");
             }
 
             var attrs = ldapEntry.GetAttributeSet();
-            deptCode = GetDepartmentCode(attrs, sysLdap.BindAttrCode);
+            var childDeptCode = GetDepartmentCode(attrs, sysLdap.BindAttrCode) ?? deptCode;
 
             if (attrs.Count == 0 || attrs.ContainsKey("OU"))
-                await SearchDnLdapUser(ldapConn, sysLdap, userLdapList, ldapEntry.Dn, deptCode);
+                await SearchDnLdapUser(ldapConn, sysLdap, userLdapList, ldapEntry.Dn, childDeptCode);
             else
             {
                 var sysUserLdap = CreateSysUserLdap(attrs, sysLdap.BindAttrAccount, sysLdap.BindAttrEmployeeId, deptCode);
                 sysUserLdap.Dn = ldapEntry.Dn;
                 sysUserLdap.TenantId = sysLdap.TenantId;
-                if (string.IsNullOrEmpty(sysUserLdap.EmployeeId)) continue;
+                if (string.IsNullOrEmpty(sysUserLdap.EmployeeId) || string.IsNullOrEmpty(sysUserLdap.Account)) continue;
                 userLdapList.Add(sysUserLdap);
             }
         }
@@ -328,14 +381,16 @@ public class SysLdapService : IDynamicApiController, ITransient
     /// <param name="input"></param>
     /// <returns></returns>
     [DisplayName("同步域组织")]
+    [UnitOfWork]
     public async Task SyncDept(SyncSysLdapInput input)
     {
-        var sysLdap = await _sysLdapRep.GetFirstAsync(u => u.Id == input.Id) ?? throw Oops.Oh(ErrorCodeEnum.D1002);
+        var sysLdap = await FindOwned(input.Id);
+        if (sysLdap.Status != StatusEnum.Enable) throw Oops.Oh("域配置已停用");
         var ldapConn = new LdapConnection();
         try
         {
             await ldapConn.ConnectAsync(sysLdap.Host, sysLdap.Port);
-            string bindPass = CryptogramUtil.Decrypt(sysLdap.BindPass);
+            string bindPass = BindPassword(sysLdap);
             await ldapConn.BindAsync(sysLdap.Version, sysLdap.BindDn, bindPass);
             var ldapSearchResults = await ldapConn.SearchAsync(sysLdap.BaseDn, LdapConnection.ScopeOne, "(objectClass=*)", null, false);
             var orgList = new List<SysOrg>();
@@ -349,7 +404,7 @@ public class SysLdapService : IDynamicApiController, ITransient
                 }
                 catch (LdapException)
                 {
-                    continue;
+                    throw Oops.Oh("域查询未完成，保留现有同步数据");
                 }
 
                 var attrs = ldapEntry.GetAttributeSet();
@@ -364,14 +419,31 @@ public class SysLdapService : IDynamicApiController, ITransient
             if (orgList.Count == 0)
                 return;
 
-            await App.GetRequiredService<SysOrgService>().BatchAddOrgs(orgList);
+            // 按稳定目录编码更新当前租户机构，保留已有主键、用户关联和非目录机构。
+            var existing = await _sysLdapRep.Context.Queryable<SysOrg>().Where(u => u.TenantId == sysLdap.TenantId).ToListAsync();
+            var ids = new Dictionary<long, long>();
+            foreach (var org in orgList.OrderBy(u => u.Level))
+            {
+                if (string.IsNullOrWhiteSpace(org.Code) || string.IsNullOrWhiteSpace(org.Name)) throw Oops.Oh("目录组织缺少编码或名称");
+                var matches = existing.Where(u => u.Code == org.Code).ToList();
+                if (matches.Count > 1) throw Oops.Oh("目录组织编码重复");
+                var savedId = matches.FirstOrDefault()?.Id ?? org.Id;
+                ids[org.Id] = savedId;
+                org.Id = savedId;
+                org.Pid = org.Pid == 0 ? 0 : ids[org.Pid];
+                org.TenantId = sysLdap.TenantId;
+                if (matches.Count == 0) await _sysLdapRep.Context.Insertable(org).ExecuteCommandAsync();
+                else await _sysLdapRep.Context.Updateable(org).UpdateColumns(u => new { u.Name, u.Pid, u.Level, u.OrderNo }).ExecuteCommandAsync();
+            }
+            var userIds = await _sysLdapRep.Context.Queryable<SysUser>().ClearFilter().Where(u => u.TenantId == sysLdap.TenantId).Select(u => u.Id).ToListAsync();
+            foreach (var userId in userIds) SqlSugarFilter.DeleteUserOrgCache(userId, _sysLdapRep.Context.CurrentConnectionConfig.ConfigId.ToString());
         }
         catch (LdapException e)
         {
             throw e.ResultCode switch
             {
                 LdapException.NoSuchObject or LdapException.NoSuchAttribute => Oops.Oh(ErrorCodeEnum.D0009),
-                _ => Oops.Oh(e.Message),
+                _ => Oops.Oh("域服务连接或查询失败，请检查配置"),
             };
         }
         finally
@@ -401,7 +473,7 @@ public class SysLdapService : IDynamicApiController, ITransient
             }
             catch (LdapException)
             {
-                continue;
+                throw Oops.Oh("域查询未完成，保留现有同步数据");
             }
 
             var attrs = ldapEntry.GetAttributeSet();
@@ -428,9 +500,11 @@ public class SysLdapService : IDynamicApiController, ITransient
         {
             Pid = org.Id,
             Id = YitIdHelper.NextId(),
-            Code = attrs.ContainsKey(sysLdap.BindAttrCode) ? new Guid(attrs.GetAttribute(sysLdap.BindAttrCode)?.ByteValue).ToString() : null,
+            Code = GetDepartmentCode(attrs, sysLdap.BindAttrCode),
             Level = org.Level + 1,
-            Name = attrs.ContainsKey(sysLdap.BindAttrAccount) ? attrs.GetAttribute(sysLdap.BindAttrAccount)?.StringValue : null,
+            Name = attrs.ContainsKey("ou") ? attrs.GetAttribute("ou")?.StringValue :
+                attrs.ContainsKey(sysLdap.BindAttrAccount) ? attrs.GetAttribute(sysLdap.BindAttrAccount)?.StringValue : null,
+            TenantId = sysLdap.TenantId,
             OrderNo = listOrgs.Count + 1,
         };
     }

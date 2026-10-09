@@ -44,7 +44,6 @@ public class SysLdap : EntityBaseTenantDel
     /// 绑定密码(有管理权限制的用户密码)
     /// </summary>
     [SugarColumn(ColumnDescription = "绑定密码", Length = 512)]
-    [Required]
     public virtual string BindPass { get; set; }
 
     /// <summary>

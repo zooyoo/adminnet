@@ -36,6 +36,7 @@ public static class RoutePermissionUtil
         {
             "syscache:value" or "syscache:keysbyprefixkey" => "sysCache:keyList",
             "syscache:deletebyprekey" => "sysCache:delete",
+            "sysldap:syncdept" => "sysLdap:syncOrg",
             _ => permission
         };
     }

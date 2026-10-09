@@ -2,6 +2,15 @@
 
 日期：2026-10-09（Asia/Shanghai）。
 
+## 最新接续：第 12 项已完成，下一项 13
+
+- 第 11 项提交 `0eb5382dd`；12 随本记录提交。进度 12 / 48，goal active，继续严格编号、每项提交，仅桌面。
+- 新 LDAP 页面复用 AdminTable/SDK，密码不回传，保存留空保留。后端同步组织改为按编码更新并保留主键；映射限定租户、重复校验、事务替换；查询部分失败不写入；旧 syncOrg 权限对应 syncDept API。
+- 真实 OpenLDAP 容器与页面验证通过，最终 `Temp/adminnet-vben-16afcd95f2aa45559cee387e81e96f2c/evidence/ldap-browser-baseline.json` passed/cleanupPassed true；临时容器和匿名卷已删除，API 已停止。
+- 后端 193 项通过，新增 2 项后 LDAP 专项 10 项通过；桌面契约 8 项目录 `Temp/adminnet-ldap-ui-f8NIHw`。lint/type/build 通过，构建 `Temp/adminnet-vben-build-12` / `Temp/adminnet-vben-test-12`。
+- `run-ldap-browser-baseline.mjs` 自建带专用标签、本机随机端口的临时 OpenLDAP；不输出凭据，截图遮罩，最后核验标签后清理。镜像 `osixia/openldap:1.5.0` 仅测试用，已下载。Skill 已更新。
+- 下一项 13：核对旧第三方令牌入口、回跳与扫码实际行为，沿用现有认证协议，不新增上游未实现认证。用户 DeepSeek.example 与提案修改保留不提交。
+
 ## 最新接续：第 11 项已完成，下一项 12
 
 - 第 10 项提交 `8d39c4ebe`，第 11 项随本记录提交；总进度 11 / 48。goal active，仍要求严格逐项提交和仅桌面验收。

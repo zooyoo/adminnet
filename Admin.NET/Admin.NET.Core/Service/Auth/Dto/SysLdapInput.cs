@@ -24,6 +24,8 @@ public class SysLdapInput : BasePageInput
 
 public class AddSysLdapInput : SysLdap
 {
+    [Required]
+    public override string BindPass { get; set; }
 }
 
 public class UpdateSysLdapInput : SysLdap

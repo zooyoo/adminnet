@@ -26,15 +26,22 @@ public class SysUserLdapService : ITransient
     /// <returns></returns>
     public async Task InsertUserLdapList(long tenantId, List<SysUserLdap> sysUserLdapList)
     {
-        await _sysUserLdapRep.DeleteAsync(u => u.TenantId == tenantId);
-
-        await _sysUserLdapRep.InsertRangeAsync(sysUserLdapList);
-
-        await _sysUserLdapRep.AsUpdateable()
-            .InnerJoin<SysUser>((l, u) => l.EmployeeId == u.Account)
-            .SetColumns((l, u) => new SysUserLdap { UserId = u.Id })
-            .Where((l, u) => l.TenantId == tenantId && u.Status == StatusEnum.Enable)
-            .ExecuteCommandAsync();
+        if (sysUserLdapList.Any(u => u.TenantId != tenantId || string.IsNullOrWhiteSpace(u.Account)) ||
+            sysUserLdapList.GroupBy(u => u.Account, StringComparer.OrdinalIgnoreCase).Any(group => group.Count() > 1))
+            throw Oops.Oh("目录账号所属租户或唯一性校验失败");
+        var users = await _sysUserLdapRep.Context.Queryable<SysUser>().ClearFilter()
+            .Where(u => u.TenantId == tenantId && u.Status == StatusEnum.Enable).ToListAsync();
+        foreach (var item in sysUserLdapList)
+        {
+            item.Id = 0;
+            item.UserId = users.FirstOrDefault(u => u.Account == item.EmployeeId)?.Id ?? 0;
+        }
+        var transaction = await _sysUserLdapRep.Context.Ado.UseTranAsync(async () =>
+        {
+            await _sysUserLdapRep.DeleteAsync(u => u.TenantId == tenantId);
+            if (sysUserLdapList.Count > 0) await _sysUserLdapRep.InsertRangeAsync(sysUserLdapList);
+        });
+        if (!transaction.IsSuccess) throw Oops.Oh("域账号同步保存失败");
     }
 
     /// <summary>
