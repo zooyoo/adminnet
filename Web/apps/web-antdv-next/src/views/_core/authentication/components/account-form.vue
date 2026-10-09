@@ -27,12 +27,14 @@ const form = reactive<AuthApi.RegistrationParams>({ account: '', realName: '', p
 const canRegister = computed(() => !registering.value || isEnabled(info.value?.enableReg));
 let timer: ReturnType<typeof setInterval> | undefined;
 let generation = 0;
+let captchaGeneration = 0;
 
 async function loadTenantInfo() {
 	const current = ++generation;
 	loading.value = true;
 	info.value = undefined;
 	form.wayId = undefined;
+	form.code = '';
 	errorMessage.value = '';
 	try {
 		const result = await getSystemInfoApi(form.tenantId);
@@ -50,9 +52,15 @@ async function loadTenantInfo() {
 }
 
 async function refreshCaptcha() {
-	captcha.value = await getCaptchaApi();
-	form.codeId = captcha.value.id;
+	const current = ++captchaGeneration;
+	const version = generation;
+	captcha.value = undefined;
+	form.codeId = undefined;
 	form.code = '';
+	const result = await getCaptchaApi();
+	if (current !== captchaGeneration || version !== generation) return;
+	captcha.value = result;
+	form.codeId = result.id;
 }
 
 async function initialize() {
@@ -81,15 +89,17 @@ async function initialize() {
 }
 
 async function sendCode() {
-	if (sending.value || seconds.value > 0) return;
+	if (sending.value || seconds.value > 0 || loading.value || !info.value || submitting.value) return;
 	if (!/^1\d{10}$/.test(form.phone)) {
 		errorMessage.value = '请输入有效的手机号码';
 		return;
 	}
 	sending.value = true;
+	const current = generation;
 	errorMessage.value = '';
 	try {
 		await sendSmsApi(form.phone);
+		if (current !== generation) return;
 		seconds.value = 60;
 		if (timer) clearInterval(timer);
 		timer = setInterval(() => {
@@ -97,25 +107,28 @@ async function sendCode() {
 			if (seconds.value <= 0) clearInterval(timer);
 		}, 1000);
 	} catch (error) {
-		errorMessage.value = error instanceof Error ? error.message : '发送失败';
+		if (current === generation) errorMessage.value = error instanceof Error ? error.message : '发送失败';
 	} finally {
 		sending.value = false;
 	}
 }
 
 async function submit() {
-	if (!canRegister.value || submitting.value || loading.value || !info.value) return;
+	if (!canRegister.value || submitting.value || sending.value || loading.value || !info.value || (registering.value && !captcha.value)) return;
+	const current = generation;
 	submitting.value = true;
 	errorMessage.value = '';
 	try {
 		if (registering.value) {
 			await registrationApi({ ...form });
-			message.success('注册成功');
+			if (current !== generation) return;
+			message.success('注册成功，请使用默认密码或手机验证码登录');
 			await router.replace({ path: '/auth/login', query: { ...route.query, tenantId: form.tenantId } });
 		} else {
 			await auth.authPhoneLogin({ phone: form.phone, code: form.code, tenantId: form.tenantId });
 		}
 	} catch (error) {
+		if (current !== generation) return;
 		errorMessage.value = error instanceof Error ? error.message : '提交失败';
 		if (registering.value) await refreshCaptcha().catch(() => undefined);
 	} finally {
@@ -136,7 +149,7 @@ onUnmounted(() => {
 		<Alert v-if="errorMessage" :message="errorMessage" type="error" show-icon class="mb-4" />
 		<Alert v-if="info && !canRegister" message="当前租户未开放注册" type="warning" show-icon class="mb-4" />
 		<Spin :spinning="loading">
-			<Form :model="form" layout="vertical" @finish="submit">
+			<Form :model="form" layout="vertical" :disabled="loading || submitting || sending" @finish="submit">
 				<FormItem v-if="tenants.length" name="tenantId" label="租户" :rules="[{ required: true, message: '请选择租户' }]">
 					<Select v-model:value="form.tenantId" :options="tenants" show-search option-filter-prop="label" @change="loadTenantInfo" />
 				</FormItem>
@@ -162,7 +175,7 @@ onUnmounted(() => {
 					<FormItem v-if="registering && info?.wayList?.length" name="wayId" label="注册方案">
 						<Select v-model:value="form.wayId" :options="info.wayList" />
 					</FormItem>
-					<Button type="primary" html-type="submit" block size="large" :loading="submitting" :disabled="loading || !info">
+					<Button type="primary" html-type="submit" block size="large" :loading="submitting" :disabled="loading || sending || !info || (registering && !captcha)">
 						{{ registering ? '注册' : '登录' }}
 					</Button>
 				</template>

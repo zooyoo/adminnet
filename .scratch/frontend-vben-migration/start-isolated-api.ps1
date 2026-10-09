@@ -5,6 +5,9 @@ param(
     [switch]$AuthFixture,
     [switch]$OnlineFixture,
     [switch]$TranslationTestService,
+    [uri]$SmsTestService,
+    [ValidateRange(1, 120)]
+    [int]$SmsTestExpirySeconds = 60,
     [string]$BuildRoot
 )
 
@@ -25,6 +28,9 @@ if (Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyCon
 $runtimeRoot = Join-Path ([IO.Path]::GetTempPath()) ('adminnet-vben-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $runtimeRoot | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $runtimeRoot 'wwwroot') | Out-Null
+# 种子站点引用公开 Logo；使用仓库静态资源补齐，不复制开发环境上传目录。
+New-Item -ItemType Directory -Path (Join-Path $runtimeRoot 'wwwroot/upload') | Out-Null
+Copy-Item -LiteralPath (Join-Path $repositoryRoot 'Web/apps/web-antdv-next/public/logo.png') -Destination (Join-Path $runtimeRoot 'wwwroot/upload/logo.png')
 
 # 仅复制程序及运行库，不复制开发配置、业务数据库、上传文件或插件目录。
 Get-ChildItem -LiteralPath $buildRoot -File | Where-Object {
@@ -91,6 +97,28 @@ $configuration['Upload'] = @{
     MaxSize = 10240
     EnableMd5 = $false
     ContentType = @('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'application/octet-stream')
+}
+if ($SmsTestService) {
+    if ($SmsTestService.Scheme -ne 'http' -or $SmsTestService.Host -ne '127.0.0.1' -or
+        $SmsTestService.AbsolutePath -ne '/sms' -or $SmsTestService.Query -or $SmsTestService.UserInfo) {
+        throw 'SMS test service must be an explicit local HTTP /sms endpoint.'
+    }
+    $configuration['SMS'] = @{
+        VerifyCodeExpireSeconds = $SmsTestExpirySeconds
+        SendIntervalSeconds = 2
+        Custom = @{
+            Enabled = $true
+            ApiUrl = $SmsTestService.AbsoluteUri
+            Method = 'POST'
+            ContentType = 'application/json'
+            PostData = '{"mobile":"{mobile}","code":"{code}","template":"{templateId}"}'
+            SuccessFlag = 'ISOLATED_SMS_ACCEPTED'
+            Templates = @(@{ Id = '0'; Content = 'isolated:{code}' })
+        }
+    }
+    # 保留真实随机图形验证码，仅关闭动画以便稳定读取隔离验收图片。
+    $configuration['CaptchaOptions']['ImageOption']['Animation'] = $false
+    $configuration['CaptchaOptions']['ExpirySeconds'] = 120
 }
 if ($TranslationTestService) {
     # 仅按用户授权从本地配置注入隔离进程，不回显密钥、不复制到仓库。

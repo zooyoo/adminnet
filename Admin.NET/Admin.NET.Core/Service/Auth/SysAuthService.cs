@@ -214,11 +214,12 @@ public class SysAuthService : IDynamicApiController, ITransient
     /// <param name="input"></param>
     /// <returns></returns>
     [AllowAnonymous]
+    [SuppressMonitor]
     [DisplayName("手机号登录")]
     public virtual async Task<LoginOutput> LoginPhone([Required] LoginPhoneInput input)
     {
         // 校验短信验证码
-        _sysSmsService.VerifyCode(new SmsVerifyCodeInput { Phone = input.Phone, Code = input.Code });
+        _sysSmsService.ConsumeCode(new SmsVerifyCodeInput { Phone = input.Phone, Code = input.Code });
 
         // 获取登录租户和用户
         var (_, user) = await GetLoginUserAndTenant(input.TenantId, phone: input.Phone);
@@ -432,6 +433,7 @@ public class SysAuthService : IDynamicApiController, ITransient
     [UnitOfWork]
     [AllowAnonymous]
     [HttpPost, ApiDescriptionSettings(Description = "用户注册", DisableInherite = true)]
+    [SuppressMonitor]
     public async Task UserRegistration(UserRegistrationInput input)
     {
         // 校验验证码
@@ -451,6 +453,10 @@ public class SysAuthService : IDynamicApiController, ITransient
 
         var addUserInput = new AddUserInput
         {
+            Account = input.Account,
+            RealName = input.RealName,
+            Phone = input.Phone,
+            Password = input.Password,
             AccountType = regWay.AccountType,
             NickName = "注册用户-" + input.Account,
             OrgId = regWay.OrgId,
@@ -458,7 +464,6 @@ public class SysAuthService : IDynamicApiController, ITransient
             TenantId = input.TenantId,
             RoleIdList = new List<long> { regWay.RoleId },
         };
-        addUserInput.Copy(input);
         await _sysUserService.RegisterUser(addUserInput);
     }
 

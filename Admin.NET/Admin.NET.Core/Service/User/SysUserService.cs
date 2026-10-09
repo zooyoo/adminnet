@@ -136,6 +136,9 @@ public class SysUserService : IDynamicApiController, ITransient
     [NonAction]
     public virtual async Task<long> RegisterUser(AddUserInput input)
     {
+        if (input.TenantId.GetValueOrDefault() <= 0) throw Oops.Oh(ErrorCodeEnum.D1002);
+        // 匿名注册使用已授权的注册方案，不读取匿名用户的机构和角色管理范围。
+        await ValidateAssignments(input, input.TenantId.Value, false);
         var isExist = await _sysUserRep.AsQueryable().ClearFilter().AnyAsync(u => u.Account == input.Account);
         if (isExist) throw Oops.Oh(ErrorCodeEnum.D1003);
 
@@ -143,11 +146,18 @@ public class SysUserService : IDynamicApiController, ITransient
             throw Oops.Oh(ErrorCodeEnum.D1032);
 
         // 禁止越权注册
-        if (input.AccountType is AccountTypeEnum.SuperAdmin or AccountTypeEnum.SysAdmin) throw Oops.Oh(ErrorCodeEnum.D1038);
+        if (!Enum.IsDefined(input.AccountType) || input.AccountType is AccountTypeEnum.SuperAdmin or AccountTypeEnum.SysAdmin) throw Oops.Oh(ErrorCodeEnum.D1038);
 
         if (string.IsNullOrWhiteSpace(input.Password))
         {
             var password = await _sysConfigService.GetConfigValue<string>(ConfigConst.SysPassword);
+            input.Password = CryptogramUtil.Encrypt(password);
+        }
+        else
+        {
+            var password = CryptogramUtil.SM2Decrypt(input.Password);
+            if (CryptogramUtil.StrongPassword && !password.TryValidate(CryptogramUtil.PasswordStrengthValidation))
+                throw Oops.Oh(CryptogramUtil.PasswordStrengthValidationMsg);
             input.Password = CryptogramUtil.Encrypt(password);
         }
 
@@ -529,14 +539,14 @@ public class SysUserService : IDynamicApiController, ITransient
         return user;
     }
 
-    private async Task ValidateRoleIds(List<long> roleIds, long tenantId)
+    private async Task ValidateRoleIds(List<long> roleIds, long tenantId, bool checkManagerScope = true)
     {
         var ids = (roleIds ?? new()).Distinct().ToList();
         if (ids.Count == 0) return;
         var roles = await _sysUserRep.Context.Queryable<SysRole>().Where(u => ids.Contains(u.Id)).ToListAsync();
         if (roles.Count != ids.Count || roles.Any(u => u.TenantId != tenantId))
             throw Oops.Oh(ErrorCodeEnum.D1038);
-        if (!_userManager.SuperAdmin && !_userManager.SysAdmin)
+        if (checkManagerScope && !_userManager.SuperAdmin && !_userManager.SysAdmin)
         {
             var ownIds = await _sysUserRoleService.GetUserRoleIdList(_userManager.UserId);
             if (roles.Any(u => u.CreateUserId != _userManager.UserId && !ownIds.Contains(u.Id)))
@@ -544,7 +554,7 @@ public class SysUserService : IDynamicApiController, ITransient
         }
     }
 
-    private async Task ValidateAssignments(AddUserInput input, long tenantId)
+    private async Task ValidateAssignments(AddUserInput input, long tenantId, bool checkManagerScope = true)
     {
         var extras = input.ExtOrgIdList ?? new();
         if (extras.Select(u => (u.OrgId, u.PosId)).Distinct().Count() != extras.Count)
@@ -556,12 +566,12 @@ public class SysUserService : IDynamicApiController, ITransient
         if (orgs.Count != orgIds.Count || orgs.Any(u => u.TenantId != tenantId) ||
             positions.Count != posIds.Count || positions.Any(u => u.TenantId != tenantId))
             throw Oops.Oh(ErrorCodeEnum.D2003);
-        if (!_userManager.SuperAdmin)
+        if (checkManagerScope && !_userManager.SuperAdmin)
         {
             var allowed = await _sysOrgService.GetUserOrgIdList();
             if (orgIds.Any(id => !allowed.Contains(id))) throw Oops.Oh(ErrorCodeEnum.D2003);
         }
-        await ValidateRoleIds(input.RoleIdList, tenantId);
+        await ValidateRoleIds(input.RoleIdList, tenantId, checkManagerScope);
         // 关联表的主键和账号归属由服务端生成，不能采信复制或伪造的字段。
         input.ExtOrgIdList = extras.Select(u => new SysUserExtOrg
         {

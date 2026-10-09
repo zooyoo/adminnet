@@ -35,6 +35,7 @@ public class SysSmsService : IDynamicApiController, ITransient
     /// <param name="templateId">短信模板id</param>
     /// <returns></returns>
     [AllowAnonymous]
+    [SuppressMonitor]
     [DisplayName("发送短信")]
     public async Task SendSms([Required] string phoneNumber, string templateId = "0")
     {
@@ -42,7 +43,7 @@ public class SysSmsService : IDynamicApiController, ITransient
         {
             await CustomSendSms(phoneNumber, templateId);
         }
-        else if (!string.IsNullOrWhiteSpace(_smsOptions.Aliyun.AccessKeyId) && !string.IsNullOrWhiteSpace(_smsOptions.Aliyun.AccessKeySecret))
+        else if (!string.IsNullOrWhiteSpace(_smsOptions.Aliyun?.AccessKeyId) && !string.IsNullOrWhiteSpace(_smsOptions.Aliyun?.AccessKeySecret))
         {
             await AliyunSendSms(phoneNumber, templateId);
         }
@@ -58,16 +59,49 @@ public class SysSmsService : IDynamicApiController, ITransient
     /// <param name="input"></param>
     /// <returns></returns>
     [AllowAnonymous]
+    [SuppressMonitor]
     [DisplayName("校验短信验证码")]
-    public bool VerifyCode(SmsVerifyCodeInput input)
+    public bool VerifyCode(SmsVerifyCodeInput input) => CheckCode(input, false);
+
+    /// <summary>
+    /// 登录时原子校验并消费验证码，防止并发请求重复使用。
+    /// </summary>
+    [NonAction]
+    public void ConsumeCode(SmsVerifyCodeInput input) => CheckCode(input, true);
+
+    private bool CheckCode(SmsVerifyCodeInput input, bool consume)
     {
-        var verifyCode = _sysCacheService.Get<string>($"{CacheConst.KeyPhoneVerCode}{input.Phone}");
-
+        if (input == null || string.IsNullOrWhiteSpace(input.Phone))
+            throw Oops.Oh("请正确填写手机号码");
+        var key = $"{CacheConst.KeyPhoneVerCode}{input.Phone}";
+        using var cacheLock = _sysCacheService.BeginCacheLock($"{key}:lock");
+        var verifyCode = _sysCacheService.Get<string>(key);
         if (string.IsNullOrWhiteSpace(verifyCode)) throw Oops.Oh("验证码不存在或已失效，请重新获取！");
-
-        if (verifyCode != input.Code) throw Oops.Oh("验证码错误！");
-
+        if (verifyCode != input.Code)
+        {
+            var attempts = _sysCacheService.Get<int>($"{key}:attempts") + 1;
+            _sysCacheService.Set($"{key}:attempts", attempts, TimeSpan.FromSeconds(Math.Max(1, _smsOptions.VerifyCodeExpireSeconds)));
+            if (attempts >= 5) _sysCacheService.Remove(key);
+            throw Oops.Oh("验证码错误！");
+        }
+        if (consume)
+        {
+            _sysCacheService.Remove(key);
+            _sysCacheService.Remove($"{key}:attempts");
+        }
         return true;
+    }
+
+    private async Task SendThrottled(string phoneNumber, Func<Task> send)
+    {
+        if (string.IsNullOrWhiteSpace(phoneNumber) || !phoneNumber.TryValidate(ValidationTypes.PhoneNumber).IsValid)
+            throw Oops.Oh("请正确填写手机号码");
+        var key = $"{CacheConst.KeyPhoneVerCode}{phoneNumber}";
+        using var cacheLock = _sysCacheService.BeginCacheLock($"{key}:lock", msExpire: 120000);
+        if (_sysCacheService.ExistKey($"{key}:sent")) throw Oops.Oh("短信发送过于频繁，请稍后再试");
+        await send();
+        _sysCacheService.Set($"{key}:sent", true, TimeSpan.FromSeconds(Math.Max(1, _smsOptions.SendIntervalSeconds)));
+        _sysCacheService.Remove($"{key}:attempts");
     }
 
     /// <summary>
@@ -77,14 +111,17 @@ public class SysSmsService : IDynamicApiController, ITransient
     /// <param name="templateId">短信模板id</param>
     /// <returns></returns>
     [AllowAnonymous]
+    [SuppressMonitor]
     [DisplayName("阿里云发送短信")]
-    public async Task AliyunSendSms([Required] string phoneNumber, string templateId = "0")
+    public Task AliyunSendSms([Required] string phoneNumber, string templateId = "0") =>
+        SendThrottled(phoneNumber, () => AliyunSendSmsCore(phoneNumber, templateId));
+
+    private async Task AliyunSendSmsCore(string phoneNumber, string templateId)
     {
         if (!phoneNumber.TryValidate(ValidationTypes.PhoneNumber).IsValid) throw Oops.Oh("请正确填写手机号码");
 
         // 生成随机验证码
-        var random = new Random();
-        var verifyCode = random.Next(100000, 999999);
+        var verifyCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000);
 
         var templateParam = new
         {
@@ -105,7 +142,7 @@ public class SysSmsService : IDynamicApiController, ITransient
         if (sendSmsResponse.Body.Code == "OK" && sendSmsResponse.Body.Message == "OK")
         {
             // var bizId = sendSmsResponse.Body.BizId;
-            _sysCacheService.Set($"{CacheConst.KeyPhoneVerCode}{phoneNumber}", verifyCode, TimeSpan.FromSeconds(_smsOptions.VerifyCodeExpireSeconds));
+            _sysCacheService.Set($"{CacheConst.KeyPhoneVerCode}{phoneNumber}", verifyCode.ToString(), TimeSpan.FromSeconds(_smsOptions.VerifyCodeExpireSeconds));
         }
         else
         {
@@ -123,6 +160,7 @@ public class SysSmsService : IDynamicApiController, ITransient
     /// <param name="templateId">短信模板id</param>
     /// <returns></returns>
     [AllowAnonymous]
+    [SuppressMonitor]
     [DisplayName("发送短信模板")]
     public async Task AliyunSendSmsTemplate([Required] string phoneNumber, [Required] dynamic templateParam, string templateId)
     {
@@ -159,14 +197,17 @@ public class SysSmsService : IDynamicApiController, ITransient
     /// <param name="templateId">短信模板id</param>
     /// <returns></returns>
     [AllowAnonymous]
+    [SuppressMonitor]
     [DisplayName("腾讯云发送短信")]
-    public async Task TencentSendSms([Required] string phoneNumber, string templateId = "0")
+    public Task TencentSendSms([Required] string phoneNumber, string templateId = "0") =>
+        SendThrottled(phoneNumber, () => TencentSendSmsCore(phoneNumber, templateId));
+
+    private async Task TencentSendSmsCore(string phoneNumber, string templateId)
     {
         if (!phoneNumber.TryValidate(ValidationTypes.PhoneNumber).IsValid) throw Oops.Oh("请正确填写手机号码");
 
         // 生成随机验证码
-        var random = new Random();
-        var verifyCode = random.Next(100000, 999999);
+        var verifyCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000);
 
         // 实例化要请求产品的client对象，clientProfile是可选的
         var client = new SmsClient(CreateTencentClient(), "ap-guangzhou", new ClientProfile() { HttpProfile = new HttpProfile() { Endpoint = ("sms.tencentcloudapi.com") } });
@@ -187,7 +228,7 @@ public class SysSmsService : IDynamicApiController, ITransient
         if (resp.SendStatusSet[0].Code == "Ok" && resp.SendStatusSet[0].Message == "send success")
         {
             // var bizId = sendSmsResponse.Body.BizId;
-            _sysCacheService.Set($"{CacheConst.KeyPhoneVerCode}{phoneNumber}", verifyCode, TimeSpan.FromSeconds(_smsOptions.VerifyCodeExpireSeconds));
+            _sysCacheService.Set($"{CacheConst.KeyPhoneVerCode}{phoneNumber}", verifyCode.ToString(), TimeSpan.FromSeconds(_smsOptions.VerifyCodeExpireSeconds));
         }
         else
         {
@@ -233,8 +274,12 @@ public class SysSmsService : IDynamicApiController, ITransient
     /// <param name="templateId">短信模板id</param>
     /// <returns></returns>
     [AllowAnonymous]
+    [SuppressMonitor]
     [DisplayName("自定义短信接口发送短信")]
-    public async Task CustomSendSms([DataValidation(ValidationTypes.PhoneNumber)] string phoneNumber, string templateId = "0")
+    public Task CustomSendSms([DataValidation(ValidationTypes.PhoneNumber)] string phoneNumber, string templateId = "0") =>
+        SendThrottled(phoneNumber, () => CustomSendSmsCore(phoneNumber, templateId));
+
+    private async Task CustomSendSmsCore(string phoneNumber, string templateId)
     {
         if (_smsOptions.Custom == null || !_smsOptions.Custom.Enabled)
             throw Oops.Oh("自定义短信接口未启用");
@@ -243,7 +288,7 @@ public class SysSmsService : IDynamicApiController, ITransient
             throw Oops.Oh("自定义短信接口地址未配置");
 
         // 生成随机验证码
-        var verifyCode = Random.Shared.Next(100000, 999999);
+        var verifyCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000);
 
         // 获取模板
         var template = _smsOptions.Custom.GetTemplate(templateId);
@@ -275,7 +320,7 @@ public class SysSmsService : IDynamicApiController, ITransient
                     .Replace("{mobile}", phoneNumber)
                     .Replace("{content}", content)
                     .Replace("{code}", verifyCode.ToString());
-                HttpContent httpContent = new StringContent(postData ?? string.Empty, Encoding.UTF8, _smsOptions.Custom.ContentType ?? "application/x-www-form-urlencoded");
+                using HttpContent httpContent = new StringContent(postData ?? string.Empty, Encoding.UTF8, _smsOptions.Custom.ContentType ?? "application/x-www-form-urlencoded");
                 response = await httpClient.PostAsync(url, httpContent);
             }
             else
@@ -284,25 +329,27 @@ public class SysSmsService : IDynamicApiController, ITransient
                 response = await httpClient.GetAsync(url);
             }
 
+            using var completedResponse = response;
             var responseContent = await response.Content.ReadAsStringAsync();
 
             // 判断是否发送成功
-            if (response.IsSuccessStatusCode && responseContent.Contains(_smsOptions.Custom.SuccessFlag))
+            if (response.IsSuccessStatusCode && !string.IsNullOrWhiteSpace(_smsOptions.Custom.SuccessFlag) && responseContent.Contains(_smsOptions.Custom.SuccessFlag))
             {
                 if (_smsOptions.Custom.ApiUrl.Contains("{code}") || template.Content.Contains("{code}") || (_smsOptions.Custom.PostData?.Contains("{code}") == true))
                 {
                     // 如果模板含有验证码，则添加到缓存
-                    _sysCacheService.Set($"{CacheConst.KeyPhoneVerCode}{phoneNumber}", verifyCode, TimeSpan.FromSeconds(_smsOptions.VerifyCodeExpireSeconds));
+                    _sysCacheService.Set($"{CacheConst.KeyPhoneVerCode}{phoneNumber}", verifyCode.ToString(), TimeSpan.FromSeconds(_smsOptions.VerifyCodeExpireSeconds));
                 }
             }
             else
             {
-                throw Oops.Oh($"短信发送失败：{responseContent}");
+                throw Oops.Oh("短信发送失败，请稍后再试");
             }
         }
-        catch (Exception ex)
+        catch
         {
-            throw Oops.Oh($"短信发送异常：{ex.Message}");
+            // 第三方响应和请求地址可能包含验证码或凭据，不写入错误日志。
+            throw Oops.Oh("短信发送失败，请稍后再试");
         }
     }
 }

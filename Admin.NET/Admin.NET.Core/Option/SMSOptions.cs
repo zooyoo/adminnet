@@ -18,6 +18,11 @@ public sealed class SMSOptions : IConfigurableOptions
     public int VerifyCodeExpireSeconds { get; set; } = 60;
 
     /// <summary>
+    /// 同一手机号两次发送的最小间隔（秒）。
+    /// </summary>
+    public int SendIntervalSeconds { get; set; } = 60;
+
+    /// <summary>
     /// Aliyun
     /// </summary>
     public SMSSettings Aliyun { get; set; }

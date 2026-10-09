@@ -2,6 +2,15 @@
 
 日期：2026-10-09（Asia/Shanghai）。
 
+## 最新接续：第 11 项已完成，下一项 12
+
+- 第 10 项提交 `8d39c4ebe`，第 11 项随本记录提交；总进度 11 / 48。goal active，仍要求严格逐项提交和仅桌面验收。
+- 手机登录/注册完成：真实本机短信 HTTP 服务、限频/过期/消费、停用和租户拒绝、图形验证码注册、默认及自选密码登录。修复 `Copy` 遗漏密码。短信错误响应与日志不含验证码。
+- 后端 185 项、桌面契约 10 项、lint/type/build 通过。构建目录 `Temp/adminnet-vben-build-11` 和 `Temp/adminnet-vben-test-11`。
+- 最终证据 `Temp/adminnet-vben-76463b68a8214f4c80ab0d5b2c63124c/evidence/phone-browser-baseline.json`；passed/cleanupPassed true，隔离 API/收件器停止。契约目录 `Temp/adminnet-phone-ui-4ph1xp`。
+- `run-phone-browser-baseline.mjs` 自行启动隔离 API/本机 HTTP 收件器，图形验证码输出图片路径，使用 `view_image` 后经 PTY（不回显）输入，不记录文本。Windows 后台管道需以 Ready 消息而非 execFile close 判定就绪。此经验已更新 Skill。
+- 用户密钥文件与提案变更继续保留不提交。下一项 12：LDAP 配置、同步与登录，先核查现有接口、前端入口和可用隔离目录服务；不能用成功 Mock 关闭真实 LDAP 验收。
+
 ## 最新接续：第 10 项已完成，下一项 11
 
 - 总进度 10 / 48，goal 仍 active；第 10 项随本记录提交，后续使用 `git log` 确认提交号。严格逐项完成、更新、提交再推进，仅桌面验收。
