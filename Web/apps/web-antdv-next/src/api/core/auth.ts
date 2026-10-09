@@ -96,6 +96,16 @@ export function logoutApi() {
 	return requestClient.post('/api/sysAuth/logout', undefined, { silentError: true });
 }
 
+export function unlockScreenApi(password: string, signal?: AbortSignal) {
+	const publicKey = import.meta.env.VITE_SM_PUBLIC_KEY;
+	if (!publicKey) throw new Error('未配置登录公钥');
+	return requestClient.post<boolean>('/api/sysAuth/unLockScreen', undefined, {
+		params: { password: sm2.doEncrypt(password, publicKey, 1) },
+		silentError: true,
+		signal,
+	});
+}
+
 export function getCaptchaApi() {
 	return requestClient.get<AuthApi.Captcha>('/api/sysAuth/captcha', { adminAnonymous: true });
 }

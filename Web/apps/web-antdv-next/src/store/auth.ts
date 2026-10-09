@@ -10,7 +10,7 @@ import { resetAllStores, useAccessStore, useUserStore } from '@vben/stores';
 import { notification } from 'antdv-next';
 import { defineStore } from 'pinia';
 
-import { changeTenantApi, enterTenantApi, getUserInfoApi, loginApi, logoutApi, phoneLoginApi, tokenLoginApi } from '#/api';
+import { changeTenantApi, enterTenantApi, getUserInfoApi, loginApi, logoutApi, phoneLoginApi, tokenLoginApi, unlockScreenApi } from '#/api';
 import { getAllMenusApi, prepareSessionMenus } from '#/api/core/menu';
 import { onlineSession } from '#/api/realtime';
 import { isTokenExpired, sessionBoundary } from '#/api/session';
@@ -75,6 +75,17 @@ export const useAuthStore = defineStore(
 
 		function authPhoneLogin(params: AuthApi.PhoneLoginParams) {
 			return authenticate(() => phoneLoginApi(params));
+		}
+
+		function lockScreen() {
+			if (accessStore.accessToken) accessStore.lockScreen();
+		}
+
+		async function unlockScreen(password: string, signal: AbortSignal) {
+			const version = sessionBoundary.version;
+			if (!accessStore.isLockScreen || signal.aborted) return;
+			if (!(await unlockScreenApi(password, signal))) throw new Error('密码验证失败，请重试');
+			if (version === sessionBoundary.version && !signal.aborted) accessStore.unlockScreen();
 		}
 
 		async function authTokenLogin(token: string, redirect: string, signal: AbortSignal) {
@@ -195,7 +206,7 @@ export const useAuthStore = defineStore(
 			homePath.value = '';
 		}
 
-		return { $reset, authLogin, authPhoneLogin, authTokenLogin, changeTenant, expireSession, fetchUserInfo, homePath, loginLoading, logout };
+		return { $reset, authLogin, authPhoneLogin, authTokenLogin, changeTenant, expireSession, fetchUserInfo, homePath, lockScreen, loginLoading, logout, unlockScreen };
 	},
 	{ persist: { pick: ['homePath'] } }
 );

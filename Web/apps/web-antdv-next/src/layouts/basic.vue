@@ -10,7 +10,7 @@ import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
 import { VBEN_DOC_URL, VBEN_GITHUB_URL } from '@vben/constants';
 import { useWatermark } from '@vben/hooks';
 import { BookOpenText, CircleHelp, SvgGithubIcon } from '@vben/icons';
-import { BasicLayout, LockScreen, UserDropdown } from '@vben/layouts';
+import { BasicLayout, UserDropdown } from '@vben/layouts';
 import { preferences, usePreferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
 import { openWindow } from '@vben/utils';
@@ -31,6 +31,7 @@ import ReceivedNotices from '#/views/home/notice/index.vue';
 
 import NoticePopover from './components/notice-popover.vue';
 import OnlineUsers from './components/online-users.vue';
+import SessionLock from './components/session-lock.vue';
 import TenantSwitch from './components/tenant-switch.vue';
 
 const notifications = ref<NotificationItem[]>([]);
@@ -50,6 +51,16 @@ const router = useRouter();
 const userStore = useUserStore();
 const authStore = useAuthStore();
 const accessStore = useAccessStore();
+watch(
+	() => accessStore.isLockScreen,
+	(locked) => {
+		if (!locked) return;
+		accessStore.lockScreenPassword = undefined;
+		receivedOpen.value = false;
+		noticeDetailOpen.value = false;
+	},
+	{ immediate: true }
+);
 const { destroyWatermark, updateWatermark } = useWatermark();
 const { isDark } = usePreferences();
 
@@ -214,9 +225,17 @@ watch(
 </script>
 
 <template>
-	<BasicLayout :avatar :text="userStore.userInfo?.realName" @clear-preferences-and-logout="handleLogout" @logout="handleLogout">
+	<BasicLayout
+		:avatar
+		:text="userStore.userInfo?.realName"
+		:lock-screen-handler="authStore.lockScreen"
+		:inert="accessStore.isLockScreen"
+		:style="{ visibility: accessStore.isLockScreen ? 'hidden' : undefined }"
+		@clear-preferences-and-logout="handleLogout"
+		@logout="handleLogout"
+	>
 		<template #user-dropdown>
-			<UserDropdown :avatar :menus :text="userStore.userInfo?.realName" :description="userStore.userInfo?.account" @clear-preferences-and-logout="handleLogout" @logout="handleLogout" />
+			<UserDropdown :avatar :menus :text="userStore.userInfo?.realName" :description="userStore.userInfo?.account" :lock-screen-handler="authStore.lockScreen" @clear-preferences-and-logout="handleLogout" @logout="handleLogout" />
 		</template>
 		<template #notification>
 			<OnlineUsers />
@@ -240,9 +259,6 @@ watch(
 				<LoginForm />
 			</AuthenticationLoginExpiredModal>
 		</template>
-		<template #lock-screen>
-			<LockScreen :avatar @to-login="handleLogout" />
-		</template>
 	</BasicLayout>
 	<Drawer v-model:open="receivedOpen" title="通知中心" :size="preferences.app.isMobile ? 360 : 960" :styles="{ wrapper: { maxWidth: '100vw' } }">
 		<ReceivedNotices v-if="receivedOpen" />
@@ -254,6 +270,7 @@ watch(
 			<Button v-if="noticeError" @click="markRead(noticeDetail.id)">重试已读</Button>
 		</template>
 	</Modal>
+	<SessionLock v-if="accessStore.isLockScreen" />
 </template>
 
 <style scoped>

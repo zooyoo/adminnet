@@ -179,6 +179,7 @@ public class SysAuthService : IDynamicApiController, ITransient
     /// <param name="password"></param>
     /// <returns></returns>
     [DisplayName("验证锁屏密码")]
+    [SuppressMonitor]
     public virtual async Task<bool> UnLockScreen([Required, FromQuery] string password)
     {
         // 账号是否存在

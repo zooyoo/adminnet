@@ -27,6 +27,8 @@ import {
 } from '../../widgets';
 
 interface Props {
+  /** 应用自定义锁屏入口 */
+  lockScreenHandler?: () => void;
   /**
    * 头像
    */
@@ -45,7 +47,8 @@ defineOptions({
   name: 'LayoutHeader',
 });
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
+  lockScreenHandler: undefined,
   avatar: '',
   theme: 'light',
   text: '',
@@ -97,6 +100,10 @@ const [LogoutModal, logoutModalApi] = useVbenModal({
 });
 
 function handleOpenLock() {
+  if (props.lockScreenHandler) {
+    props.lockScreenHandler();
+    return;
+  }
   lockModalApi.open();
 }
 
@@ -357,6 +364,7 @@ function clearPreferencesAndLogout() {
         <template v-else-if="slot.name === 'lock-screen-btn'">
           <VbenIconButton
             class="mr-1 hidden sm:flex"
+            :aria-label="$t('ui.widgets.lockScreen.title')"
             :tooltip="$t('ui.widgets.lockScreen.title')"
             @click="handleOpenLock"
           >

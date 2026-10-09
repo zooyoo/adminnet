@@ -55,6 +55,8 @@ import { ThemeToggle } from '../theme-toggle';
 import { TimezoneButton } from '../timezone';
 
 interface Props {
+  /** 应用自定义锁屏入口 */
+  lockScreenHandler?: () => void;
   /**
    * 头像
    */
@@ -100,6 +102,7 @@ defineOptions({
 });
 
 const props = withDefaults(defineProps<Props>(), {
+  lockScreenHandler: undefined,
   avatar: '',
   avatarDot: true,
   avatarDotClass: 'bottom-0 right-1 border-2 size-4 bg-green-500',
@@ -235,6 +238,11 @@ const enableLockScreenShortcutKey = computed(() => {
 });
 
 function handleOpenLock() {
+  if (props.lockScreenHandler) {
+    openPopover.value = false;
+    props.lockScreenHandler();
+    return;
+  }
   lockModalApi.open();
 }
 

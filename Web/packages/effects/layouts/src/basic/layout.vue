@@ -39,6 +39,7 @@ import { useLayoutScroll } from './use-layout-scroll';
 defineOptions({ name: 'BasicLayout' });
 
 const props = withDefaults(defineProps<Props>(), {
+  lockScreenHandler: undefined,
   logoSrc: '',
   logoSrcDark: '',
   logoText: '',
@@ -53,6 +54,8 @@ const emit = defineEmits<{
 }>();
 
 interface Props {
+  /** 应用自定义锁屏入口 */
+  lockScreenHandler?: () => void;
   /** 自定义 Logo 图片地址，不传则使用偏好设置默认值 */
   logoSrc?: string;
   /** 自定义暗色主题 Logo 图片地址 */
@@ -361,6 +364,7 @@ const headerSlots = computed(() => {
     <template #header>
       <LayoutHeader
         :avatar="avatar"
+        :lock-screen-handler="lockScreenHandler"
         :theme="theme"
         :text="text"
         @clear-preferences-and-logout="clearPreferencesAndLogout"

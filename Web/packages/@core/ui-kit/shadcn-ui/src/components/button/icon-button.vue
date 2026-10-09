@@ -19,6 +19,8 @@ interface Props extends VbenButtonProps {
   variant?: ButtonVariants['variant'];
 }
 
+defineOptions({ inheritAttrs: false });
+
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   onClick: () => {},
@@ -45,6 +47,7 @@ function handleClick(e: MouseEvent) {
 <template>
   <VbenButton
     v-if="!showTooltip"
+    v-bind="$attrs"
     :class="cn('rounded-full', props.class)"
     :disabled="disabled"
     :variant="variant"
@@ -61,6 +64,7 @@ function handleClick(e: MouseEvent) {
   >
     <template #trigger>
       <VbenButton
+        v-bind="$attrs"
         :class="cn('rounded-full', props.class)"
         :disabled="disabled"
         :variant="variant"

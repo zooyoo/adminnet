@@ -2,6 +2,16 @@
 
 日期：2026-10-09（Asia/Shanghai）。
 
+## 最新接续：第 14 项已完成，下一项 15
+
+- 第 13 项提交 `daa1344fd`，14 随本记录提交。总进度 14 / 48，继续逐项验收并提交，仅桌面。
+- 新 `SessionLock` 采用 Antdv-Next 与真实 `sysAuth/unLockScreen`，恢复旧账号密码 SM2 解锁语义；锁屏入口直接锁定，不保存本地锁屏密码。隐藏并 inert 业务布局，独立 Modal 不受按钮偏好开关影响。
+- 头部、用户下拉与布局增加可选锁屏回调；`Alt+L` 共用入口。图标按钮 `$attrs` 透传实际 button，解决 Tooltip 包装吞掉 `aria-label`。解锁请求在退出/卸载时取消，并检查会话代次。
+- 最终真实报告 `Temp/adminnet-vben-30655e84e5f64e389c1a802b59298c37/evidence/lock-browser-baseline.json`：6 阶段及清理通过，截图已核验；API/浏览器/代理停止。桌面契约目录 `Temp/adminnet-lock-ui-pvPVFb`，9 项通过。
+- 后端 195 项、前端会话/路由 30 项、lint/类型/前后端构建通过。构建输出 `Temp/adminnet-vben-build-14` / `Temp/adminnet-vben-test-14`。CLI lint 仍只回显参数。
+- 下一项 15：个人资料、偏好与水印。当前 `layouts/basic.vue` 仍有上游帮助链接和以用户名称拼出的水印逻辑；需按旧个人设置实际字段、头像上传合同和真实水印配置核对。不要提前扩大到第 16 项首页。
+- 保留用户 `DeepSeek.example` 和原提案改动，不提交。没有活动 goal（本轮查询结果为 null），不要把旧交接中的 goal active 当作当前工具状态；用户持续要求完成全部编号仍有效。
+
 ## 最新接续：第 13 项已完成，下一项 14
 
 - 第 12 项提交 `573f0a189`，13 随本记录提交；总进度 13 / 48。继续严格编号、每项验收后提交，仅桌面。

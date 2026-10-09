@@ -69,7 +69,7 @@ export const useAccessStore = defineStore('core-access', {
       }
       return findMenu(this.accessMenus, path);
     },
-    lockScreen(password: string) {
+    lockScreen(password?: string) {
       this.isLockScreen = true;
       this.lockScreenPassword = password;
     },
