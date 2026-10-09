@@ -15,6 +15,7 @@ import { sessionBoundary } from '#/api/session';
 import { databaseActions } from '#/api/system/database';
 
 import DatabaseSelector from './component/database-selector.vue';
+import GenerationEditor from './component/generation-editor.vue';
 import StructureEditor from './component/structure-editor.vue';
 import { moveColumnInput } from './database-form';
 import { useDatabaseSelection } from './use-database-selection';
@@ -28,12 +29,14 @@ const router = useRouter();
 const title = computed(() => connection.value?.dbNickName || configId.value);
 const icons = Object.fromEntries(['plus', 'pencil', 'trash-2', 'arrow-up', 'arrow-down', 'refresh-cw', 'share-2'].map((name) => [name, h(createIconifyIcon(`lucide:${name}`))]));
 const editing = ref(false);
+const generating = ref(false);
+const generationKind = ref<'entity' | 'seed'>('entity');
 const mode = ref<'addColumn' | 'addTable' | 'updateColumn' | 'updateTable'>('addTable');
 const selectedColumn = ref<DbColumnOutput>();
 const action = ref<{ title: string; column: DbColumnOutput; index: number; direction?: 'down' | 'up' }>();
 const busy = ref(false);
 const actionError = ref('');
-const unavailable = computed(() => loading.value || editing.value || !!action.value || busy.value);
+const unavailable = computed(() => loading.value || editing.value || generating.value || !!action.value || busy.value);
 let active = true;
 let operation: AbortController | undefined;
 const lifetime = new AbortController();
@@ -55,6 +58,7 @@ function clearTransient() {
 	operation?.abort();
 	selection.cancel();
 	editing.value = false;
+	generating.value = false;
 	action.value = undefined;
 	busy.value = false;
 }
@@ -122,7 +126,7 @@ onScopeDispose(() => {
 		<Alert v-if="!can('list')" type="warning" title="无数据库管理权限" show-icon />
 		<template v-else>
 			<div class="database-toolbar">
-				<DatabaseSelector :selection="selection" :disabled="editing || !!action || busy" />
+				<DatabaseSelector :selection="selection" :disabled="editing || generating || !!action || busy" />
 				<div class="toolbar-actions">
 					<Tooltip title="刷新结构"
 						><Button :icon="icons['refresh-cw']" aria-label="刷新结构" :disabled="!configId || loading || editing || !!action" @click="selection.selectConnection(configId, tableName)"
@@ -131,6 +135,8 @@ onScopeDispose(() => {
 					<Button v-if="can('updateTable')" :icon="icons.pencil" :disabled="!tableName || unavailable || !!error" @click="edit('updateTable')">编辑表</Button>
 					<Button v-if="can('visualDbTable')" :icon="icons['share-2']" :disabled="!ready || unavailable || !!error" @click="openGraph">查看关系图</Button>
 					<Button v-if="can('addColumn')" :icon="icons.plus" :disabled="!tableName || unavailable || !!error" @click="edit('addColumn')">增加字段</Button>
+					<Button v-if="can('createEntity')" :disabled="!tableName || unavailable || !!error" @click="generationKind = 'entity'; generating = true">生成实体</Button>
+					<Button v-if="can('createSeedData')" :disabled="!tableName || unavailable || !!error" @click="generationKind = 'seed'; generating = true">生成种子</Button>
 					<Tooltip title="沿用原系统禁用删除表的策略"><Button :icon="icons['trash-2']" disabled danger>删除表</Button></Tooltip>
 				</div>
 			</div>
@@ -187,6 +193,7 @@ onScopeDispose(() => {
 				:table="selection.tables.value.find((item) => item.name === tableName)"
 				@saved="saved"
 			/>
+			<GenerationEditor v-model:open="generating" :kind="generationKind" :target="target" :connection-title="title" />
 			<Modal
 				:open="!!action"
 				:title="`确认${action?.title ?? ''}`"

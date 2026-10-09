@@ -177,3 +177,12 @@
 - 处理：给 `Spin` 设置 `wrapperClassName`，让 visual stage、Spin wrapper、`ant-spin-container` 和 graph 均形成 `height: 100%` / flex 链；给节点提供实际 `width` / `height` 和 fixed layout。节点高度按字段数计算，保留外键锚点可见。
 - 交互：引擎拖动结束约 200 ms 内会抑制节点点击；页面节点自身事件同步表详情，并提供 Enter / Space 键盘选择。连线详情仍使用引擎 `onLineClick`。
 - 验证：真实 PostgreSQL 三表三外键、无外键、空库、停机失败和 Edge 明暗截图均通过；不能用 `.graph-node` 数量或 API 返回代替截图复核。
+
+### 2026-10-10：代码生成预览、文件保护与 PostgreSQL 种子回放
+
+- 适用条件：Furion ViewEngine 4.9.9.92、SqlSugarCore 5.1.4.221、.NET 10 和隔离 PostgreSQL 18。生成结果必须另建临时项目实际编译，并执行种子读取和落库；生成 API 成功不证明代码可用。
+- Razor 顶层输出 `using` 用普通文本；顶层 `@:` 本次生成了 `:using`，编译失败。`@:` 保留在循环 / 条件代码块内。预览与文件写入应共享同一模板渲染结果。
+- SqlSugar 当前 PostgreSQL 配置会把实体表名 / 属性名查询为小写；已加载实体 fixture 按实际 ORM 映射建表，并用真实查询核验，不能仅从实体声明推断 quoted identifier 合同。
+- 覆盖验收先保存预览和目标文件摘要，再修改自己的临时目标，验证旧摘要拒绝且文件保持修改内容；重新预览、明确覆盖才允许替换。所有输出指向本次 runtime 内的生成根目录，不能写仓库源码。
+- 已有种子过滤需同时放入一条已知种子主键和一条新主键，比较过滤前后结果；只验证新主键仍存在无法证明过滤有效。
+- `.mjs` 内生成 C# / SQL 时用 `String.raw` 或单独模板保存多层转义；脚本语法成功不能证明字符串内容正确，需回读、编译和值比较。

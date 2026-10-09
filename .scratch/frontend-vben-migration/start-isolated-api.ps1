@@ -6,6 +6,7 @@ param(
     [switch]$OnlineFixture,
     [switch]$JobFixture,
     [switch]$PostgreSqlFixture,
+    [switch]$CodeGenFixture,
     [switch]$FileDeduplication,
     [switch]$TranslationTestService,
     [uri]$SmsTestService,
@@ -61,6 +62,16 @@ foreach ($fileName in @('App.json', 'Enum.json', 'Captcha.json', 'Limit.json')) 
     }
 }
 $configuration['AppSettings'] = @{ InjectSpecificationDocument = $false }
+if ($CodeGenFixture) {
+    $codeGenConfig = Get-Content -LiteralPath (Join-Path $configurationRoot 'CodeGen.json') -Encoding UTF8 -Raw | ConvertFrom-Json -AsHashtable
+    $configuration['CodeGen'] = $codeGenConfig['CodeGen']
+    $configuration['CodeGen']['BackendRootPath'] = Join-Path $runtimeRoot 'generated'
+    $templateDirectory = Join-Path $runtimeRoot 'wwwroot/template'
+    New-Item -ItemType Directory -Path $templateDirectory | Out-Null
+    foreach ($templateName in @('Entity.cs.vm', 'SeedData.cs.vm')) {
+        Copy-Item -LiteralPath (Join-Path $repositoryRoot ('Admin.NET/Admin.NET.Web.Entry/wwwroot/template/' + $templateName)) -Destination $templateDirectory
+    }
+}
 if ($JobFixture) {
     $configuration['JobSchedule'] = @{ IsolatedOnly = $true; ClusterId = 'isolated-job-cluster' }
 }

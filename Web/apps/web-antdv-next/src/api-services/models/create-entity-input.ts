@@ -63,4 +63,9 @@ export interface CreateEntityInput {
      * @memberof CreateEntityInput
      */
     configId?: string | null;
+
+    /** 预览内容摘要 */
+    expectedHash?: string | null;
+    overwriteExisting?: boolean;
+    expectedTargetHash?: string | null;
 }

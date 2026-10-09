@@ -5,6 +5,8 @@
 // 不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目二次开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 
 using Npgsql;
+using System.Globalization;
+using System.Security.Cryptography;
 
 namespace Admin.NET.Core.Service;
 
@@ -17,6 +19,7 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     private readonly ISqlSugarClient _db;
     private readonly IViewEngine _viewEngine;
     private readonly CodeGenOptions _codeGenOptions;
+    private static readonly object GenerationWriteLock = new();
 
     public SysDatabaseService(ISqlSugarClient db,
         IViewEngine viewEngine,
@@ -545,239 +548,251 @@ public class SysDatabaseService : IDynamicApiController, ITransient
             throw Oops.Oh("PostgreSQL 自增列须为整数类型且不能另设默认值");
     }
 
-    /// <summary>
-    /// 创建实体 🔖
-    /// </summary>
-    /// <param name="input"></param>
+    [ApiDescriptionSettings(Name = "PreviewEntity"), HttpPost]
+    [DisplayName("预览实体")]
+    public DatabaseCodePreview PreviewEntity(CreateEntityInput input) => BuildEntityPreview(input);
+
     [ApiDescriptionSettings(Name = "CreateEntity"), HttpPost]
     [DisplayName("创建实体")]
     public void CreateEntity(CreateEntityInput input)
     {
-        var config = App.GetOptions<DbConnectionOptions>().ConnectionConfigs.FirstOrDefault(u => u.ConfigId.ToString() == input.ConfigId);
-        input.Position = string.IsNullOrWhiteSpace(input.Position) ? "Admin.NET.Application" : input.Position;
-        input.EntityName = string.IsNullOrWhiteSpace(input.EntityName) ? (config.DbSettings.EnableUnderLine ? CodeGenUtil.CamelColumnName(input.TableName, null) : input.TableName) : input.EntityName;
-        string[] dbColumnNames = Array.Empty<string>();
-        // Entity.cs.vm中是允许创建没有基类的实体的，所以这里也要做出相同的判断
-        if (!string.IsNullOrWhiteSpace(input.BaseClassName))
-        {
-            Assembly assembly = Assembly.Load("Admin.NET.Core");
-            Type type = assembly.GetType($"Admin.NET.Core.{input.BaseClassName}");
-            if (type is null)
-                throw Oops.Oh("基类集合配置不存在此类型");
-            dbColumnNames = CodeGenUtil.GetPropertyInfoArray(type)?.Select(p => p.Name).ToArray();
-            if (dbColumnNames is null || dbColumnNames is { Length: 0 })
-                throw Oops.Oh("基类中不存在任何字段");
-        }
-        var templatePath = GetEntityTemplatePath();
-        var targetPath = GetEntityTargetPath(input);
-        var db = _db.AsTenant().GetConnectionScope(input.ConfigId);
-        DbTableInfo dbTableInfo = db.DbMaintenance.GetTableInfoList(false).FirstOrDefault(u => u.Name == input.TableName || u.Name == input.TableName.ToLower()) ?? throw Oops.Oh(ErrorCodeEnum.db1001);
-        List<DbColumnInfo> dbColumnInfos = db.DbMaintenance.GetColumnInfosByTableName(input.TableName, false);
-        dbColumnInfos.ForEach(u =>
-        {
-            if (u.DbColumnName.ToUpper() == u.DbColumnName)
-            {
-                //字段全是大写的， 这种情况下生成的代码会有问题（即对 DOB 这样的字段，生成的前端代码为 dOB， 而数据序列化到前端又成了 dob，导致bug），因此抛出异常，不允许。
-                throw new Exception($"错误：{u.DbColumnName} 字段全是大写字母，这样生成的代码会有bug！请更改为大写字母开头的驼峰式命名!");
-            }
-            u.PropertyName = config.DbSettings.EnableUnderLine ? CodeGenUtil.CamelColumnName(u.DbColumnName, dbColumnNames) : u.DbColumnName; // 转下划线后的列名需要再转回来
-            u.DataType = CodeGenUtil.ConvertDataType(u, config.DbType);
-        });
-        if (_codeGenOptions.BaseEntityNames.Contains(input.BaseClassName, StringComparer.OrdinalIgnoreCase))
-            dbColumnInfos = dbColumnInfos.Where(u => !dbColumnNames.Contains(u.PropertyName, StringComparer.OrdinalIgnoreCase)).ToList();
-
-        var tContent = File.ReadAllText(templatePath);
-        var tResult = _viewEngine.RunCompileFromCached(tContent, new
-        {
-            NameSpace = $"{input.Position}.Entity",
-            input.TableName,
-            input.EntityName,
-            BaseClassName = string.IsNullOrWhiteSpace(input.BaseClassName) ? "" : $": {input.BaseClassName}",
-            input.ConfigId,
-            dbTableInfo.Description,
-            TableField = dbColumnInfos
-        });
-        File.WriteAllText(targetPath, tResult, Encoding.UTF8);
+        var preview = BuildEntityPreview(input);
+        WriteGeneratedFile(preview, input.ExpectedHash, input.OverwriteExisting, input.ExpectedTargetHash);
     }
 
-    /// <summary>
-    /// 创建种子数据 🔖
-    /// </summary>
-    /// <param name="input"></param>
+    [ApiDescriptionSettings(Name = "PreviewSeedData"), HttpPost]
+    [DisplayName("预览种子数据")]
+    public Task<DatabaseCodePreview> PreviewSeedData(CreateSeedDataInput input) => BuildSeedPreview(input);
+
     [ApiDescriptionSettings(Name = "CreateSeedData"), HttpPost]
     [DisplayName("创建种子数据")]
     public async Task CreateSeedData(CreateSeedDataInput input)
     {
-        var config = App.GetOptions<DbConnectionOptions>().ConnectionConfigs.FirstOrDefault(u => u.ConfigId.ToString() == input.ConfigId);
-        input.Position = string.IsNullOrWhiteSpace(input.Position) ? "Admin.NET.Core" : input.Position;
+        var preview = await BuildSeedPreview(input);
+        WriteGeneratedFile(preview, input.ExpectedHash, input.OverwriteExisting, input.ExpectedTargetHash);
+    }
 
-        var templatePath = GetSeedDataTemplatePath();
+    [DisplayName("获取数据库代码生成选项")]
+    public object GetGenerationOptions() => new { Namespaces = (_codeGenOptions.BackendApplicationNamespaces ?? new List<string>()).Append("Admin.NET.Core").Distinct(), BaseClasses = _codeGenOptions.BaseEntityNames };
+
+    private DatabaseCodePreview BuildEntityPreview(CreateEntityInput input)
+    {
+        ValidateIdentifier(input.TableName);
+        var config = GetGenerationConfig(input.ConfigId);
+        input.Position = ValidateGenerationPosition(input.Position, "Admin.NET.Application");
+        input.EntityName = string.IsNullOrWhiteSpace(input.EntityName) ? CodeGenUtil.CamelColumnName(input.TableName, null) : input.EntityName;
+        ValidateIdentifier(input.EntityName);
+        EnsureCSharpName(input.EntityName);
         var db = _db.AsTenant().GetConnectionScope(input.ConfigId);
-        var tableInfo = db.DbMaintenance.GetTableInfoList(false).First(u => u.Name == input.TableName); // 表名
-        List<DbColumnInfo> dbColumnInfos = db.DbMaintenance.GetColumnInfosByTableName(input.TableName, false); // 所有字段
-        IEnumerable<EntityInfo> entityInfos = await GetEntityInfos();
-        Type entityType = null;
-        foreach (var item in entityInfos)
+        var tableInfo = FindTable(db, input.TableName);
+        var baseColumns = GetBaseColumns(input.BaseClassName);
+        var columns = db.DbMaintenance.GetColumnInfosByTableName(tableInfo.Name, false);
+        foreach (var column in columns)
         {
-            if (tableInfo.Name.ToLower() != (config.DbSettings.EnableUnderLine ? item.DbTableName.ToUnderLine() : item.DbTableName).ToLower()) continue;
-            entityType = item.Type;
-            break;
+            if (column.DbColumnName.ToUpperInvariant() == column.DbColumnName)
+                throw Oops.Oh($"错误：{column.DbColumnName} 字段全是大写字母，请更改为大写字母开头的驼峰式命名!");
+            column.PropertyName = config.DbSettings.EnableUnderLine ? CodeGenUtil.CamelColumnName(column.DbColumnName, baseColumns) : column.DbColumnName;
+            EnsureCSharpName(column.PropertyName);
+            column.DataType = CodeGenUtil.ConvertDataType(column, config.DbType);
+            column.ColumnDescription = EscapeCSharpString(column.ColumnDescription);
+            column.DefaultValue = EscapeCSharpString(column.DefaultValue);
         }
-        if (entityType == null) throw Oops.Oh(ErrorCodeEnum.db1003);
-
-        input.EntityName = entityType.Name;
-        input.SeedDataName = entityType.Name + "SeedData";
-        if (!string.IsNullOrWhiteSpace(input.Suffix)) input.SeedDataName += input.Suffix;
-
-        // 查询所有数据
-        var query = db.QueryableByObject(entityType);
-        // 优先用创建时间排序
-        DbColumnInfo orderField = dbColumnInfos.FirstOrDefault(u => u.DbColumnName.ToLower() == "create_time" || u.DbColumnName.ToLower() == "createtime");
-        if (orderField != null) query = query.OrderBy(orderField.DbColumnName);
-        // 再使用第一个主键排序
-        query = query.OrderBy(dbColumnInfos.First(u => u.IsPrimarykey).DbColumnName);
-        var records = ((IEnumerable)await query.ToListAsync()).ToDynamicList();
-
-        // 过滤已存在的数据
-        if (input.FilterExistingData && records.Any())
+        if (!string.IsNullOrWhiteSpace(input.BaseClassName))
         {
-            // 获取实体类型-所有种数据数据类型
-            var entityTypes = App.EffectiveTypes.Where(u => !u.IsInterface && !u.IsAbstract && u.IsClass && u.IsDefined(typeof(SugarTable), false) && u.FullName.EndsWith("." + input.EntityName))
-                .Where(u => !u.GetCustomAttributes<IgnoreTableAttribute>().Any())
-                .ToList();
-            if (entityTypes.Count == 1) // 只有一个实体匹配才能过滤
+            var baseType = Assembly.Load("Admin.NET.Core").GetType($"Admin.NET.Core.{input.BaseClassName}")!;
+            foreach (var column in columns.Where(column => baseColumns.Contains(column.PropertyName, StringComparer.OrdinalIgnoreCase)))
             {
-                // 获取实体的主键对应的属性名称
-                var pkInfo = entityTypes[0].GetProperties().FirstOrDefault(u => u.GetCustomAttribute<SugarColumn>()?.IsPrimaryKey == true);
-                if (pkInfo != null)
-                {
-                    var seedDataTypes = App.EffectiveTypes
-                        .Where(u => !u.IsInterface && !u.IsAbstract && u.IsClass && u.GetInterfaces().Any(
-                            i => i.HasImplementedRawGeneric(typeof(ISqlSugarEntitySeedData<>)) && i.GenericTypeArguments[0] == entityTypes[0]
-                            )
-                        )
-                        .ToList();
-                    // 可能会重名的种子数据不作为过滤项
-                    string doNotFilterFullName1 = $"{input.Position}.SeedData.{input.SeedDataName}";
-                    string doNotFilterFullName2 = $"{input.Position}.{input.SeedDataName}"; // Core中的命名空间没有SeedData
-
-                    PropertyInfo idPropertySeedData = records[0].GetType().GetProperty("Id");
-
-                    for (int i = seedDataTypes.Count - 1; i >= 0; i--)
-                    {
-                        string fullName = seedDataTypes[i].FullName;
-                        if ((fullName == doNotFilterFullName1) || (fullName == doNotFilterFullName2)) continue;
-
-                        // 删除重复数据
-                        var instance = Activator.CreateInstance(seedDataTypes[i]);
-                        var hasDataMethod = seedDataTypes[i].GetMethod("HasData");
-                        var seedData = ((IEnumerable)hasDataMethod?.Invoke(instance, null))?.Cast<object>();
-                        if (seedData == null) continue;
-
-                        List<object> recordsToRemove = new();
-                        foreach (var record in records)
-                        {
-                            object recordId = pkInfo.GetValue(record);
-                            if (seedData.Select(d1 => idPropertySeedData.GetValue(d1)).Any(dataId => recordId != null && dataId != null && recordId.Equals(dataId)))
-                            {
-                                recordsToRemove.Add(record);
-                            }
-                        }
-                        foreach (var itemToRemove in recordsToRemove)
-                        {
-                            records.Remove(itemToRemove);
-                        }
-                    }
-                }
+                var property = baseType.GetProperty(column.PropertyName)!;
+                var mapping = property.GetCustomAttribute<SugarColumn>();
+                var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+                if (column.IsIdentity != (mapping?.IsIdentity ?? false) || column.IsPrimarykey != (mapping?.IsPrimaryKey ?? false) || !MatchesColumnType(propertyType, column.DataType.TrimEnd('?')))
+                    throw Oops.Oh($"基类字段 {column.PropertyName} 与数据库类型或主键 / 自增配置不一致，请选择无基类生成");
             }
         }
-
-        // 检查有没有 System.Text.Json.Serialization.JsonIgnore 的属性
-        // var jsonIgnoreProperties = entityType.GetProperties().Where(p => (p.GetAttribute<System.Text.Json.Serialization.JsonIgnoreAttribute>() != null ||
-        //     p.GetAttribute<JsonIgnoreAttribute>() != null) && p.GetAttribute<SugarColumn>() != null).ToList();
-        // var jsonIgnoreInfo = new List<List<JsonIgnoredPropertyData>>();
-        // if (jsonIgnoreProperties.Count > 0)
-        // {
-        //     int recordIndex = 0;
-        //     foreach (var r in (IEnumerable)records)
-        //     {
-        //         List<JsonIgnoredPropertyData> record = new();
-        //         foreach (var item in jsonIgnoreProperties)
-        //         {
-        //             object v = item.GetValue(r);
-        //             string strValue = "null";
-        //             if (v != null)
-        //             {
-        //                 strValue = v.ToString();
-        //                 if (v.GetType() == typeof(string))
-        //                     strValue = "\"" + strValue + "\"";
-        //                 else if (v.GetType() == typeof(DateTime))
-        //                     strValue = "DateTime.Parse(\"" + ((DateTime)v).ToString("yyyy-MM-dd HH:mm:ss") + "\")";
-        //             }
-        //             record.Add(new JsonIgnoredPropertyData { RecordIndex = recordIndex, Name = item.Name, Value = strValue });
-        //         }
-        //         recordIndex++;
-        //         jsonIgnoreInfo.Add(record);
-        //     }
-        // }
-
-        // 获取所有字段信息
-        var propertyList = entityType.GetProperties().Where(x => false == (x.GetCustomAttribute<SugarColumn>()?.IsIgnore ?? false)).ToList();
-        for (var i = 0; i < propertyList.Count; i++)
+        if (_codeGenOptions.BaseEntityNames?.Contains(input.BaseClassName, StringComparer.OrdinalIgnoreCase) == true)
+            columns = columns.Where(column => !baseColumns.Contains(column.PropertyName, StringComparer.OrdinalIgnoreCase)).ToList();
+        if (columns.GroupBy(column => column.PropertyName, StringComparer.OrdinalIgnoreCase).Any(group => group.Count() > 1)) throw Oops.Oh("转换后的字段名重复，不能生成实体");
+        var content = _viewEngine.RunCompileFromCached(File.ReadAllText(GetEntityTemplatePath()), new
         {
-            if (propertyList[i].Name != nameof(EntityBaseId.Id) || !(propertyList[i].GetCustomAttribute<SugarColumn>()?.IsPrimaryKey ?? true)) continue;
-            var temp = propertyList[i];
-            for (var j = i; j > 0; j--) propertyList[j] = propertyList[j - 1];
-            propertyList[0] = temp;
-        }
-        // 拼接数据
-        var recordList = records.Select(obj => string.Join(", ", propertyList.Select(prop =>
-        {
-            var propType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-            object value = prop.GetValue(obj);
-            if (value == null) value = "null";
-            else if (propType == typeof(string))
-            {
-                value = $"@\"{value}\"";
-            }
-            else if (propType.IsEnum)
-            {
-                value = $"{propType.Name}.{value}";
-            }
-            else if (propType == typeof(bool))
-            {
-                value = (bool)value ? "true" : "false";
-            }
-            else if (propType == typeof(DateTime))
-            {
-                value = $"DateTime.Parse(\"{((DateTime)value):yyyy-MM-dd HH:mm:ss.fff}\")";
-            }
-            return $"{prop.Name}={value}";
-        }))).ToList();
-
-        var tContent = await File.ReadAllTextAsync(templatePath);
-        var data = new
-        {
-            NameSpace = $"{input.Position}.SeedData",
-            EntityNameSpace = entityType.Namespace,
-            input.TableName,
-            input.EntityName,
-            input.SeedDataName,
-            input.ConfigId,
-            tableInfo.Description,
-            // JsonIgnoreInfo = jsonIgnoreInfo,
-            RecordList = recordList
-        };
-        var tResult = await _viewEngine.RunCompileAsync(tContent, data, builderAction: builder =>
-        {
-            builder.AddAssemblyReferenceByName("System.Linq");
-            builder.AddAssemblyReferenceByName("System.Collections");
-            builder.AddUsing("System.Collections.Generic");
-            builder.AddUsing("System.Linq");
+            NameSpace = $"{input.Position}.Entity", input.TableName, input.EntityName,
+            BaseClassName = string.IsNullOrWhiteSpace(input.BaseClassName) ? "" : $": {input.BaseClassName}", input.ConfigId,
+            Description = EscapeCSharpString(tableInfo.Description), TableField = columns
         });
+        return CreatePreview(GetEntityTargetPath(input), content);
+    }
 
-        var targetPath = GetSeedDataTargetPath(input);
-        await File.WriteAllTextAsync(targetPath, tResult, Encoding.UTF8);
+    private static bool MatchesColumnType(Type type, string name) => name switch
+    {
+        "long" => type == typeof(long), "int" => type == typeof(int), "Int16" => type == typeof(short),
+        "decimal" => type == typeof(decimal), "float" => type == typeof(float), "double" => type == typeof(double),
+        "bool" => type == typeof(bool), "string" => type == typeof(string), "Guid" => type == typeof(Guid),
+        "DateTime" => type == typeof(DateTime), "byte[]" => type == typeof(byte[]), "object" => type == typeof(object), _ => false
+    };
+
+    private async Task<DatabaseCodePreview> BuildSeedPreview(CreateSeedDataInput input)
+    {
+        ValidateIdentifier(input.TableName);
+        var config = GetGenerationConfig(input.ConfigId);
+        input.Position = ValidateGenerationPosition(input.Position, "Admin.NET.Core");
+        var db = _db.AsTenant().GetConnectionScope(input.ConfigId);
+        var tableInfo = FindTable(db, input.TableName);
+        var columns = db.DbMaintenance.GetColumnInfosByTableName(tableInfo.Name, false);
+        var entityInfo = (await GetEntityInfos()).FirstOrDefault(item => tableInfo.Name.Equals(config.DbSettings.EnableUnderLine ? item.DbTableName.ToUnderLine() : item.DbTableName, StringComparison.OrdinalIgnoreCase));
+        if (entityInfo == null) throw Oops.Oh("未找到已编译实体，请先生成实体并重新编译、启动服务");
+        input.EntityName = entityInfo.EntityName;
+        ValidateIdentifier(input.EntityName);
+        input.SeedDataName = input.EntityName + "SeedData" + (input.Suffix ?? string.Empty);
+        ValidateIdentifier(input.SeedDataName);
+        EnsureCSharpName(input.SeedDataName);
+        var records = new List<string>();
+        var entityNamespace = entityInfo.Type.Namespace;
+        var query = db.QueryableByObject(entityInfo.Type);
+        var orderField = columns.FirstOrDefault(column => column.DbColumnName.Equals("create_time", StringComparison.OrdinalIgnoreCase) || column.DbColumnName.Equals("createtime", StringComparison.OrdinalIgnoreCase));
+        if (orderField != null) query = query.OrderBy(orderField.DbColumnName);
+        var primary = columns.Where(column => column.IsPrimarykey).ToList();
+        if (primary.Count == 0) throw Oops.Oh("表缺少主键，无法生成种子数据");
+        foreach (var column in primary) query = query.OrderBy(column.DbColumnName);
+        var rows = ((IEnumerable)await query.ToListAsync()).Cast<object>().ToList();
+        if (input.FilterExistingData) rows = FilterExistingSeedRecords(input, entityInfo.Type, rows);
+        var properties = entityInfo.Type.GetProperties().Where(property => property.CanRead && property.SetMethod?.IsPublic == true && property.GetIndexParameters().Length == 0 && property.GetCustomAttribute<SugarColumn>()?.IsIgnore != true && property.GetCustomAttribute<Navigate>() == null).OrderBy(property => property.GetCustomAttribute<SugarColumn>()?.IsPrimaryKey == true ? 0 : 1).ThenBy(property => property.Name, StringComparer.Ordinal).ToList();
+        records.AddRange(rows.Select(row => string.Join(", ", properties.Select(property => $"{property.Name}={CSharpLiteral(property.GetValue(row), property.PropertyType)}"))));
+        var data = new { NameSpace = $"{input.Position}.SeedData", EntityNameSpace = entityNamespace, input.TableName, input.EntityName, input.SeedDataName, input.ConfigId, Description = EscapeCSharpString(tableInfo.Description), RecordList = records };
+        var content = await _viewEngine.RunCompileAsync(await File.ReadAllTextAsync(GetSeedDataTemplatePath()), data, builderAction: builder =>
+        {
+            builder.AddAssemblyReferenceByName("System.Linq"); builder.AddAssemblyReferenceByName("System.Collections");
+            builder.AddUsing("System.Collections.Generic"); builder.AddUsing("System.Linq");
+        });
+        return CreatePreview(GetSeedDataTargetPath(input), content);
+    }
+
+    private static List<object> FilterExistingSeedRecords(CreateSeedDataInput input, Type entityType, List<object> records)
+    {
+        var primary = entityType.GetProperties().Where(property => property.GetCustomAttribute<SugarColumn>()?.IsPrimaryKey == true).ToArray();
+        if (primary.Length == 0) throw Oops.Oh("实体未声明主键，无法过滤已有种子数据");
+        var knownKeys = new HashSet<string>(StringComparer.Ordinal);
+        var providers = App.EffectiveTypes.Where(type => type.IsClass && !type.IsAbstract && type.GetInterfaces().Any(contract => contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(ISqlSugarEntitySeedData<>) && contract.GenericTypeArguments[0] == entityType));
+        foreach (var provider in providers)
+        {
+            if (provider.FullName == $"{input.Position}.SeedData.{input.SeedDataName}" || provider.FullName == $"{input.Position}.{input.SeedDataName}") continue;
+            var contract = typeof(ISqlSugarEntitySeedData<>).MakeGenericType(entityType);
+            if (contract.GetMethod("HasData")!.Invoke(Activator.CreateInstance(provider), null) is IEnumerable data)
+                foreach (var record in data) knownKeys.Add(SeedRecordKey(record, primary));
+        }
+        return records.Where(record => !knownKeys.Contains(SeedRecordKey(record, primary))).ToList();
+    }
+
+    private static string SeedRecordKey(object record, PropertyInfo[] primary) => System.Text.Json.JsonSerializer.Serialize(primary.Select(property => property.GetValue(record)).ToArray());
+
+    private DbConnectionConfig GetGenerationConfig(string configId) => App.GetOptions<DbConnectionOptions>().ConnectionConfigs.FirstOrDefault(config => config.ConfigId.ToString() == configId) ?? throw Oops.Oh("数据库配置不存在");
+
+    private string ValidateGenerationPosition(string position, string fallback)
+    {
+        position = string.IsNullOrWhiteSpace(position) ? fallback : position;
+        if (position != "Admin.NET.Core" && _codeGenOptions.BackendApplicationNamespaces?.Contains(position, StringComparer.Ordinal) != true) throw Oops.Oh("生成位置不在允许的后端命名空间中");
+        foreach (var segment in position.Split('.')) EnsureCSharpName(segment);
+        return position;
+    }
+
+    private static void EnsureCSharpName(string name)
+    {
+        if (!Microsoft.CodeAnalysis.CSharp.SyntaxFacts.IsValidIdentifier(name) || Microsoft.CodeAnalysis.CSharp.SyntaxFacts.GetKeywordKind(name) != Microsoft.CodeAnalysis.CSharp.SyntaxKind.None) throw Oops.Oh("名称不是有效的 C# 标识符");
+    }
+
+    private static DbTableInfo FindTable(ISqlSugarClient db, string tableName) => db.DbMaintenance.GetTableInfoList(false).FirstOrDefault(table => table.Name.Equals(tableName, StringComparison.Ordinal) || table.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase)) ?? throw Oops.Oh(ErrorCodeEnum.db1001);
+
+    private string[] GetBaseColumns(string baseClassName)
+    {
+        if (string.IsNullOrWhiteSpace(baseClassName)) return Array.Empty<string>();
+        if (_codeGenOptions.BaseEntityNames?.Contains(baseClassName, StringComparer.OrdinalIgnoreCase) != true) throw Oops.Oh("基类集合配置不存在此类型");
+        var type = Assembly.Load("Admin.NET.Core").GetType($"Admin.NET.Core.{baseClassName}") ?? throw Oops.Oh("基类集合配置不存在此类型");
+        var columns = CodeGenUtil.GetPropertyInfoArray(type)?.Select(property => property.Name).ToArray() ?? Array.Empty<string>();
+        if (columns.Length == 0) throw Oops.Oh("基类中不存在任何字段");
+        return columns;
+    }
+
+    private DatabaseCodePreview CreatePreview(string targetPath, string content)
+    {
+        ValidateGeneratedPath(targetPath);
+        var relativePath = Path.GetRelativePath(GetGenerationRoot(), targetPath);
+        return new DatabaseCodePreview
+        {
+            FileName = Path.GetFileName(targetPath), RelativePath = relativePath, Content = content,
+            Hash = HashGeneratedContent(relativePath + "\n" + content), FileExists = File.Exists(targetPath),
+            TargetHash = File.Exists(targetPath) ? HashGeneratedContent(File.ReadAllText(targetPath, Encoding.UTF8)) : null
+        };
+    }
+
+    private void WriteGeneratedFile(DatabaseCodePreview preview, string expectedHash, bool overwriteExisting, string expectedTargetHash)
+    {
+        if (!string.IsNullOrWhiteSpace(expectedHash) && !string.Equals(expectedHash, preview.Hash, StringComparison.OrdinalIgnoreCase)) throw Oops.Oh("预览已过期，请重新预览");
+        var path = Path.Combine(GetGenerationRoot(), preview.RelativePath);
+        lock (GenerationWriteLock)
+        {
+            ValidateGeneratedPath(path);
+            var exists = File.Exists(path);
+            if (exists && (!overwriteExisting || string.IsNullOrWhiteSpace(expectedHash))) throw Oops.Oh("目标文件已存在，请先预览并明确确认覆盖");
+            if (exists && !string.Equals(expectedTargetHash, HashGeneratedContent(File.ReadAllText(path, Encoding.UTF8)), StringComparison.OrdinalIgnoreCase)) throw Oops.Oh("目标文件已变化，请重新预览");
+            if (!exists && !string.IsNullOrWhiteSpace(expectedTargetHash)) throw Oops.Oh("目标文件已变化，请重新预览");
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                File.WriteAllText(temporary, preview.Content, new UTF8Encoding(false));
+                // 替换前再次核对目标，避免写入临时文件期间其他工具修改源码。
+                if (exists && (!File.Exists(path) || !string.Equals(expectedTargetHash, HashGeneratedContent(File.ReadAllText(path, Encoding.UTF8)), StringComparison.OrdinalIgnoreCase))) throw Oops.Oh("目标文件已变化，请重新预览");
+                File.Move(temporary, path, exists && overwriteExisting);
+            }
+            finally { if (File.Exists(temporary)) File.Delete(temporary); }
+        }
+    }
+
+    private static string HashGeneratedContent(string content) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(content)));
+
+    private void ValidateGeneratedPath(string path)
+    {
+        var root = Path.GetFullPath(GetGenerationRoot());
+        path = Path.GetFullPath(path);
+        if (!path.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw Oops.Oh("生成路径超出后端根目录");
+        var current = path;
+        while (!string.Equals(current, root, StringComparison.OrdinalIgnoreCase))
+        {
+            if ((File.Exists(current) || Directory.Exists(current)) && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0) throw Oops.Oh("生成路径不能包含符号链接");
+            current = Path.GetDirectoryName(current)!;
+        }
+    }
+
+    private string GetGenerationRoot() => string.IsNullOrWhiteSpace(_codeGenOptions.BackendRootPath) ? new DirectoryInfo(App.WebHostEnvironment.ContentRootPath).Parent!.FullName : Path.GetFullPath(_codeGenOptions.BackendRootPath);
+
+    private static string EscapeCSharpString(string value)
+    {
+        if (value == null) return null;
+        var literal = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value, true);
+        return literal[1..^1];
+    }
+
+    private static string CSharpLiteral(object value, Type type)
+    {
+        if (value is null || value == DBNull.Value) return "null";
+        var actual = Nullable.GetUnderlyingType(type ?? value.GetType()) ?? type ?? value.GetType();
+        if (actual == typeof(string)) return Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral((string)value, true);
+        if (actual == typeof(char)) return Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral((char)value, true);
+        if (actual == typeof(bool)) return Convert.ToBoolean(value, CultureInfo.InvariantCulture) ? "true" : "false";
+        if (actual == typeof(DateTime)) return $"DateTime.Parse(\"{((DateTime)value):O}\", null, DateTimeStyles.RoundtripKind)";
+        if (actual == typeof(DateTimeOffset)) return $"DateTimeOffset.Parse(\"{((DateTimeOffset)value):O}\", null, DateTimeStyles.RoundtripKind)";
+        if (actual == typeof(Guid)) return $"Guid.Parse(\"{value}\")";
+        if (actual == typeof(byte[])) return $"Convert.FromHexString(\"{Convert.ToHexString((byte[])value)}\")";
+        if (actual == typeof(TimeSpan)) return $"TimeSpan.FromTicks({((TimeSpan)value).Ticks}L)";
+        if (actual == typeof(DateOnly)) return $"DateOnly.FromDayNumber({((DateOnly)value).DayNumber})";
+        if (actual == typeof(TimeOnly)) return $"new TimeOnly({((TimeOnly)value).Ticks}L)";
+        if (actual.IsEnum) return $"(global::{actual.FullName.Replace('+', '.')}){CSharpLiteral(Convert.ChangeType(value, Enum.GetUnderlyingType(actual), CultureInfo.InvariantCulture), Enum.GetUnderlyingType(actual))}";
+        if (actual == typeof(decimal)) return $"{Convert.ToString(value, CultureInfo.InvariantCulture)}m";
+        if (actual == typeof(float)) return float.IsFinite((float)value) ? $"{((float)value).ToString("R", CultureInfo.InvariantCulture)}f" : float.IsNaN((float)value) ? "float.NaN" : (float)value > 0 ? "float.PositiveInfinity" : "float.NegativeInfinity";
+        if (actual == typeof(double)) return double.IsFinite((double)value) ? $"{((double)value).ToString("R", CultureInfo.InvariantCulture)}d" : double.IsNaN((double)value) ? "double.NaN" : (double)value > 0 ? "double.PositiveInfinity" : "double.NegativeInfinity";
+        if (actual == typeof(long)) return $"{value}L";
+        if (actual == typeof(ulong)) return $"{value}UL";
+        if (actual == typeof(uint)) return $"{value}U";
+        if (actual == typeof(byte) || actual == typeof(sbyte) || actual == typeof(short) || actual == typeof(ushort) || actual == typeof(int)) return Convert.ToString(value, CultureInfo.InvariantCulture);
+        throw Oops.Oh($"字段类型 {actual.Name} 暂不支持生成种子，请调整实体映射");
     }
 
     /// <summary>
@@ -813,7 +828,7 @@ public class SysDatabaseService : IDynamicApiController, ITransient
             entityInfos.Add(new EntityInfo()
             {
                 EntityName = c.Name,
-                DbTableName = sugarAttribute == null ? c.Name : ((SugarTable)sugarAttribute).TableName,
+                DbTableName = sugarAttribute == null || string.IsNullOrWhiteSpace(((SugarTable)sugarAttribute).TableName) ? c.Name : ((SugarTable)sugarAttribute).TableName,
                 TableDescription = description,
                 Type = c
             });
@@ -851,9 +866,9 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     /// </summary>
     /// <param name="input"></param>
     /// <returns></returns>
-    private static string GetEntityTargetPath(CreateEntityInput input)
+    private string GetEntityTargetPath(CreateEntityInput input)
     {
-        var backendPath = Path.Combine(new DirectoryInfo(App.WebHostEnvironment.ContentRootPath).Parent.FullName, input.Position, "Entity");
+        var backendPath = Path.Combine(GetGenerationRoot(), input.Position, "Entity");
         //if (!Directory.Exists(backendPath))
         //{
         //    var pluginsPath = App.GetConfig<string[]>("AppSettings:ExternalAssemblies");
@@ -864,8 +879,6 @@ public class SysDatabaseService : IDynamicApiController, ITransient
         //            break;
         //    }
         //}
-        if (!Directory.Exists(backendPath))
-            Directory.CreateDirectory(backendPath);
         return Path.Combine(backendPath, input.EntityName + ".cs");
     }
 
@@ -874,11 +887,9 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     /// </summary>
     /// <param name="input"></param>
     /// <returns></returns>
-    private static string GetSeedDataTargetPath(CreateSeedDataInput input)
+    private string GetSeedDataTargetPath(CreateSeedDataInput input)
     {
-        var backendPath = Path.Combine(new DirectoryInfo(App.WebHostEnvironment.ContentRootPath).Parent.FullName, input.Position, "SeedData");
-        if (!Directory.Exists(backendPath))
-            Directory.CreateDirectory(backendPath);
+        var backendPath = Path.Combine(GetGenerationRoot(), input.Position, "SeedData");
         return Path.Combine(backendPath, input.SeedDataName + ".cs");
     }
 

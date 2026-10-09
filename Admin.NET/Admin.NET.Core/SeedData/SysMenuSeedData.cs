@@ -322,6 +322,8 @@ public class SysMenuSeedData : ISqlSugarEntitySeedData<SysMenu>
             new SysMenu{ Id=1300500011101, Pid=1300500010101, Title="调整字段顺序", Permission="sysDatabase:moveColumn", Type=MenuTypeEnum.Btn, OrderNo=123 },
             new SysMenu{ Id=1300500011201, Pid=1300500010101, Title="删除表", Permission="sysDatabase:deleteTable", Type=MenuTypeEnum.Btn, OrderNo=130 },
             new SysMenu{ Id=1300500011301, Pid=1300500010101, Title="查看结构关系图", Permission="sysDatabase:visualDbTable", Type=MenuTypeEnum.Btn, OrderNo=140 },
+            new SysMenu{ Id=1300500011401, Pid=1300500010101, Title="生成实体", Permission="sysDatabase:createEntity", Type=MenuTypeEnum.Btn, OrderNo=150 },
+            new SysMenu{ Id=1300500011501, Pid=1300500010101, Title="生成种子数据", Permission="sysDatabase:createSeedData", Type=MenuTypeEnum.Btn, OrderNo=151 },
             new SysMenu{ Id=1300500020101, Pid=1300500000101, Title="代码生成", Path="/develop/codeGen", Name="sysCodeGen", Component="/system/codeGen/index", Icon="ele-Crop", Type=MenuTypeEnum.Menu, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=110 },
             new SysMenu{ Id=1300500040101, Pid=1300500000101, Title="接口压测", Path="/develop/stressTest", Name="SysStressTest", Component="/system/stressTest/index", Icon="ele-DataLine", Type=MenuTypeEnum.Menu, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=130 },
             new SysMenu{ Id=1300500050101, Pid=1300500000101, Title="系统接口", Path="/develop/api", Name="sysApi", Component="layout/routerView/iframe", IsIframe=true, OutLink="http://localhost:5005", Icon="ele-Help", Type=MenuTypeEnum.Menu, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=140 },

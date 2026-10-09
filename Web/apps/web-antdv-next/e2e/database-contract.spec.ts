@@ -14,6 +14,11 @@ test.beforeEach(async ({ page }) => {
 	await page.route('**/prod-api/api/sysDatabase/tableList/*', (route) => route.fulfill({ json: { code: 200, result: [{ name: 'Sample', description: '中文描述' }] } }));
 	await page.route('**/prod-api/api/sysDatabase/dbTypeList/*', (route) => route.fulfill({ json: { code: 200, result: ['bigint', 'varchar', 'numeric', 'text'] } }));
 	await page.route('**/prod-api/api/sysDatabase/columnList/*/*', (route) => route.fulfill({ json: { code: 200, result: columns } }));
+	await page.route('**/prod-api/api/sysDatabase/generationOptions', (route) => route.fulfill({ json: { code: 200, result: { namespaces: ['Admin.NET.Application'], baseClasses: ['EntityBase'] } } }));
+	await page.route('**/prod-api/api/sysDatabase/previewEntity', (route) => route.fulfill({ json: { code: 200, result: { fileName: 'Sample.cs', relativePath: 'Admin.NET.Application/Entity/Sample.cs', content: 'public class Sample {}', hash: 'entity-hash', fileExists: false } } }));
+	await page.route('**/prod-api/api/sysDatabase/createEntity', (route) => route.fulfill({ json: { code: 200 } }));
+	await page.route('**/prod-api/api/sysDatabase/previewSeedData', (route) => route.fulfill({ json: { code: 200, result: { fileName: 'SampleSeedData.cs', relativePath: 'Admin.NET.Application/SeedData/SampleSeedData.cs', content: 'public class SampleSeedData {}', hash: 'seed-hash', fileExists: false } } }));
+	await page.route('**/prod-api/api/sysDatabase/createSeedData', (route) => route.fulfill({ json: { code: 200 } }));
 });
 async function select(page: import('@playwright/test').Page, label: string, text: string) {
 	const input = page.getByRole('combobox', { name: label, exact: true });
@@ -118,4 +123,42 @@ test('字段查询失败禁止按未确认结构修改', async ({ page }) => {
 	await expect(page.locator('.database-page > .ant-alert')).toBeVisible();
 	await expect(page.getByRole('button', { name: '编辑表', exact: true })).toBeDisabled();
 	await expect(page.getByRole('button', { name: '增加字段', exact: true })).toBeDisabled();
+});
+
+test('实体与种子生成先预览，确认后沿用当前连接和表上下文', async ({ page }) => {
+	await enter(page);
+	await page.getByRole('button', { name: '生成实体', exact: true }).click();
+	const entity = page.getByRole('dialog', { name: '生成实体', exact: true });
+	await expect(entity.getByRole('combobox', { name: '存放位置', exact: true })).toBeVisible();
+	await entity.getByRole('button', { name: '预览代码', exact: true }).click();
+	await expect(entity.locator('.code-preview')).toContainText('public class Sample');
+	await entity.getByRole('button', { name: '生成文件', exact: true }).click();
+	const confirm = page.getByRole('dialog', { name: '确认生成文件', exact: true });
+	await confirm.getByRole('button', { name: '确认生成', exact: true }).click();
+	await expect(entity).toBeHidden();
+	await page.getByRole('button', { name: '生成种子', exact: true }).click();
+	const seed = page.getByRole('dialog', { name: '生成种子数据', exact: true });
+	await seed.getByRole('button', { name: '预览代码', exact: true }).click();
+	await expect(seed.locator('.code-preview')).toContainText('SampleSeedData');
+});
+
+test('生成失败保留预览与表单，修改字段后旧预览不能提交', async ({ page }) => {
+	await page.route('**/prod-api/api/sysDatabase/createEntity', (route) => {
+		expect(route.request().postDataJSON()).toMatchObject({ configId: 'pg-test', tableName: 'Sample', expectedHash: 'entity-hash', overwriteExisting: false });
+		return route.fulfill({ status: 409, json: { message: '目标文件已变化' } });
+	});
+	await enter(page);
+	await page.getByRole('button', { name: '生成实体', exact: true }).click();
+	const editor = page.getByRole('dialog', { name: '生成实体', exact: true });
+	await editor.getByRole('button', { name: '预览代码', exact: true }).click();
+	await expect(editor.locator('.code-preview')).toBeVisible();
+	await editor.getByRole('button', { name: '生成文件', exact: true }).click();
+	const confirm = page.getByRole('dialog', { name: '确认生成文件', exact: true });
+	await confirm.getByRole('button', { name: '确认生成', exact: true }).click();
+	await expect(confirm.getByRole('alert')).toContainText('目标文件已变化');
+	await confirm.getByRole('button', { name: /^取\s*消$/ }).click();
+	await expect(editor.locator('.code-preview')).toBeVisible();
+	await editor.getByLabel('实体名称', { exact: true }).fill('Changed');
+	await expect(editor.locator('.code-preview')).toHaveCount(0);
+	await expect(editor.getByRole('button', { name: '生成文件', exact: true })).toBeDisabled();
 });

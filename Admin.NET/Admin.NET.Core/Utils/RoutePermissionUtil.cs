@@ -36,6 +36,9 @@ public static class RoutePermissionUtil
         // 缓存值和前缀操作复用现有查询、删除权限，不新增 API 或菜单权限。
         return permission.ToLowerInvariant() switch
         {
+            "sysdatabase:previewentity" => "sysDatabase:createEntity",
+            "sysdatabase:previewseeddata" => "sysDatabase:createSeedData",
+            "sysdatabase:generationoptions" => "sysDatabase:list",
             "sysjob:cronpreview" or "sysjob:listjobgroup" or "sysjob:jobtriggerlist" => "sysJob:pageJobDetail",
             "syscache:value" or "syscache:keysbyprefixkey" => "sysCache:keyList",
             "syscache:deletebyprekey" => "sysCache:delete",

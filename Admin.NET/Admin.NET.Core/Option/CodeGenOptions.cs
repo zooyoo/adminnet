@@ -30,4 +30,7 @@ public sealed class CodeGenOptions : IConfigurableOptions
     /// 后端生成到的项目
     /// </summary>
     public List<string> BackendApplicationNamespaces { get; set; }
+
+    /// <summary>后端输出根目录；未配置时沿用 Web 项目上级目录</summary>
+    public string BackendRootPath { get; set; }
 }

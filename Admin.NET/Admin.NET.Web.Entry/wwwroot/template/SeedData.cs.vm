@@ -6,6 +6,9 @@
 
 using Admin.NET.Core;
 using @Model.EntityNameSpace;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
 
 namespace @(Model.NameSpace);
 

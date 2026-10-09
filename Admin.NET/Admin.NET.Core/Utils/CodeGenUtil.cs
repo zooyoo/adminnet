@@ -34,7 +34,7 @@ public static class CodeGenUtil
         }
         else
         {
-            var propertyName = dbColumnNames.FirstOrDefault(c => c.ToLower() == columnName.ToLower());
+            var propertyName = dbColumnNames?.FirstOrDefault(c => c.ToLower() == columnName.ToLower());
             if (!string.IsNullOrEmpty(propertyName))
             {
                 columnName = propertyName;
@@ -162,8 +162,10 @@ public static class CodeGenUtil
             case "boolean":
             case "bool":
             case "box":
-            case "bytea":
                 return "bool";
+
+            case "bytea":
+                return "byte[]";
 
             case "varchar":
             case "character varying":
@@ -179,6 +181,7 @@ public static class CodeGenUtil
             case "txid_snapshot":
             case "xml":
             case "json":
+            case "jsonb":
                 return "string";
 
             case "uuid":

@@ -36,4 +36,9 @@ public class CreateEntityInput
     /// 库标识
     /// </summary>
     public string ConfigId { get; set; }
+
+    /// <summary>预览内容摘要；提供时必须与当前生成结果一致</summary>
+    public string ExpectedHash { get; set; }
+    public bool OverwriteExisting { get; set; }
+    public string ExpectedTargetHash { get; set; }
 }

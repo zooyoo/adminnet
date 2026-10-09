@@ -62,3 +62,14 @@ public class ColumnRelation
 
     public string TargetColumnName { get; set; }
 }
+
+/// <summary>数据库代码生成预览，与写入共用内容合同</summary>
+public class DatabaseCodePreview
+{
+    public string FileName { get; set; }
+    public string RelativePath { get; set; }
+    public string Content { get; set; }
+    public string Hash { get; set; }
+    public bool FileExists { get; set; }
+    public string TargetHash { get; set; }
+}

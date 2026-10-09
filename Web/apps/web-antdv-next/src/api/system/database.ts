@@ -1,4 +1,4 @@
-import type { DbColumnInput, DbColumnOutput, DbTableInfo, DbTableInput, MoveDbColumnInput, UpdateDbColumnInput, UpdateDbTableInput, VisualDbTable } from '#/api-services/models';
+import type { CreateEntityInput, CreateSeedDataInput, DbColumnInput, DbColumnOutput, DbTableInfo, DbTableInput, MoveDbColumnInput, UpdateDbColumnInput, UpdateDbTableInput, VisualDbTable } from '#/api-services/models';
 
 import { SysDatabaseApi } from '#/api-services/apis/sys-database-api';
 import { requestClient } from '#/api/request';
@@ -21,6 +21,21 @@ export interface DatabaseGraphTarget {
 export const databaseConnections = (signal?: AbortSignal) => requestClient.get<DatabaseConnection[]>('/api/sysDatabase/list', { signal });
 export const databaseGraph = (target: DatabaseGraphTarget, signal?: AbortSignal) =>
 	requestClient.get<VisualDbTable>('/api/sysDatabase/visualDbTable', { params: target, signal });
+export interface DatabaseCodePreview {
+	fileName: string;
+	relativePath: string;
+	content: string;
+	hash: string;
+	fileExists: boolean;
+	targetHash?: null | string;
+}
+export const databaseGeneration = {
+	options: (signal?: AbortSignal) => requestClient.get<{ namespaces: string[]; baseClasses: string[] }>('/api/sysDatabase/generationOptions', { signal }),
+	previewEntity: (input: CreateEntityInput, signal?: AbortSignal) => requestClient.post<DatabaseCodePreview>('/api/sysDatabase/previewEntity', input, { signal }),
+	previewSeed: (input: CreateSeedDataInput, signal?: AbortSignal) => requestClient.post<DatabaseCodePreview>('/api/sysDatabase/previewSeedData', input, { signal }),
+	createEntity: (input: CreateEntityInput, signal?: AbortSignal) => getAPI(SysDatabaseApi).apiSysDatabaseCreateEntityPost(input, { signal }),
+	createSeed: (input: CreateSeedDataInput, signal?: AbortSignal) => getAPI(SysDatabaseApi).apiSysDatabaseCreateSeedDataPost(input, { signal }),
+};
 export async function databaseTables(configId: string, signal?: AbortSignal): Promise<DbTableInfo[]> {
 	return (await getAPI(SysDatabaseApi).apiSysDatabaseTableListConfigIdGet(configId, { signal })).data.result ?? [];
 }

@@ -27,7 +27,7 @@ export async function mockAdminSession(page: Page, module: AdminModule, options:
 	await page.route('**/prod-api/api/sysNotice/unReadList', (route) => route.fulfill({ json: { code: 200, result: [] } }));
 	const prefix = `sys${module[0]!.toUpperCase()}${module.slice(1)}`;
 	const actions = module === 'database'
-		? options.readOnly ? ['list', 'tableList', 'columnList', 'dbTypeList', 'visualDbTable'] : ['list', 'tableList', 'columnList', 'dbTypeList', 'addTable', 'updateTable', 'addColumn', 'updateColumn', 'deleteColumn', 'moveColumn', 'deleteTable', 'visualDbTable']
+		? options.readOnly ? ['list', 'tableList', 'columnList', 'dbTypeList', 'visualDbTable'] : ['list', 'tableList', 'columnList', 'dbTypeList', 'addTable', 'updateTable', 'addColumn', 'updateColumn', 'deleteColumn', 'moveColumn', 'deleteTable', 'visualDbTable', 'createEntity', 'createSeedData']
 		: module === 'job'
 		? options.readOnly ? ['pageJobDetail', 'listJobGroup'] : ['pageJobDetail', 'listJobGroup', 'addJobDetail', 'updateJobDetail', 'deleteJobDetail', 'runJob', 'pauseJob', 'startJob', 'cancelJob', 'addJobTrigger', 'updateJobTrigger', 'deleteJobTrigger', 'pauseTrigger', 'startTrigger', 'pageJobTriggerRecord', 'jobClusterList', 'startAllJob', 'pauseAllJob', 'cancelSleep', 'persistAll', 'clearJobTriggerRecord']
 		: options.readOnly

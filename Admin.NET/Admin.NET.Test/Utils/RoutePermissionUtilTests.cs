@@ -34,6 +34,9 @@ public class RoutePermissionUtilTests
     [InlineData("/api/sysFile/folder", "/api/sysFile/folder", "sysFile:page")]
     [InlineData("/api/sysFile/uploadFiles", "/api/sysFile/uploadFiles", "sysFile:uploadFile")]
     [InlineData("/api/sysFile/uploadFileFromBase64", "/api/sysFile/uploadFileFromBase64", "sysFile:uploadFile")]
+    [InlineData("/api/sysDatabase/previewEntity", "/api/sysDatabase/previewEntity", "sysDatabase:createEntity")]
+    [InlineData("/api/sysDatabase/previewSeedData", "/api/sysDatabase/previewSeedData", "sysDatabase:createSeedData")]
+    [InlineData("/api/sysDatabase/generationOptions", "/api/sysDatabase/generationOptions", "sysDatabase:list")]
     public void GetPermissionName_MatchedRoute_ExcludesParameterValues(string template, string path, string expected)
     {
         // 准备

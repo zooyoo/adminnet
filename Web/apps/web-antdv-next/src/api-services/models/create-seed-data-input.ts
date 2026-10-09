@@ -80,4 +80,9 @@ export interface CreateSeedDataInput {
      * @memberof CreateSeedDataInput
      */
     filterExistingData?: boolean;
+
+    /** 预览内容摘要 */
+    expectedHash?: string | null;
+    overwriteExisting?: boolean;
+    expectedTargetHash?: string | null;
 }

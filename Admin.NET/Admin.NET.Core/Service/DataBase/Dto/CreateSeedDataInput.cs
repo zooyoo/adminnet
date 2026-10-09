@@ -51,4 +51,9 @@ public class CreateSeedDataInput
     /// 主要用于生成菜单功能，菜单功能往往与子项目绑定，如果生成完整数据就会导致菜单项多处理重复。
     /// </remarks>
     public bool FilterExistingData { get; set; }
+
+    /// <summary>预览内容摘要；提供时必须与当前生成结果一致</summary>
+    public string ExpectedHash { get; set; }
+    public bool OverwriteExisting { get; set; }
+    public string ExpectedTargetHash { get; set; }
 }
