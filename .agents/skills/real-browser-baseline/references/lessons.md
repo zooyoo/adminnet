@@ -121,6 +121,11 @@
 
 ## 本仓库参考入口
 
+### 2026-10-09：详情地址与工作台截图
+
+- 第 16 项日程详情使用 `/api/sysSchedule/detail/{id}`，不是 `detail?id=...`。真实脚本须先核对 SDK 的完整路径，解析 JSON 前记录脱敏路径和 HTTP 状态；空 404 响应不能只留下 `Unexpected end of JSON input`。
+- 工作台内操作会使内容滚动容器停留在非零位置，`fullPage` 截图仍可能遗漏顶栏标题。成功态取证前恢复实际滚动容器，再等动画和通知结束；弹窗错误态保留当前可操作视角。此处理已在最终明暗桌面截图核验。
+
 相对于仓库根目录：
 
 - `.scratch/frontend-vben-migration/run-user-browser-baseline.mjs`：真实桌面 CRUD、授权、错误草稿和停机示例。

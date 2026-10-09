@@ -37,7 +37,7 @@ const coreRoutes: RouteRecordRaw[] = [
   {
     name: 'LegacyHome',
     path: '/home',
-    redirect: '/dashboard/notice',
+    redirect: '/dashboard/home',
     meta: { title: '首页', hideInMenu: true, requiresAuth: true },
   },
   /**
@@ -61,6 +61,18 @@ const coreRoutes: RouteRecordRaw[] = [
     path: '/',
     redirect: preferences.app.defaultHomePath,
     children: [
+      {
+        name: 'HomeWorkbench',
+        path: '/dashboard/home',
+        component: () => import('#/views/home/index.vue'),
+        meta: { title: '工作台', requiresAuth: true, hideInMenu: true },
+      },
+      {
+        name: 'AdminAbout',
+        path: '/about',
+        component: () => import('#/views/home/about.vue'),
+        meta: { title: '关于项目', requiresAuth: true, hideInMenu: true },
+      },
       {
         name: 'ReceivedNoticeCenter',
         path: '/dashboard/notice',

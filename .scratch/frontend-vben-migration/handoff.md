@@ -2,6 +2,16 @@
 
 日期：2026-10-09（Asia/Shanghai）。
 
+## 最新接续：第 16 项已完成，下一项 17
+
+- 第 15 项提交 `d03911048`；16 随本记录提交，`git log` 核对。总进度 16 / 48，当前 goal active；继续严格编号、验收更新后逐项提交，仅桌面。
+- 恢复 `/home` → `/dashboard/home` 和旧 `/home/index` 工作台组件，真实日程/收藏、身份隔离布局、时钟、项目说明和 Gitee 更新记录。随机收入及固定进度为旧示例，不伪造业务；日程未发现提醒投递实现。
+- 日程所有操作限制当前用户与租户，字段白名单、日期时间和内容校验；收藏复用真实登录菜单过滤、拒绝无权 ID、支持排序和清空。新前端仅 Antdv-Next。
+- 最终真实报告 `Temp/adminnet-vben-0a99e9ba8b9b4deebbcacd3199ff6ff2/evidence/home-browser-baseline.json`：6 阶段及清理通过。真实 Gitee 成功、明暗桌面与停机截图已查看，API/代理/浏览器已停止。
+- 后端 209 项（排除 Selenium UserTest）、前端 4 项、生产桌面契约 14 项、类型/lint/build 通过。契约目录 `Temp/adminnet-home-ui-qNSsrm`；构建 `Temp/adminnet-vben-build-16` / `Temp/adminnet-vben-test-16`。xUnit 用测试 exe 执行；`dotnet test` 旧 VSTest 目标在此 SDK 下失败。
+- 下一项 17：文件管理、上传下载与图片预览。沿用已有上传和二进制响应处理，核对旧文件页/权限/租户边界、资源地址与清理。不要提前推进 18 的 Office/媒体引擎。
+- 保留用户 `DeepSeek.example` 和原提案修改，不提交。未启用子代理。
+
 ## 最新接续：第 15 项已完成，下一项 16
 
 - 第 14 项提交 `a1c1b5820`，15 随本记录提交。总进度 15 / 48；严格逐项完成、更新与提交，仅桌面。

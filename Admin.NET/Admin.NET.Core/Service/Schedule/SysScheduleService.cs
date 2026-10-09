@@ -30,10 +30,9 @@ public class SysScheduleService : IDynamicApiController, ITransient
     public async Task<List<SysSchedule>> Page(ListScheduleInput input)
     {
         return await _sysSchedule.AsQueryable()
-            .Where(u => u.UserId == _userManager.UserId)
-            .WhereIF(_userManager.SuperAdmin && input.TenantId > 0, u => u.TenantId == input.TenantId)
-            .WhereIF(!string.IsNullOrWhiteSpace(input.StartTime.ToString()), u => u.ScheduleTime >= input.StartTime)
-            .WhereIF(!string.IsNullOrWhiteSpace(input.EndTime.ToString()), u => u.ScheduleTime <= input.EndTime)
+            .Where(u => u.UserId == _userManager.UserId && u.TenantId == _userManager.TenantId)
+            .WhereIF(input.StartTime.HasValue, u => u.ScheduleTime >= input.StartTime)
+            .WhereIF(input.EndTime.HasValue, u => u.ScheduleTime <= input.EndTime)
             .OrderBy(u => u.StartTime, OrderByType.Asc)
             .ToListAsync();
     }
@@ -46,7 +45,8 @@ public class SysScheduleService : IDynamicApiController, ITransient
     [DisplayName("获取日程详情")]
     public async Task<SysSchedule> GetDetail(long id)
     {
-        return await _sysSchedule.GetFirstAsync(u => u.Id == id);
+        return await _sysSchedule.GetFirstAsync(u => u.Id == id && u.UserId == _userManager.UserId && u.TenantId == _userManager.TenantId)
+            ?? throw Oops.Oh("日程不存在或无权访问");
     }
 
     /// <summary>
@@ -58,8 +58,18 @@ public class SysScheduleService : IDynamicApiController, ITransient
     [DisplayName("增加日程")]
     public async Task AddUserSchedule(AddScheduleInput input)
     {
-        input.UserId = _userManager.UserId;
-        await _sysSchedule.InsertAsync(input.Adapt<SysSchedule>());
+        Validate(input);
+        // 个人日程只允许创建在当前身份下，不能由正文指定所有者或租户。
+        await _sysSchedule.InsertAsync(new SysSchedule
+        {
+            UserId = _userManager.UserId,
+            TenantId = _userManager.TenantId,
+            ScheduleTime = input.ScheduleTime!.Value.Date,
+            StartTime = input.StartTime,
+            EndTime = input.EndTime,
+            Content = input.Content.Trim(),
+            Status = input.Status
+        });
     }
 
     /// <summary>
@@ -71,7 +81,19 @@ public class SysScheduleService : IDynamicApiController, ITransient
     [DisplayName("更新日程")]
     public async Task UpdateUserSchedule(UpdateScheduleInput input)
     {
-        await _sysSchedule.AsUpdateable(input.Adapt<SysSchedule>()).IgnoreColumns(true).ExecuteCommandAsync();
+        Validate(input);
+        await GetDetail(input.Id);
+        await _sysSchedule.AsUpdateable()
+            .SetColumns(u => new SysSchedule
+            {
+                ScheduleTime = input.ScheduleTime!.Value.Date,
+                StartTime = input.StartTime,
+                EndTime = input.EndTime,
+                Content = input.Content.Trim(),
+                Status = input.Status
+            })
+            .Where(u => u.Id == input.Id && u.UserId == _userManager.UserId && u.TenantId == _userManager.TenantId)
+            .ExecuteCommandAsync();
     }
 
     /// <summary>
@@ -83,7 +105,8 @@ public class SysScheduleService : IDynamicApiController, ITransient
     [DisplayName("删除日程")]
     public async Task DeleteUserSchedule(DeleteScheduleInput input)
     {
-        await _sysSchedule.DeleteAsync(u => u.Id == input.Id);
+        await GetDetail(input.Id);
+        await _sysSchedule.DeleteAsync(u => u.Id == input.Id && u.UserId == _userManager.UserId && u.TenantId == _userManager.TenantId);
     }
 
     /// <summary>
@@ -96,9 +119,22 @@ public class SysScheduleService : IDynamicApiController, ITransient
     {
         if (!Enum.IsDefined(typeof(FinishStatusEnum), input.Status)) throw Oops.Oh(ErrorCodeEnum.D3005);
 
+        await GetDetail(input.Id);
         return await _sysSchedule.AsUpdateable()
             .SetColumns(u => u.Status == input.Status)
-            .Where(u => u.Id == input.Id)
+            .Where(u => u.Id == input.Id && u.UserId == _userManager.UserId && u.TenantId == _userManager.TenantId)
             .ExecuteCommandAsync();
+    }
+
+    private static void Validate(AddScheduleInput input)
+    {
+        if (input.ScheduleTime == null || input.ScheduleTime.Value == DateTime.MinValue)
+            throw Oops.Oh("请选择日程日期");
+        if (string.IsNullOrWhiteSpace(input.Content) || input.Content.Trim().Length > 256)
+            throw Oops.Oh("日程内容须为 1 至 256 个字符");
+        if (!TimeOnly.TryParseExact(input.StartTime, "HH:mm", out TimeOnly start)
+            || !TimeOnly.TryParseExact(input.EndTime, "HH:mm", out TimeOnly end) || end <= start)
+            throw Oops.Oh("日程时间格式应为 HH:mm，且结束时间须晚于开始时间");
+        if (!Enum.IsDefined(input.Status)) throw Oops.Oh(ErrorCodeEnum.D3005);
     }
 }

@@ -31,10 +31,15 @@ public class SysUserMenuService : IDynamicApiController, ITransient
     [ApiDescriptionSettings(Name = "Add"), HttpPost]
     public async Task AddUserMenu(UserMenuInput input)
     {
+        List<long> ids = input.MenuIdList?.Distinct().ToList() ?? new List<long>();
+        List<MenuOutput> available = await GetAvailableMenus();
+        if (ids.Any(id => available.All(menu => menu.Id != id)))
+            throw Oops.Oh("快捷入口包含无权访问或已停用的菜单");
+
         await _sysUserMenuRep.DeleteAsync(u => u.UserId == _userManager.UserId);
 
-        if (input.MenuIdList == null || input.MenuIdList.Count == 0) return;
-        var menus = input.MenuIdList.Select(u => new SysUserMenu
+        if (ids.Count == 0) return;
+        var menus = ids.Select(u => new SysUserMenu
         {
             UserId = _userManager.UserId,
             MenuId = u
@@ -61,10 +66,10 @@ public class SysUserMenuService : IDynamicApiController, ITransient
     [DisplayName("获取当前用户收藏的菜单集合")]
     public async Task<List<MenuOutput>> GetUserMenuList()
     {
-        var sysUserMenuList = await _sysUserMenuRep.AsQueryable()
-            .Includes(u => u.SysMenu)
-            .Where(u => u.UserId == _userManager.UserId).ToListAsync();
-        return sysUserMenuList.Where(u => u.SysMenu != null).Select(u => u.SysMenu).ToList().Adapt<List<MenuOutput>>();
+        List<MenuOutput> available = await GetAvailableMenus();
+        var ids = await _sysUserMenuRep.AsQueryable()
+            .Where(u => u.UserId == _userManager.UserId).OrderBy(u => u.Id).Select(u => u.MenuId).ToListAsync();
+        return ids.Select(id => available.FirstOrDefault(menu => menu.Id == id)).Where(menu => menu != null).ToList();
     }
 
     /// <summary>
@@ -74,8 +79,25 @@ public class SysUserMenuService : IDynamicApiController, ITransient
     [DisplayName("获取当前用户收藏的菜单Id集合")]
     public async Task<List<long>> GetUserMenuIdList()
     {
-        return await _sysUserMenuRep.AsQueryable()
-            .Where(u => u.UserId == _userManager.UserId).Select(u => u.MenuId).ToListAsync();
+        return (await GetUserMenuList()).Select(menu => menu.Id).ToList();
+    }
+
+    private static async Task<List<MenuOutput>> GetAvailableMenus()
+    {
+        // 方法内解析避免菜单服务与收藏服务构造循环，复用同一权限和翻译合同。
+        List<MenuOutput> tree = await App.GetService<SysMenuService>().GetLoginMenuTree();
+        List<MenuOutput> result = new();
+        void Collect(IEnumerable<MenuOutput> items)
+        {
+            foreach (MenuOutput item in items)
+            {
+                if (item.Meta?.IsHide == true) continue;
+                if (item.Type == MenuTypeEnum.Menu) result.Add(item);
+                if (item.Children != null) Collect(item.Children);
+            }
+        }
+        Collect(tree);
+        return result;
     }
 
     /// <summary>
