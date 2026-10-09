@@ -68,6 +68,9 @@ public class RoutePermissionUtilTests
     [InlineData("sysFile:downloadFile", true)]
     [InlineData("sysFile:update", true)]
     [InlineData("sysFile:delete", true)]
+    [InlineData("sysDatabase:list", true)]
+    [InlineData("sysDatabase:addTable", true)]
+    [InlineData("sysDatabase:moveColumn", true)]
     public void RequiresExplicitGrant_TranslationSensitiveAction_DoesNotDependOnMenuRegistration(string permission, bool expected)
     {
         Assert.Equal(expected, RoutePermissionUtil.RequiresExplicitGrant(permission));

@@ -121,6 +121,15 @@
 
 ## 本仓库参考入口
 
+### 2026-10-09：数据库表单、模式切换和 PostgreSQL 结构反查
+
+- 适用条件：Antdv-Next 1.5.2、Vue 3.5.41、Edge 桌面生产构建和 PostgreSQL 18 隔离连接。
+- 两份 Form 使用相同字段 `name` 时可能生成重复控件 ID，导致弹窗标签关联背景 Select；为每份 Form 设置不同 Form `name`，必填标签需要时给真实 Input 明确 `aria-label`。inline Form 默认冒号也影响 combobox 可访问名称，本轮通过 `colon=false` 和实际 DOM 验证修复，不使用宽泛选择器消除歧义。
+- 编辑器按模式重建时，旧实例销毁触发 lifetime 的 abort 监听，若监听同时 emit 关闭，会把新模式的弹窗关闭。销毁前解除关闭监听，再释放请求和 lifetime；新实例 watcher 使用 `immediate` 初始化。生产连续“建表 → 改表 → 增字段 → 改字段”与独立契约均通过。
+- PostgreSQL identity、精度、默认值和约束要从 `information_schema` / `pg_catalog` 反查，不能只依赖 ORM DTO；原动态建表曾生成不存在的 `serialt`，混合大小写字段删除也曾因未引用名称失败。原生事务、正确引用、真实目录反查后通过。
+- 连接切换测试要包含同一连接的迟到 reload：仅比较 `configId` 不足以证明该响应当前，应检查本次加载是否被采用，再恢复指定表。新增公开 composable 测试验证旧请求不恢复旧表。
+- PostgreSQL 已有表不支持原生物理列重排，本轮只验证“不支持且结构不变”，不将其算成物理重排完成。任务口径单独确认，客户端排序不得冒充数据库结构变更。
+
 ### 2026-10-09：文件预览、取消与真实样本
 
 - Antdv-Next `1.5.2` 的 Modal 在 `confirmLoading=true` 时会忽略取消事件。需要允许中止上传的弹窗，使用 `okButtonProps.loading` 展示提交状态，并由取消处理器中止请求、递增代次；不能只看到取消按钮可点击就判断可取消。生产契约已验证关闭后迟到响应不影响新草稿。

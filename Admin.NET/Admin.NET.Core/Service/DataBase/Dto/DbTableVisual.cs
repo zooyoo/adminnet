@@ -10,6 +10,8 @@ public class VisualDb
 {
     public string ConfigId { get; set; }
     public string DbNickName { get; set; }
+    public string DbType { get; set; }
+    public bool CanMoveColumn { get; set; }
 }
 
 /// <summary>

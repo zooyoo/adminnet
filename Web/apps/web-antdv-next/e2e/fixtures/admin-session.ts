@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 
 export const testToken = (tenant = 1) => `header.${Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 600, tenant })).toString('base64url')}.signature`;
 
-type AdminModule = 'user' | 'tenant' | 'dict' | 'config' | 'tenantConfig' | 'lang' | 'langText' | 'infoSetting' | 'cache' | 'userRegWay' | 'onlineUser' | 'notice' | 'ldap' | 'file' | 'job';
+type AdminModule = 'user' | 'tenant' | 'dict' | 'config' | 'tenantConfig' | 'lang' | 'langText' | 'infoSetting' | 'cache' | 'userRegWay' | 'onlineUser' | 'notice' | 'ldap' | 'file' | 'job' | 'database';
 const titles: Record<AdminModule, string> = {
 	user: '用户管理',
 	tenant: '租户管理',
@@ -20,12 +20,15 @@ const titles: Record<AdminModule, string> = {
 	ldap: 'AD域配置',
 	file: '文件管理',
 	job: '任务调度',
+	database: '库表管理',
 };
 export async function mockAdminSession(page: Page, module: AdminModule, options: { readOnly?: boolean; superAdmin?: boolean } = {}) {
 	await page.route('**/prod-api/hubs/onlineUser/negotiate*', (route) => route.fulfill({ status: 503, json: { message: 'Contract fixture: real-time service unavailable' } }));
 	await page.route('**/prod-api/api/sysNotice/unReadList', (route) => route.fulfill({ json: { code: 200, result: [] } }));
 	const prefix = `sys${module[0]!.toUpperCase()}${module.slice(1)}`;
-	const actions = module === 'job'
+	const actions = module === 'database'
+		? options.readOnly ? ['list', 'tableList', 'columnList', 'dbTypeList'] : ['list', 'tableList', 'columnList', 'dbTypeList', 'addTable', 'updateTable', 'addColumn', 'updateColumn', 'deleteColumn', 'moveColumn', 'deleteTable']
+		: module === 'job'
 		? options.readOnly ? ['pageJobDetail', 'listJobGroup'] : ['pageJobDetail', 'listJobGroup', 'addJobDetail', 'updateJobDetail', 'deleteJobDetail', 'runJob', 'pauseJob', 'startJob', 'cancelJob', 'addJobTrigger', 'updateJobTrigger', 'deleteJobTrigger', 'pauseTrigger', 'startTrigger', 'pageJobTriggerRecord', 'jobClusterList', 'startAllJob', 'pauseAllJob', 'cancelSleep', 'persistAll', 'clearJobTriggerRecord']
 		: options.readOnly
 		? ['page', 'list']

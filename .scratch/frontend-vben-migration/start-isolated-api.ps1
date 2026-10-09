@@ -5,6 +5,7 @@ param(
     [switch]$AuthFixture,
     [switch]$OnlineFixture,
     [switch]$JobFixture,
+    [switch]$PostgreSqlFixture,
     [switch]$FileDeduplication,
     [switch]$TranslationTestService,
     [uri]$SmsTestService,
@@ -158,6 +159,38 @@ $configuration['DbConnection'] = @{
         }
     )
 }
+if ($PostgreSqlFixture) {
+    $containerName = 'adminnet-vben-pg-' + [guid]::NewGuid().ToString('N')
+    $pgPassword = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(24))
+    $env:POSTGRES_PASSWORD = $pgPassword
+    try {
+        & docker run --detach --name $containerName --label "adminnet.isolated-runtime=$runtimeRoot" --env POSTGRES_PASSWORD --env POSTGRES_DB=maintenance --publish 127.0.0.1::5432 postgres:18 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Isolated PostgreSQL container start failed.' }
+        $deadline = [DateTime]::UtcNow.AddSeconds(90)
+        do {
+            & docker exec $containerName pg_isready -U postgres -d maintenance *> $null
+            if ($LASTEXITCODE -eq 0) { break }
+            Start-Sleep -Milliseconds 500
+        } while ([DateTime]::UtcNow -lt $deadline)
+        if ($LASTEXITCODE -ne 0) { throw 'Isolated PostgreSQL readiness timed out.' }
+        $container = & docker inspect $containerName | ConvertFrom-Json
+        $pgPort = [int]$container[0].NetworkSettings.Ports.'5432/tcp'[0].HostPort
+        $configuration['DbConnection']['ConnectionConfigs'] += @{
+            ConfigId = '1300000000003'; DbNickName = '隔离 PostgreSQL'; DbType = 'PostgreSQL'
+            ConnectionString = "Host=127.0.0.1;Port=$pgPort;Database=maintenance;Username=postgres;Password=$pgPassword"
+            DbSettings = @{ EnableInitDb = $false; EnableInitView = $false; EnableDiffLog = $false; EnableUnderLine = $false; EnableConnStringEncrypt = $false }
+            TableSettings = @{ EnableInitTable = $false; EnableIncreTable = $false }
+            SeedSettings = @{ EnableInitSeed = $false; EnableIncreSeed = $false }
+        }
+        @{ containerName = $containerName; runtimeRoot = $runtimeRoot; configId = '1300000000003' } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtimeRoot 'isolated-postgres.json') -Encoding UTF8
+    }
+    catch {
+        $labels = & docker inspect --format '{{ index .Config.Labels "adminnet.isolated-runtime" }}' $containerName 2>$null
+        if ($LASTEXITCODE -eq 0 -and $labels -eq $runtimeRoot) { & docker rm --force --volumes $containerName | Out-Null }
+        throw
+    }
+    finally { Remove-Item Env:POSTGRES_PASSWORD -ErrorAction SilentlyContinue }
+}
 $configuration | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath (Join-Path $runtimeRoot 'appsettings.json') -Encoding UTF8
 
 function Start-IsolatedProcess {
@@ -193,8 +226,9 @@ function Wait-IsolatedApi([Diagnostics.Process]$ApiProcess) {
     throw "Isolated API readiness timed out. Inspect logs under $runtimeRoot."
 }
 
-$process = Start-IsolatedProcess
+$process = $null
 try {
+    $process = Start-IsolatedProcess
     Wait-IsolatedApi $process
     if ($CrudFixture -or $AuthFixture -or $OnlineFixture) {
         Stop-Process -Id $process.Id
@@ -207,7 +241,14 @@ try {
     }
 }
 catch {
-    if (-not $process.HasExited) { Stop-Process -Id $process.Id }
+    if ($process -and -not $process.HasExited) { Stop-Process -Id $process.Id }
+    if ($PostgreSqlFixture) {
+        $label = & docker inspect --format '{{ index .Config.Labels "adminnet.isolated-runtime" }}' $containerName 2>$null
+        if ($LASTEXITCODE -eq 0 -and $label -eq $runtimeRoot) {
+            & docker rm --force --volumes $containerName | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'Isolated PostgreSQL cleanup after startup failure was incomplete.' }
+        }
+    }
     throw
 }
 Write-Output "Runtime: $runtimeRoot"

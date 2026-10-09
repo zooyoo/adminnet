@@ -34,7 +34,11 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     [DisplayName("获取库列表")]
     public List<VisualDb> GetList()
     {
-        return App.GetOptions<DbConnectionOptions>().ConnectionConfigs.Select(u => new VisualDb { ConfigId = u.ConfigId.ToString(), DbNickName = u.DbNickName }).ToList();
+        return App.GetOptions<DbConnectionOptions>().ConnectionConfigs.Select(u => new VisualDb
+        {
+            ConfigId = u.ConfigId.ToString(), DbNickName = u.DbNickName,
+            DbType = u.DbType.ToString(), CanMoveColumn = u.DbType == SqlSugar.DbType.MySql
+        }).ToList();
     }
 
     /// <summary>
@@ -108,8 +112,9 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     [DisplayName("获取字段列表")]
     public List<DbColumnOutput> GetColumnList(string tableName, string configId = SqlSugarConst.MainConfigId)
     {
-        var db = _db.AsTenant().GetConnectionScope(configId);
-        return string.IsNullOrWhiteSpace(tableName) ? new List<DbColumnOutput>() : db.DbMaintenance.GetColumnInfosByTableName(tableName, false).Adapt<List<DbColumnOutput>>();
+        var db = GetMaintenanceConnection(configId);
+        EnsureTable(db, tableName);
+        return db.DbMaintenance.GetColumnInfosByTableName(tableName, false).Adapt<List<DbColumnOutput>>();
     }
 
     /// <summary>
@@ -120,7 +125,7 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     [DisplayName("获取数据库数据类型列表")]
     public List<string> GetDbTypeList(string configId = SqlSugarConst.MainConfigId)
     {
-        var db = _db.AsTenant().GetConnectionScope(configId);
+        var db = GetMaintenanceConnection(configId);
         return db.DbMaintenance.GetDbTypes().OrderBy(u => u).ToList();
     }
 
@@ -132,6 +137,21 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     [DisplayName("增加列")]
     public void AddColumn(DbColumnInput input)
     {
+        var db = GetMaintenanceConnection(input.ConfigId);
+        EnsureTable(db, input.TableName);
+        ValidateColumn(db, input);
+        if (db.DbMaintenance.GetColumnInfosByTableName(input.TableName, false).Any(u => u.DbColumnName.Equals(input.DbColumnName, StringComparison.OrdinalIgnoreCase)))
+            throw Oops.Oh("字段已存在");
+        if (db.CurrentConnectionConfig.DbType == SqlSugar.DbType.PostgreSQL)
+        {
+            RunPgTransaction(db, () =>
+            {
+                db.Ado.ExecuteCommand($"ALTER TABLE {QuotePg(input.TableName)} ADD COLUMN {PgColumnDefinition(input)}");
+                if (input.IsPrimarykey == 1) db.Ado.ExecuteCommand($"ALTER TABLE {QuotePg(input.TableName)} ADD PRIMARY KEY ({QuotePg(input.DbColumnName)})");
+                PgColumnComment(db, input.TableName, input.DbColumnName, input.ColumnDescription);
+            });
+            return;
+        }
         var column = new DbColumnInfo
         {
             ColumnDescription = input.ColumnDescription,
@@ -141,12 +161,12 @@ public class SysDatabaseService : IDynamicApiController, ITransient
             IsPrimarykey = input.IsPrimarykey == 1,
             Length = input.Length,
             DecimalDigits = input.DecimalDigits,
-            DataType = input.DataType
+            DataType = input.DataType,
+            DefaultValue = input.DefaultValue
         };
-        var db = _db.AsTenant().GetConnectionScope(input.ConfigId);
         db.DbMaintenance.AddColumn(input.TableName, column);
         // 默认值直接添加报错
-        if (!string.IsNullOrWhiteSpace(input.DefaultValue))
+        if (db.CurrentConnectionConfig.DbType != SqlSugar.DbType.PostgreSQL && !string.IsNullOrWhiteSpace(input.DefaultValue))
         {
             db.DbMaintenance.AddDefaultValue(input.TableName, column.DbColumnName, input.DefaultValue);
         }
@@ -162,7 +182,13 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     [DisplayName("删除列")]
     public void DeleteColumn(DeleteDbColumnInput input)
     {
-        var db = _db.AsTenant().GetConnectionScope(input.ConfigId);
+        var db = GetMaintenanceConnection(input.ConfigId);
+        EnsureColumn(db, input.TableName, input.DbColumnName);
+        if (db.CurrentConnectionConfig.DbType == SqlSugar.DbType.PostgreSQL)
+        {
+            db.Ado.ExecuteCommand($"ALTER TABLE {QuotePg(input.TableName)} DROP COLUMN {QuotePg(input.DbColumnName)}");
+            return;
+        }
         db.DbMaintenance.DropColumn(input.TableName, input.DbColumnName);
     }
 
@@ -174,7 +200,25 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     [DisplayName("编辑列")]
     public void UpdateColumn(UpdateDbColumnInput input)
     {
-        var db = _db.AsTenant().GetConnectionScope(input.ConfigId);
+        var db = GetMaintenanceConnection(input.ConfigId);
+        EnsureColumn(db, input.TableName, input.OldColumnName);
+        ValidateIdentifier(input.ColumnName);
+        ValidateDefault(input.DefaultValue);
+        if (db.CurrentConnectionConfig.DbType == SqlSugar.DbType.PostgreSQL)
+        {
+            RunPgTransaction(db, () =>
+            {
+                if (input.OldColumnName != input.ColumnName)
+                    db.Ado.ExecuteCommand($"ALTER TABLE {QuotePg(input.TableName)} RENAME COLUMN {QuotePg(input.OldColumnName)} TO {QuotePg(input.ColumnName)}");
+                if (input.DefaultValue != null)
+                {
+                    var clause = string.IsNullOrWhiteSpace(input.DefaultValue) ? "DROP DEFAULT" : $"SET DEFAULT {input.DefaultValue}";
+                    db.Ado.ExecuteCommand($"ALTER TABLE {QuotePg(input.TableName)} ALTER COLUMN {QuotePg(input.ColumnName)} {clause}");
+                }
+                PgColumnComment(db, input.TableName, input.ColumnName, input.Description);
+            });
+            return;
+        }
 
         // 前端未修改列名时，不进行重命名操作，避免报错
         if (input.OldColumnName != input.ColumnName)
@@ -202,7 +246,10 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     [DisplayName("移动列")]
     public void MoveColumn(MoveDbColumnInput input)
     {
-        var db = _db.AsTenant().GetConnectionScope(input.ConfigId);
+        var db = GetMaintenanceConnection(input.ConfigId);
+        EnsureColumn(db, input.TableName, input.ColumnName);
+        if (!string.IsNullOrEmpty(input.AfterColumnName)) EnsureColumn(db, input.TableName, input.AfterColumnName);
+        if (string.Equals(input.ColumnName, input.AfterColumnName, StringComparison.OrdinalIgnoreCase)) throw Oops.Oh("不能移动到自身之后");
         var dbMaintenance = db.DbMaintenance;
 
         var dbType = db.CurrentConnectionConfig.DbType;
@@ -288,7 +335,7 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     [DisplayName("获取表列表")]
     public List<DbTableInfo> GetTableList(string configId = SqlSugarConst.MainConfigId)
     {
-        var db = _db.AsTenant().GetConnectionScope(configId);
+        var db = GetMaintenanceConnection(configId);
         return db.DbMaintenance.GetTableInfoList(false);
     }
 
@@ -300,14 +347,37 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     [DisplayName("增加表")]
     public void AddTable(DbTableInput input)
     {
+        var db = GetMaintenanceConnection(input.ConfigId);
+        ValidateIdentifier(input.TableName);
+        if (db.DbMaintenance.IsAnyTable(input.TableName, false)) throw Oops.Oh("表已存在，不能覆盖已有结构");
         if (input.DbColumnInfoList == null || !input.DbColumnInfoList.Any())
             throw Oops.Oh(ErrorCodeEnum.db1000);
 
-        if (input.DbColumnInfoList.GroupBy(u => u.DbColumnName).Any(u => u.Count() > 1))
+        foreach (var column in input.DbColumnInfoList) ValidateColumn(db, column);
+        if (input.DbColumnInfoList.GroupBy(u => u.DbColumnName, StringComparer.OrdinalIgnoreCase).Any(u => u.Count() > 1))
             throw Oops.Oh(ErrorCodeEnum.db1002);
 
         var config = App.GetOptions<DbConnectionOptions>().ConnectionConfigs.FirstOrDefault(u => u.ConfigId.ToString() == input.ConfigId);
-        var db = _db.AsTenant().GetConnectionScope(input.ConfigId);
+        var normalized = input.DbColumnInfoList.Select(u =>
+        {
+            var column = u.Adapt<DbColumnInput>();
+            column.DbColumnName = config!.DbSettings.EnableUnderLine ? u.DbColumnName.ToUnderLine() : u.DbColumnName;
+            return column;
+        }).ToList();
+        if (normalized.GroupBy(u => u.DbColumnName, StringComparer.OrdinalIgnoreCase).Any(u => u.Count() > 1)) throw Oops.Oh(ErrorCodeEnum.db1002);
+        if (db.CurrentConnectionConfig.DbType == SqlSugar.DbType.PostgreSQL)
+        {
+            RunPgTransaction(db, () =>
+            {
+                var definitions = normalized.Select(PgColumnDefinition).ToList();
+                var primary = normalized.Where(u => u.IsPrimarykey == 1).Select(u => QuotePg(u.DbColumnName)).ToList();
+                if (primary.Count > 0) definitions.Add($"PRIMARY KEY ({string.Join(", ", primary)})");
+                db.Ado.ExecuteCommand($"CREATE TABLE {QuotePg(input.TableName)} ({string.Join(", ", definitions)})");
+                db.Ado.ExecuteCommand($"COMMENT ON TABLE {QuotePg(input.TableName)} IS {PgLiteral(input.Description)}");
+                foreach (var column in normalized) PgColumnComment(db, input.TableName, column.DbColumnName, column.ColumnDescription);
+            });
+            return;
+        }
         var typeBuilder = db.DynamicBuilder().CreateClass(input.TableName, new SugarTable() { TableName = input.TableName, TableDescription = input.Description });
         input.DbColumnInfoList.ForEach(u =>
         {
@@ -336,7 +406,8 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     [DisplayName("删除表")]
     public void DeleteTable(DeleteDbTableInput input)
     {
-        var db = _db.AsTenant().GetConnectionScope(input.ConfigId);
+        var db = GetMaintenanceConnection(input.ConfigId);
+        EnsureTable(db, input.TableName);
         db.DbMaintenance.DropTable(input.TableName);
     }
 
@@ -348,8 +419,24 @@ public class SysDatabaseService : IDynamicApiController, ITransient
     [DisplayName("编辑表")]
     public void UpdateTable(UpdateDbTableInput input)
     {
-        var db = _db.AsTenant().GetConnectionScope(input.ConfigId);
-        db.DbMaintenance.RenameTable(input.OldTableName, input.TableName);
+        var db = GetMaintenanceConnection(input.ConfigId);
+        EnsureTable(db, input.OldTableName);
+        ValidateIdentifier(input.TableName);
+        if (db.CurrentConnectionConfig.DbType == SqlSugar.DbType.PostgreSQL)
+        {
+            RunPgTransaction(db, () =>
+            {
+                if (input.OldTableName != input.TableName)
+                    db.Ado.ExecuteCommand($"ALTER TABLE {QuotePg(input.OldTableName)} RENAME TO {QuotePg(input.TableName)}");
+                db.Ado.ExecuteCommand($"COMMENT ON TABLE {QuotePg(input.TableName)} IS {PgLiteral(input.Description)}");
+            });
+            return;
+        }
+        if (input.OldTableName != input.TableName)
+        {
+            if (db.DbMaintenance.IsAnyTable(input.TableName, false)) throw Oops.Oh("目标表已存在");
+            db.DbMaintenance.RenameTable(input.OldTableName, input.TableName);
+        }
         try
         {
             if (db.DbMaintenance.IsAnyTableRemark(input.TableName))
@@ -362,6 +449,88 @@ public class SysDatabaseService : IDynamicApiController, ITransient
         {
             throw Oops.Oh(ex.ToString());
         }
+    }
+
+    private ISqlSugarClient GetMaintenanceConnection(string configId)
+    {
+        if (string.IsNullOrWhiteSpace(configId) || !App.GetOptions<DbConnectionOptions>().ConnectionConfigs.Any(u => u.ConfigId.ToString() == configId))
+            throw Oops.Oh("请选择有效的数据库连接");
+        return _db.AsTenant().GetConnectionScope(configId);
+    }
+
+    internal static void ValidateIdentifier(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 63 || !System.Text.RegularExpressions.Regex.IsMatch(name, @"^[\p{L}_][\p{L}\p{N}_$]*$"))
+            throw Oops.Oh("名称须为字母、数字或下划线，且不能以数字开头，最长 63 个字符");
+    }
+
+    internal static void ValidateDefault(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return;
+        // 默认值允许常用 SQL 字面量和时间表达式，不接受任意 SQL 语句。
+        if (!System.Text.RegularExpressions.Regex.IsMatch(value.Trim(), @"^(?:-?\d+(?:\.\d+)?|'(?:[^']|'')*'|true|false|null|CURRENT_TIMESTAMP(?:\(\d\))?|CURRENT_DATE|CURRENT_TIME|now\(\))$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            throw Oops.Oh("默认值须为 SQL 字面量或时间表达式");
+    }
+
+    private static string QuotePg(string name) => "\"" + name.Replace("\"", "\"\"") + "\"";
+    private static string PgLiteral(string value) => value == null ? "NULL" : "'" + value.Replace("'", "''") + "'";
+
+    private static void PgColumnComment(ISqlSugarClient db, string table, string column, string comment) =>
+        db.Ado.ExecuteCommand($"COMMENT ON COLUMN {QuotePg(table)}.{QuotePg(column)} IS {PgLiteral(comment)}");
+
+    private static void RunPgTransaction(ISqlSugarClient db, Action action)
+    {
+        db.Ado.BeginTran();
+        try
+        {
+            db.Ado.ExecuteCommand("SET LOCAL standard_conforming_strings = on");
+            action();
+            db.Ado.CommitTran();
+        }
+        catch
+        {
+            db.Ado.RollbackTran();
+            throw;
+        }
+    }
+
+    private static string PgColumnDefinition(DbColumnInput column)
+    {
+        string type = column.DataType.ToLowerInvariant();
+        if (column.Length > 0 && type is "varchar" or "character varying" or "char" or "character" or "bit" or "varbit") type += $"({column.Length})";
+        else if (column.Length > 0 && type is "numeric" or "decimal") type += $"({column.Length},{column.DecimalDigits})";
+        string identity = column.IsIdentity == 1 ? " GENERATED BY DEFAULT AS IDENTITY" : "";
+        string nullable = column.IsNullable == 1 && column.IsPrimarykey == 0 ? " NULL" : " NOT NULL";
+        string defaultValue = string.IsNullOrWhiteSpace(column.DefaultValue) ? "" : $" DEFAULT {column.DefaultValue}";
+        return $"{QuotePg(column.DbColumnName)} {type}{identity}{nullable}{defaultValue}";
+    }
+
+    private static void EnsureTable(ISqlSugarClient db, string table)
+    {
+        ValidateIdentifier(table);
+        if (!db.DbMaintenance.IsAnyTable(table, false)) throw Oops.Oh("目标表不存在，请重新选择");
+    }
+
+    private static void EnsureColumn(ISqlSugarClient db, string table, string column)
+    {
+        EnsureTable(db, table);
+        ValidateIdentifier(column);
+        if (!db.DbMaintenance.GetColumnInfosByTableName(table, false).Any(u => u.DbColumnName.Equals(column, StringComparison.Ordinal)))
+            throw Oops.Oh("目标字段不存在，请刷新结构");
+    }
+
+    private static void ValidateColumn(ISqlSugarClient db, DbColumnInput column)
+    {
+        ValidateIdentifier(column.DbColumnName);
+        ValidateDefault(column.DefaultValue);
+        if (string.IsNullOrWhiteSpace(column.DataType) || !db.DbMaintenance.GetDbTypes().Any(u => u.Equals(column.DataType, StringComparison.OrdinalIgnoreCase)))
+            throw Oops.Oh("请选择当前数据库支持的字段类型");
+        if (column.Length < 0 || column.DecimalDigits < 0 || column.DecimalDigits > column.Length && column.Length > 0 ||
+            column.IsIdentity is < 0 or > 1 || column.IsNullable is < 0 or > 1 || column.IsPrimarykey is < 0 or > 1)
+            throw Oops.Oh("字段参数无效");
+        if (db.CurrentConnectionConfig.DbType == SqlSugar.DbType.PostgreSQL && column.IsIdentity == 1 &&
+            (column.DataType.ToLowerInvariant() is not ("smallint" or "int" or "integer" or "bigint" or "int2" or "int4" or "int8") || !string.IsNullOrWhiteSpace(column.DefaultValue)))
+            throw Oops.Oh("PostgreSQL 自增列须为整数类型且不能另设默认值");
     }
 
     /// <summary>

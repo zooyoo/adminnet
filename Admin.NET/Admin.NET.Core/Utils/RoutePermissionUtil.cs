@@ -16,7 +16,8 @@ public static class RoutePermissionUtil
     /// </summary>
     public static bool RequiresExplicitGrant(string permission)
     {
-        return permission?.StartsWith("sysJob:", StringComparison.OrdinalIgnoreCase) == true || permission?.ToLowerInvariant() is "syslangtext:export" or "syslangtext:import" or
+        return permission?.StartsWith("sysJob:", StringComparison.OrdinalIgnoreCase) == true ||
+            permission?.StartsWith("sysDatabase:", StringComparison.OrdinalIgnoreCase) == true || permission?.ToLowerInvariant() is "syslangtext:export" or "syslangtext:import" or
             "syslangtext:batchdelete" or "syslangtext:batchsave" or "syslangtext:aitranslatetext" or "sysconfig:savesysinfo" or
             "sysfile:page" or "sysfile:uploadfile" or "sysfile:downloadfile" or "sysfile:update" or "sysfile:delete";
     }
