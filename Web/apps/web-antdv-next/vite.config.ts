@@ -1,5 +1,6 @@
-import { defineConfig } from '@vben/vite-config';
 import { fileURLToPath } from 'node:url';
+
+import { defineConfig } from '@vben/vite-config';
 
 export default defineConfig(async () => {
   return {
@@ -18,6 +19,10 @@ export default defineConfig(async () => {
       },
       server: {
         proxy: {
+          '/schedule': {
+            changeOrigin: true,
+            target: 'http://localhost:5005',
+          },
           '/prod-api': {
             changeOrigin: true,
             rewrite: (path) => path.replace(/^\/prod-api/, ''),

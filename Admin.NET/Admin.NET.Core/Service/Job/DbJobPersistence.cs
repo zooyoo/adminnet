@@ -32,6 +32,7 @@ public class DbJobPersistence : IJobPersistence
 
         // 获取所有编译时定义的作业
         var allJobs = App.EffectiveTypes.ScanToBuilders().ToList();
+        if (App.GetConfig<bool>("JobSchedule:IsolatedOnly") && App.WebHostEnvironment.EnvironmentName == "IsolatedIntegration") allJobs.Clear();
         var builtInJobIds = allJobs
             .Select(u => u.GetJobBuilder().JobId)
             .Where(u => !string.IsNullOrWhiteSpace(u))
@@ -225,6 +226,7 @@ public class DbJobPersistence : IJobPersistence
         var db = scope.ServiceProvider.GetRequiredService<ISqlSugarClient>().CopyNew();
 
         var jobDetail = context.JobDetail.Adapt<SysJobDetail>();
+        jobDetail.IncludeAnnotation = context.JobDetail.IncludeAnnotations;
         switch (context.Behavior)
         {
             case PersistenceBehavior.Appended:

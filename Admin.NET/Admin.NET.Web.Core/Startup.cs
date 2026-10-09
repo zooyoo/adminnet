@@ -83,6 +83,12 @@ public class Startup : AppStartup
         {
             options.AddPersistence<DbJobPersistence>(); // 添加作业持久化器
             options.AddMonitor<JobMonitor>(); // 添加作业执行监视器
+            string clusterId = App.GetConfig<string>("JobSchedule:ClusterId");
+            if (!string.IsNullOrWhiteSpace(clusterId))
+            {
+                options.ClusterId = clusterId;
+                options.AddClusterServer<JobClusterServer>();
+            }
         });
         // 脱敏检测
         services.AddSensitiveDetection();

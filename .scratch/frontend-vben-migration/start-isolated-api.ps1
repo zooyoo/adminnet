@@ -4,6 +4,7 @@ param(
     [switch]$CrudFixture,
     [switch]$AuthFixture,
     [switch]$OnlineFixture,
+    [switch]$JobFixture,
     [switch]$FileDeduplication,
     [switch]$TranslationTestService,
     [uri]$SmsTestService,
@@ -59,6 +60,9 @@ foreach ($fileName in @('App.json', 'Enum.json', 'Captcha.json', 'Limit.json')) 
     }
 }
 $configuration['AppSettings'] = @{ InjectSpecificationDocument = $false }
+if ($JobFixture) {
+    $configuration['JobSchedule'] = @{ IsolatedOnly = $true; ClusterId = 'isolated-job-cluster' }
+}
 $configuration['FriendlyExceptionSettings']['LogError'] = $true
 $configuration['Cache'] = @{ CacheType = 'Memory' }
 $configuration['OAuth'] = @{

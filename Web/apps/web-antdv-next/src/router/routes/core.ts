@@ -62,6 +62,12 @@ const coreRoutes: RouteRecordRaw[] = [
     redirect: preferences.app.defaultHomePath,
     children: [
       {
+        name: 'JobDashboard',
+        path: '/platform/job/dashboard',
+        component: () => import('#/views/system/job/dashboard.vue'),
+        meta: { title: '任务看板', requiresAuth: true, hideInMenu: true },
+      },
+      {
         name: 'HomeWorkbench',
         path: '/dashboard/home',
         component: () => import('#/views/home/index.vue'),

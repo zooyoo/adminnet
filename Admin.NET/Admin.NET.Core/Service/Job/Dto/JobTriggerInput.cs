@@ -41,3 +41,33 @@ public class UpdateJobTriggerInput : AddJobTriggerInput
 public class DeleteJobTriggerInput : JobTriggerInput
 {
 }
+
+public class CronPreviewInput
+{
+    [Required, MaxLength(120)]
+    public string Expression { get; set; }
+
+    [Range(0, 3)]
+    public int Format { get; set; }
+
+    public DateTime? FromTime { get; set; }
+
+    public DateTime? StartTime { get; set; }
+
+    public DateTime? EndTime { get; set; }
+
+    public string TimeZoneId { get; set; }
+}
+
+public class CronPreviewOutput
+{
+    public string Expression { get; set; }
+
+    public int Format { get; set; }
+
+    public string TimeZoneId { get; set; }
+
+    public string FromTime { get; set; }
+
+    public List<string> Occurrences { get; set; } = new();
+}

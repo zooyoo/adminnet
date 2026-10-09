@@ -53,13 +53,18 @@ public class SysJobService : IDynamicApiController, ITransient
             u.JobTriggers = await _sysJobTriggerRep.GetListAsync(t => t.JobId == u.JobDetail.JobId);
         });
 
-        // 提取中括号里面的参数值
-        var rgx = new Regex(@"(?i)(?<=\[)(.*)(?=\])");
         foreach (var job in jobDetails.Items)
         {
+            var scheduler = _schedulerFactory.GetJob(job.JobDetail.JobId);
+            if (scheduler != null)
+            {
+                var ids = job.JobTriggers.ToDictionary(trigger => trigger.TriggerId, trigger => trigger.Id);
+                job.JobTriggers = scheduler.GetTriggers().Adapt<List<SysJobTrigger>>();
+                foreach (var trigger in job.JobTriggers) trigger.Id = ids.GetValueOrDefault(trigger.TriggerId);
+            }
             foreach (var jobTrigger in job.JobTriggers)
             {
-                jobTrigger.Args = rgx.Match(jobTrigger.Args ?? "").Value;
+                jobTrigger.Args = UnwrapArgs(jobTrigger.Args);
             }
         }
         return jobDetails;
@@ -82,7 +87,7 @@ public class SysJobService : IDynamicApiController, ITransient
     [DisplayName("添加作业")]
     public async Task AddJobDetail(AddJobDetailInput input)
     {
-        var isExist = await _sysJobDetailRep.IsAnyAsync(u => u.JobId == input.JobId && u.Id != input.Id);
+        var isExist = await _sysJobDetailRep.IsAnyAsync(u => u.JobId == input.JobId);
         if (isExist) throw Oops.Oh(ErrorCodeEnum.D1006);
 
         // 动态创建作业
@@ -109,13 +114,13 @@ public class SysJobService : IDynamicApiController, ITransient
                 throw new NotSupportedException();
         }
 
-        _schedulerFactory.AddJob(JobBuilder.Create(jobType).LoadFrom(input.Adapt<SysJobDetail>()).SetJobType(jobType));
-
-        // 延迟一下等待持久化写入，再执行其他字段的更新
-        await Task.Delay(500);
-        await _sysJobDetailRep.AsUpdateable()
+        EnsureSuccess(_schedulerFactory.TryAddJob(JobBuilder.Create(jobType).LoadFrom(input.Adapt<SysJobDetail>())
+            .SetJobType(jobType).SetIncludeAnnotations(input.IncludeAnnotation), [], out _));
+        await WaitForJob(input.JobId);
+        int affected = await _sysJobDetailRep.AsUpdateable()
             .SetColumns(u => new SysJobDetail { CreateType = input.CreateType, ScriptCode = input.ScriptCode })
             .Where(u => u.JobId == input.JobId).ExecuteCommandAsync();
+        if (affected == 0) throw Oops.Oh("任务持久化未完成，请刷新确认后重试");
     }
 
     /// <summary>
@@ -130,9 +135,11 @@ public class SysJobService : IDynamicApiController, ITransient
         if (isExist) throw Oops.Oh(ErrorCodeEnum.D1006);
 
         var sysJobDetail = await _sysJobDetailRep.GetFirstAsync(u => u.Id == input.Id);
+        if (sysJobDetail == null) throw Oops.Oh("任务不存在");
         if (sysJobDetail.JobId != input.JobId) throw Oops.Oh(ErrorCodeEnum.D1704);
+        if (sysJobDetail.CreateType != input.CreateType) throw Oops.Oh("不能变更既有任务的创建类型");
 
-        var scheduler = _schedulerFactory.GetJob(sysJobDetail.JobId);
+        var scheduler = RequiredJob(sysJobDetail.JobId);
         var oldScriptCode = sysJobDetail.ScriptCode; // 旧脚本代码
         input.Adapt(sysJobDetail);
 
@@ -149,12 +156,13 @@ public class SysJobService : IDynamicApiController, ITransient
                     throw Oops.Oh(ErrorCodeEnum.D1702);
                 if (jobDetailAttribute.JobId != input.JobId) throw Oops.Oh(ErrorCodeEnum.D1703);
 
-                scheduler?.UpdateDetail(JobBuilder.Create(jobType).LoadFrom(sysJobDetail).SetJobType(jobType));
+                EnsureSuccess(scheduler.TryUpdateDetail(JobBuilder.Create(jobType).LoadFrom(sysJobDetail).SetJobType(jobType), out _));
             }
+            else EnsureSuccess(scheduler.TryUpdateDetail(scheduler.GetJobBuilder().LoadFrom(sysJobDetail), out _));
         }
         else
         {
-            scheduler?.UpdateDetail(scheduler.GetJobBuilder().LoadFrom(sysJobDetail));
+            EnsureSuccess(scheduler.TryUpdateDetail(scheduler.GetJobBuilder().LoadFrom(sysJobDetail), out _));
         }
 
         // Tip: 假如这次更新有变更了 JobId，变更 JobId 后触发的持久化更新执行，会由于找不到 JobId 而更新不到数据
@@ -171,7 +179,9 @@ public class SysJobService : IDynamicApiController, ITransient
     [DisplayName("删除作业")]
     public async Task DeleteJobDetail(DeleteJobDetailInput input)
     {
-        _schedulerFactory.RemoveJob(input.JobId);
+        if (!await _sysJobDetailRep.IsAnyAsync(job => job.JobId == input.JobId)) throw Oops.Oh("任务不存在");
+        var removeResult = _schedulerFactory.TryRemoveJob(input.JobId, out _);
+        if (removeResult is not (ScheduleResult.Succeed or ScheduleResult.NotFound)) EnsureSuccess(removeResult);
 
         // 如果 _schedulerFactory 中不存在 JodId，则无法触发持久化，下面的代码确保作业和触发器能被删除
         await _sysJobDetailRep.DeleteAsync(u => u.JobId == input.JobId);
@@ -185,7 +195,7 @@ public class SysJobService : IDynamicApiController, ITransient
     public async Task<List<SysJobTrigger>> GetJobTriggerList([FromQuery] JobDetailInput input)
     {
         return await _sysJobTriggerRep.AsQueryable()
-            .WhereIF(!string.IsNullOrWhiteSpace(input.JobId), u => u.JobId.Contains(input.JobId))
+            .WhereIF(!string.IsNullOrWhiteSpace(input.JobId), u => u.JobId == input.JobId)
             .ToListAsync();
     }
 
@@ -200,11 +210,10 @@ public class SysJobService : IDynamicApiController, ITransient
         var isExist = await _sysJobTriggerRep.IsAnyAsync(u => u.TriggerId == input.TriggerId && u.Id != input.Id);
         if (isExist) throw Oops.Oh(ErrorCodeEnum.D1006);
 
-        var jobTrigger = input.Adapt<SysJobTrigger>();
-        jobTrigger.Args = "[" + jobTrigger.Args + "]";
-
-        var scheduler = _schedulerFactory.GetJob(input.JobId);
-        scheduler?.AddTrigger(Triggers.Create(input.AssemblyName, input.TriggerType).LoadFrom(jobTrigger));
+        var scheduler = RequiredJob(input.JobId);
+        var jobTrigger = ValidatedTrigger(input);
+        EnsureSuccess(scheduler.TryAddTrigger(Triggers.Create(input.AssemblyName, input.TriggerType).LoadFrom(jobTrigger), out _));
+        await WaitForTrigger(jobTrigger);
     }
 
     /// <summary>
@@ -218,7 +227,10 @@ public class SysJobService : IDynamicApiController, ITransient
         var isExist = await _sysJobTriggerRep.IsAnyAsync(u => u.TriggerId == input.TriggerId && u.Id != input.Id);
         if (isExist) throw Oops.Oh(ErrorCodeEnum.D1006);
 
-        var jobTrigger = input.Adapt<SysJobTrigger>();
+        var existing = await _sysJobTriggerRep.GetFirstAsync(trigger => trigger.Id == input.Id);
+        if (existing == null || existing.JobId != input.JobId || existing.TriggerId != input.TriggerId)
+            throw Oops.Oh("触发器不存在或不能变更所属任务与编号");
+        var jobTrigger = ValidatedTrigger(input);
         if (jobTrigger.EndTime.HasValue && jobTrigger.EndTime.Value.Year < 1901)
         {
             jobTrigger.EndTime = null;
@@ -227,10 +239,9 @@ public class SysJobService : IDynamicApiController, ITransient
         {
             jobTrigger.StartTime = null;
         }
-        jobTrigger.Args = "[" + jobTrigger.Args + "]";
-
-        var scheduler = _schedulerFactory.GetJob(input.JobId);
-        scheduler?.UpdateTrigger(Triggers.Create(input.AssemblyName, input.TriggerType).LoadFrom(jobTrigger));
+        var scheduler = RequiredJob(input.JobId);
+        EnsureSuccess(scheduler.TryUpdateTrigger(Triggers.Create(input.AssemblyName, input.TriggerType).LoadFrom(jobTrigger), out _));
+        await WaitForTrigger(jobTrigger);
     }
 
     /// <summary>
@@ -241,8 +252,8 @@ public class SysJobService : IDynamicApiController, ITransient
     [DisplayName("删除触发器")]
     public async Task DeleteJobTrigger(DeleteJobTriggerInput input)
     {
-        var scheduler = _schedulerFactory.GetJob(input.JobId);
-        scheduler?.RemoveTrigger(input.TriggerId);
+        var scheduler = RequiredJob(input.JobId);
+        EnsureSuccess(scheduler.TryRemoveTrigger(input.TriggerId, out _));
 
         // 如果 _schedulerFactory 中不存在 JodId，则无法触发持久化，下行代码确保触发器能被删除
         await _sysJobTriggerRep.DeleteAsync(u => u.JobId == input.JobId && u.TriggerId == input.TriggerId);
@@ -274,7 +285,7 @@ public class SysJobService : IDynamicApiController, ITransient
     [DisplayName("暂停作业")]
     public void PauseJob(JobDetailInput input)
     {
-        _schedulerFactory.TryPauseJob(input.JobId, out _);
+        EnsureSuccess(_schedulerFactory.TryPauseJob(input.JobId, out _));
     }
 
     /// <summary>
@@ -283,7 +294,7 @@ public class SysJobService : IDynamicApiController, ITransient
     [DisplayName("启动作业")]
     public void StartJob(JobDetailInput input)
     {
-        _schedulerFactory.TryStartJob(input.JobId, out _);
+        EnsureSuccess(_schedulerFactory.TryStartJob(input.JobId, out _));
     }
 
     /// <summary>
@@ -292,7 +303,7 @@ public class SysJobService : IDynamicApiController, ITransient
     [DisplayName("取消作业")]
     public void CancelJob(JobDetailInput input)
     {
-        _schedulerFactory.TryCancelJob(input.JobId, out _);
+        EnsureSuccess(_schedulerFactory.TryCancelJob(input.JobId, out _));
     }
 
     /// <summary>
@@ -311,8 +322,8 @@ public class SysJobService : IDynamicApiController, ITransient
     [DisplayName("暂停触发器")]
     public void PauseTrigger(JobTriggerInput input)
     {
-        var scheduler = _schedulerFactory.GetJob(input.JobId);
-        scheduler?.PauseTrigger(input.TriggerId);
+        var scheduler = RequiredJob(input.JobId);
+        if (!scheduler.PauseTrigger(input.TriggerId)) throw Oops.Oh("触发器暂停失败或不存在");
     }
 
     /// <summary>
@@ -321,8 +332,8 @@ public class SysJobService : IDynamicApiController, ITransient
     [DisplayName("启动触发器")]
     public void StartTrigger(JobTriggerInput input)
     {
-        var scheduler = _schedulerFactory.GetJob(input.JobId);
-        scheduler?.StartTrigger(input.TriggerId);
+        var scheduler = RequiredJob(input.JobId);
+        if (!scheduler.StartTrigger(input.TriggerId)) throw Oops.Oh("触发器启动失败或不存在");
     }
 
     /// <summary>
@@ -341,6 +352,84 @@ public class SysJobService : IDynamicApiController, ITransient
     public void PersistAll()
     {
         _schedulerFactory.PersistAll();
+    }
+
+    [ApiDescriptionSettings(Name = "CronPreview"), HttpPost]
+    [DisplayName("预览 Cron 运行时间")]
+    public CronPreviewOutput CronPreview(CronPreviewInput input)
+    {
+        try { return JobCronPreview.Preview(input); }
+        catch (ArgumentException exception) { throw Oops.Oh(exception.Message); }
+    }
+
+    private IScheduler RequiredJob(string jobId) => _schedulerFactory.GetJob(jobId) ?? throw Oops.Oh("任务不存在或未加载到调度引擎");
+
+    private static void EnsureSuccess(ScheduleResult result)
+    {
+        if (result != ScheduleResult.Succeed) throw Oops.Oh($"调度操作失败：{result}");
+    }
+
+    private static string UnwrapArgs(string args)
+    {
+        string value = args?.Trim() ?? "";
+        return value.StartsWith('[') && value.EndsWith(']') ? value[1..^1] : value;
+    }
+
+    private static SysJobTrigger ValidatedTrigger(AddJobTriggerInput input)
+    {
+        var trigger = input.Adapt<SysJobTrigger>();
+        if (trigger.StartTime?.Kind == DateTimeKind.Utc) trigger.StartTime = trigger.StartTime.Value.ToLocalTime();
+        if (trigger.EndTime?.Kind == DateTimeKind.Utc) trigger.EndTime = trigger.EndTime.Value.ToLocalTime();
+        if (trigger.StartTime >= trigger.EndTime) throw Oops.Oh("结束时间必须晚于起始时间");
+        if (trigger.MaxNumberOfRuns < 0 || trigger.MaxNumberOfErrors < 0 || trigger.NumRetries < 0 || trigger.RetryTimeout < 0)
+            throw Oops.Oh("次数和重试间隔不能为负数");
+        if (trigger.TriggerType == "Furion.Schedule.CronTrigger")
+        {
+            try
+            {
+                using var document = System.Text.Json.JsonDocument.Parse("[" + UnwrapArgs(trigger.Args) + "]");
+                var values = document.RootElement;
+                if (values.GetArrayLength() != 2 || values[0].ValueKind != System.Text.Json.JsonValueKind.String)
+                    throw new ArgumentException("Cron 参数必须是表达式字符串和格式编号");
+                JobCronPreview.Preview(new CronPreviewInput
+                {
+                    Expression = values[0].GetString(), Format = values[1].GetInt32(), StartTime = trigger.StartTime, EndTime = trigger.EndTime
+                });
+            }
+            catch (Exception exception) when (exception is ArgumentException or System.Text.Json.JsonException or InvalidOperationException or FormatException)
+            {
+                throw Oops.Oh("Cron 参数无效：" + exception.Message);
+            }
+        }
+        else if (trigger.TriggerType == "Furion.Schedule.PeriodTrigger" && (!int.TryParse(UnwrapArgs(trigger.Args), out int period) || period <= 0))
+            throw Oops.Oh("周期必须是大于 0 的整数毫秒");
+        trigger.Args = "[" + UnwrapArgs(trigger.Args) + "]";
+        return trigger;
+    }
+
+    private async Task WaitForTrigger(SysJobTrigger expected)
+    {
+        for (int attempt = 0; attempt < 50; attempt++)
+        {
+            var stored = await _sysJobTriggerRep.GetFirstAsync(trigger => trigger.JobId == expected.JobId && trigger.TriggerId == expected.TriggerId);
+            if (stored != null && stored.Args == expected.Args && stored.Description == expected.Description &&
+                stored.StartTime == expected.StartTime && stored.EndTime == expected.EndTime &&
+                stored.MaxNumberOfRuns == expected.MaxNumberOfRuns && stored.MaxNumberOfErrors == expected.MaxNumberOfErrors &&
+                stored.NumRetries == expected.NumRetries && stored.RetryTimeout == expected.RetryTimeout &&
+                stored.StartNow == expected.StartNow && stored.RunOnStart == expected.RunOnStart && stored.ResetOnlyOnce == expected.ResetOnlyOnce) return;
+            await Task.Delay(100);
+        }
+        throw Oops.Oh("触发器持久化未完成，请刷新确认后重试");
+    }
+
+    private async Task WaitForJob(string jobId)
+    {
+        for (int attempt = 0; attempt < 50; attempt++)
+        {
+            if (await _sysJobDetailRep.IsAnyAsync(job => job.JobId == jobId)) return;
+            await Task.Delay(100);
+        }
+        throw Oops.Oh("任务持久化未完成，请刷新确认后重试");
     }
 
     /// <summary>
@@ -373,7 +462,10 @@ public class SysJobService : IDynamicApiController, ITransient
     [DisplayName("清空作业触发器运行记录")]
     public void ClearJobTriggerRecord()
     {
-        _sysJobTriggerRecordRep.AsSugarClient().DbMaintenance.TruncateTable<SysJobTriggerRecord>();
+        var db = _sysJobTriggerRecordRep.AsSugarClient();
+        // SQLite 的雪花主键表没有自增序列，不能使用 TRUNCATE 的序列重置。
+        if (db.CurrentConnectionConfig.DbType == SqlSugar.DbType.Sqlite) _sysJobTriggerRecordRep.AsDeleteable().ExecuteCommand();
+        else db.DbMaintenance.TruncateTable<SysJobTriggerRecord>();
     }
 
     /// <summary>

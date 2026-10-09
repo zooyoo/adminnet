@@ -2,6 +2,16 @@
 
 日期：2026-10-09（Asia/Shanghai）。
 
+## 最新接续：提案 21、22、23 已统一完成
+
+- 用户本轮范围为 21、22、23，均已分别按验收点完成，总进度 23 / 48；不自动推进 24，不执行生产切换。
+- 恢复 `/platform/job` 与旧 `/system/job/index` 组件路径：HTTP / C# 脚本编辑、引擎即时状态、任务 / 触发器控制、全局范围确认、记录与集群。所有 `sysJob` API 要求明确权限，Cron 预览 / 分组 / 触发器列表复用查询权限；保持原系统级数据模型。
+- Cron 预览复用 Furion 4.9.9.92 `Crontab`，明确服务端时区、不含起点、5 / 6 / 7 字段与宏；真实 5 次运行与预览完全一致。周期、自定义类型、次数、重试与启动选项保留。SQLite 清空记录使用无序列的删除，新增回归。
+- 原 Sundial.Dashboard 保留独立登录。相对 API 部署使用根 `/schedule/`，Vite、Nginx 与验收代理需转发该路径；不通过 URL 传应用令牌。原看板路由不能直接嵌入业务 API 前缀；同源生产页面、资源、登录与匿名 POST 拒绝已真实验证。
+- 最终真实目录 `C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-7a71174d4166461d9b6dfb40eb65f1e4/evidence/`：8 阶段、`passed`、`cleanupPassed` 均通过，稳定截图已查看，任务 / 触发器 / 记录为 0，API / 浏览器 / 代理已停。连续 10 次真实启动后取消窄范围也通过。
+- 后端 251 项（排除既有 Selenium `UserTest`），表单 10 项，生产桌面契约 10 项（`Temp/adminnet-job-ui-uIWWU8`），ESLint / 类型 / 前后端构建通过。测试输出 `Temp/adminnet-vben-test-21`；直接 `dotnet` 执行测试 DLL，默认 exe 被现有进程锁定，未终止它。CLI lint 仅回显，不计有效检查；Nginx 无本机 / 容器语法执行证据，大 chunk 和既有 C# 警告保留。
+- 功能对应与复跑见 `doc/frontend-vben-jobs.md`，各验收和边界见 issue 21、22、23。`real-browser-baseline` 经验已更新，不保留认证值或某次实体 ID。
+
 ## 最新接续：提案 17、18 已统一完成
 
 - 本轮用户明确要求统一规划推进 17、18，完成后更新进度并提交；该要求覆盖下文历史的“不要提前推进 18”。总进度 18 / 48，19 待开始，本轮没有实施 19。

@@ -17,12 +17,17 @@ export async function startProductionProxy(distRoot, apiUrl) {
 	const webSockets = new Set();
 	const server = createServer((incoming, outgoing) => {
 		const url = new URL(incoming.url, 'http://127.0.0.1');
-		if (url.pathname.startsWith('/prod-api/')) {
-			const upstream = request(new URL(url.pathname.slice('/prod-api'.length) + url.search, apiUrl), {
+		if (url.pathname.startsWith('/prod-api/') || url.pathname === '/schedule' || url.pathname.startsWith('/schedule/')) {
+			const upstream = request(new URL((url.pathname.startsWith('/prod-api/') ? url.pathname.slice('/prod-api'.length) : url.pathname) + url.search, apiUrl), {
 				method: incoming.method, agent: false,
 				headers: { ...incoming.headers, host: apiUrl.host, connection: 'close' },
 			}, (response) => {
-				outgoing.writeHead(response.statusCode, response.headers);
+				const headers = { ...response.headers };
+				if (headers.location) {
+					const location = new URL(headers.location, apiUrl);
+					if (location.origin === apiUrl.origin) headers.location = location.pathname + location.search;
+				}
+				outgoing.writeHead(response.statusCode, headers);
 				response.pipe(outgoing);
 			});
 			upstreamRequests.add(upstream);

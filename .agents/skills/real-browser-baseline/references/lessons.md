@@ -151,3 +151,13 @@
 - `.scratch/frontend-vben-migration/run-user-contract-baseline.mjs`：独立生产 Mock 契约示例。
 - `.scratch/frontend-vben-migration/production-proxy.mjs`：隔离代理与连接释放。
 - `.scratch/frontend-vben-migration/issues/06-user-org-position-acceptance.md`：边界、工程验证和最终证据矩阵。
+
+### 2026-10-09：调度运行、Select 标签与独立看板代理
+
+- 适用条件：Antdv-Next 1.5.2、Furion 4.9.9.92、桌面生产构建和真实隔离任务。
+- Select 的外层 `aria-label` 未形成内部 combobox 的可访问名称。给对应 FormItem 设置实际 `name` 后，标签与控件关联，真实脚本和契约均可通过名称定位。先检查脱敏 DOM，不能把改 CSS 选择器当作辅助体验修复。
+- 引擎的“正在运行”状态可能早于任务正文执行，运行记录也可能先于任务结束出现。取消验收用本机 fixture 收到任务正文的启动回执作为前提，连续 10 次真实取消通过；暂停验收先核验成功结果与运行结束，再暂停，避免错误状态前提。
+- Cron 首次运行按当前引擎从计算起点之后开始，不包含起点。用同一表达式、格式和未来 StartTime 比较预览 5 次与数据库 LastRunTime；本次发现起点错位后修正并真实通过。其他引擎版本应重新核验。
+- 原 Sundial.Dashboard 的路由、静态资源、POST 数据接口与事件流位于 `/schedule`。相对业务 API 前缀不能直接作为看板页面前缀；根路径需在开发、生产和验收代理均转发。仅检查 iframe 文档与脚本 HTTP 200 会漏掉白屏；还要实际登录、检查作业内容并用无认证请求验证数据拒绝。
+- 原看板有“显示密码”和“登录”两个按钮，任务编号也在多个标签重复。按登录按钮名和作业列表面板中的标题节点限定，等待成功通知消失后截图；异步响应等待与点击使用 `Promise.all`，防止点击失败后留下未处理拒绝。
+- 归档：提案 21、22、23 的任务记录与 `run-job-browser-baseline.mjs`。本机测试产物与凭据不写入通用配置。

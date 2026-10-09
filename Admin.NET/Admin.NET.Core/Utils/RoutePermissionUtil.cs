@@ -16,7 +16,7 @@ public static class RoutePermissionUtil
     /// </summary>
     public static bool RequiresExplicitGrant(string permission)
     {
-        return permission?.ToLowerInvariant() is "syslangtext:export" or "syslangtext:import" or
+        return permission?.StartsWith("sysJob:", StringComparison.OrdinalIgnoreCase) == true || permission?.ToLowerInvariant() is "syslangtext:export" or "syslangtext:import" or
             "syslangtext:batchdelete" or "syslangtext:batchsave" or "syslangtext:aitranslatetext" or "sysconfig:savesysinfo" or
             "sysfile:page" or "sysfile:uploadfile" or "sysfile:downloadfile" or "sysfile:update" or "sysfile:delete";
     }
@@ -35,6 +35,7 @@ public static class RoutePermissionUtil
         // 缓存值和前缀操作复用现有查询、删除权限，不新增 API 或菜单权限。
         return permission.ToLowerInvariant() switch
         {
+            "sysjob:cronpreview" or "sysjob:listjobgroup" or "sysjob:jobtriggerlist" => "sysJob:pageJobDetail",
             "syscache:value" or "syscache:keysbyprefixkey" => "sysCache:keyList",
             "syscache:deletebyprekey" => "sysCache:delete",
             "sysldap:syncdept" => "sysLdap:syncOrg",
