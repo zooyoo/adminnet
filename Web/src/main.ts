@@ -16,11 +16,8 @@ import VueSignaturePad from 'vue-signature-pad';
 // 组织架构图
 import vue3TreeOrg from 'vue3-tree-org';
 import 'vue3-tree-org/lib/vue3-tree-org.css';
-// 关闭自动打印
-import { disAutoConnect } from 'vue-plugin-hiprint';
 import sysDict from "/@/components/sysDict/sysDict.vue";
 import multiLangInput from "/@/components/multiLangInput/index.vue";
-disAutoConnect();
 
 const app = createApp(App);
 

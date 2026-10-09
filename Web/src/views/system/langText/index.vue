@@ -5,12 +5,10 @@ import { ElMessageBox, ElMessage } from "element-plus";
 import { downloadStreamFile } from "/@/utils/download";
 import { useSysLangTextApi } from '/@/api/system/sysLangText';
 import editDialog from '/@/views/system/langText/component/editDialog.vue'
-import printDialog from '/@/views/system/print/component/hiprint/preview.vue'
 import ModifyRecord from '/@/components/table/modifyRecord.vue';
 import ImportData from "/@/components/table/importData.vue";
 
 const sysLangTextApi = useSysLangTextApi();
-const printDialogRef = ref();
 const editDialogRef = ref();
 const importDataRef = ref();
 const state = reactive({
@@ -194,7 +192,6 @@ handleQuery();
               size="small"
               background />
       <ImportData ref="importDataRef" :import="sysLangTextApi.importData" :download="sysLangTextApi.downloadTemplate" v-auth="'sysLangText:import'" @refresh="handleQuery"/>
-      <printDialog ref="printDialogRef" :title="'打印翻译'" @reloadTable="handleQuery" />
       <editDialog ref="editDialogRef" @reloadTable="handleQuery" />
     </el-card>
   </div>
