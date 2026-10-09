@@ -2,6 +2,16 @@
 
 日期：2026-10-09（Asia/Shanghai）。
 
+## 最新接续：第 10 项已完成，下一项 11
+
+- 总进度 10 / 48，goal 仍 active；第 10 项随本记录提交，后续使用 `git log` 确认提交号。严格逐项完成、更新、提交再推进，仅桌面验收。
+- 已实现站点品牌/Logo/版权备案页脚、匿名租户选择、方案所属租户与关联校验、明确站点保存授权、Logo 取消及异步会话保护。
+- 后端 179 项、相关 Vitest 27 项、桌面生产契约 10 项通过；lint/type/build 通过，仅既有告警。API 构建目录 `Temp/adminnet-vben-build-10`，测试输出 `Temp/adminnet-vben-test-10`。
+- 最终真实证据 `C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-12d67f4456714d11a25fc366439786e2/evidence/`；通过与清理均 true，服务已停止，Logo 和数据库作为证据保留。契约目录 `Temp/adminnet-site-ui-2Xta7k`。
+- 一次浏览器登录 `D1000` 未确定原因，随后真实登录通过；保留观察，不宣称修复。真实脚本和 Skill 均已更新。
+- 保留且不要提交用户 `Admin.NET/Admin.NET.Application/Configuration/DeepSeek.example` 与 `doc/frontend-vben-tickets-draft.md` 改动。后者最新范围：19/20 使用 pdfme，36 删除钉钉，37 删除 GoView，39 删除微信支付订单与退款。
+- 下一项 11：桌面页面验证手机登录与注册，先核查现有短信实现与可用隔离测试服务，不发送真实短信、不用成功 Mock 关闭真实验收。
+
 ## 最新接续：第 09 项已完成，下一项 10
 
 本节覆盖下方旧交接的当前编号。01 至 09 已完成，总进度 9 / 48，goal 仍 active。

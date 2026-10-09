@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 // 仅验证浏览器与 API 的契约，不替代真实后端、多角色和多租户联调。
 test.beforeEach(async ({ page }) => {
-	await page.route('**/prod-api/api/sysConfig/sysInfo', (route) =>
+	await page.route('**/prod-api/api/sysConfig/sysInfo*', (route) =>
 		route.fulfill({
 			json: { code: 200, result: { title: 'Admin.NET', captcha: 1, secondVer: 2, hideTenantForLogin: false, enableReg: 1, wayList: [] } },
 		})

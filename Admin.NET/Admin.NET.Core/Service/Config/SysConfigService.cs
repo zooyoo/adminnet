@@ -283,9 +283,9 @@ public class SysConfigService : IDynamicApiController, ITransient
     [SuppressMonitor]
     [AllowAnonymous]
     [DisplayName("获取系统信息")]
-    public async Task<dynamic> GetSysInfo()
+    public async Task<dynamic> GetSysInfo(long? tenantId = null)
     {
-        var tenant = await SysTenantService.GetCurrentTenantSysInfo();
+        var tenant = await SysTenantService.GetCurrentTenantSysInfo(tenantId);
         var wayList = await _sysConfigRep.Context.Queryable<SysUserRegWay>()
             .Where(u => u.TenantId == tenant.Id)
             .Select(u => new { Label = u.Name, Value = u.Id })
@@ -322,6 +322,10 @@ public class SysConfigService : IDynamicApiController, ITransient
     public async Task SaveSysInfo(InfoSaveInput input)
     {
         var tenant = await _sysTenantRep.GetFirstAsync(u => u.Id == _userManager.TenantId) ?? throw Oops.Oh(ErrorCodeEnum.D1002);
+        if (!Enum.IsDefined(input.EnableReg)) throw Oops.Oh(ErrorCodeEnum.D3005);
+        if (input.EnableReg == YesNoEnum.Y &&
+            !await _sysConfigRep.Context.Queryable<SysUserRegWay>().AnyAsync(u => u.Id == input.RegWayId && u.TenantId == tenant.Id))
+            throw Oops.Oh(ErrorCodeEnum.D1035);
         if (!string.IsNullOrEmpty(input.LogoBase64)) SysTenantService.SetLogoUrl(tenant, input.LogoBase64, input.LogoFileName);
         // await UpdateConfigValue(ConfigConst.SysCaptcha, (input.Captcha == YesNoEnum.Y).ToString());
         // await UpdateConfigValue(ConfigConst.SysSecondVer, (input.SecondVer == YesNoEnum.Y).ToString());

@@ -33,6 +33,7 @@ public class SysUserRegWayService : IDynamicApiController, ITransient
         input.Keyword = input.Keyword?.Trim();
         var query = _sysUserRegWayRep.AsQueryable()
             .WhereIF(_userManager.SuperAdmin && input.TenantId > 0, u => u.TenantId == input.TenantId)
+            .WhereIF(!_userManager.SuperAdmin, u => u.TenantId == _userManager.TenantId)
             .WhereIF(!string.IsNullOrWhiteSpace(input.Keyword), u => u.Name.Contains(input.Keyword))
             .WhereIF(!string.IsNullOrWhiteSpace(input.Name), u => u.Name.Contains(input.Name.Trim()))
             .LeftJoin<SysRole>((u, a) => u.RoleId == a.Id)
@@ -56,10 +57,11 @@ public class SysUserRegWayService : IDynamicApiController, ITransient
     [ApiDescriptionSettings(Name = "Add"), HttpPost]
     public async Task<long> Add(AddUserRegWayInput input)
     {
-        var entity = input.Adapt<SysUserRegWay>();
-        if (await _sysUserRegWayRep.IsAnyAsync(u => u.Name == input.Name)) throw Oops.Oh(ErrorCodeEnum.D2101);
-
+        input.TenantId = _userManager.SuperAdmin && input.TenantId > 0 ? input.TenantId : _userManager.TenantId;
         await CheckData(input);
+        var entity = input.Adapt<SysUserRegWay>();
+        entity.Id = 0;
+        if (await _sysUserRegWayRep.IsAnyAsync(u => u.TenantId == input.TenantId && u.Name == input.Name)) throw Oops.Oh(ErrorCodeEnum.D2101);
         return await _sysUserRegWayRep.InsertAsync(entity) ? entity.Id : 0;
     }
 
@@ -72,10 +74,14 @@ public class SysUserRegWayService : IDynamicApiController, ITransient
     [ApiDescriptionSettings(Name = "Update"), HttpPost]
     public async Task Update(UpdateUserRegWayInput input)
     {
-        if (await _sysUserRegWayRep.IsAnyAsync(u => u.Id != input.Id && u.Name == input.Name)) throw Oops.Oh(ErrorCodeEnum.D2101);
-
+        var entity = await FindOwned(input.Id);
+        if (input.TenantId > 0 && input.TenantId != entity.TenantId) throw Oops.Oh(ErrorCodeEnum.D1013);
+        input.TenantId = entity.TenantId;
         await CheckData(input);
-        await _sysUserRegWayRep.AsUpdateable(input).ExecuteCommandAsync();
+        if (await _sysUserRegWayRep.IsAnyAsync(u => u.TenantId == input.TenantId && u.Id != input.Id && u.Name == input.Name)) throw Oops.Oh(ErrorCodeEnum.D2101);
+        await _sysUserRegWayRep.AsUpdateable(input.Adapt<SysUserRegWay>())
+            .UpdateColumns(u => new { u.Name, u.AccountType, u.RoleId, u.OrgId, u.PosId, u.OrderNo, u.Remark })
+            .ExecuteCommandAsync();
     }
 
     /// <summary>
@@ -85,13 +91,25 @@ public class SysUserRegWayService : IDynamicApiController, ITransient
     [NonAction]
     public async Task CheckData(AddUserRegWayInput input)
     {
-        // 检查外键数据是否存在
-        if (!await _sysUserRegWayRep.Context.Queryable<SysRole>().AnyAsync(u => u.Id == input.RoleId)) throw Oops.Oh(ErrorCodeEnum.D1036);
-        if (!await _sysUserRegWayRep.Context.Queryable<SysOrg>().AnyAsync(u => u.Id == input.OrgId)) throw Oops.Oh(ErrorCodeEnum.D2011);
-        if (!await _sysUserRegWayRep.Context.Queryable<SysPos>().AnyAsync(u => u.Id == input.PosId)) throw Oops.Oh(ErrorCodeEnum.D6003);
+        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Trim().Length > 32) throw Oops.Oh(ErrorCodeEnum.D3005);
+        input.Name = input.Name.Trim();
+        if (input.TenantId <= 0 || !await _sysUserRegWayRep.Context.Queryable<SysTenant>().AnyAsync(u => u.Id == input.TenantId && u.Status == StatusEnum.Enable))
+            throw Oops.Oh(ErrorCodeEnum.D1002);
+        // 所有关联必须属于方案租户，超级管理员也不能混用不同租户的数据。
+        if (!await _sysUserRegWayRep.Context.Queryable<SysRole>().AnyAsync(u => u.Id == input.RoleId && u.TenantId == input.TenantId)) throw Oops.Oh(ErrorCodeEnum.D1036);
+        if (!await _sysUserRegWayRep.Context.Queryable<SysOrg>().AnyAsync(u => u.Id == input.OrgId && u.TenantId == input.TenantId)) throw Oops.Oh(ErrorCodeEnum.D2011);
+        if (!await _sysUserRegWayRep.Context.Queryable<SysPos>().AnyAsync(u => u.Id == input.PosId && u.TenantId == input.TenantId)) throw Oops.Oh(ErrorCodeEnum.D6003);
 
         // 禁止注册超级管理员和系统管理员
-        if (input.AccountType is AccountTypeEnum.SysAdmin or AccountTypeEnum.SuperAdmin) throw Oops.Oh(ErrorCodeEnum.D1037);
+        if (!Enum.IsDefined(input.AccountType) || input.AccountType is AccountTypeEnum.SysAdmin or AccountTypeEnum.SuperAdmin) throw Oops.Oh(ErrorCodeEnum.D1037);
+    }
+
+    private async Task<SysUserRegWay> FindOwned(long id)
+    {
+        return await _sysUserRegWayRep.AsQueryable()
+            .Where(u => u.Id == id)
+            .WhereIF(!_userManager.SuperAdmin, u => u.TenantId == _userManager.TenantId)
+            .FirstAsync() ?? throw Oops.Oh(ErrorCodeEnum.D1002);
     }
 
     /// <summary>
@@ -104,12 +122,12 @@ public class SysUserRegWayService : IDynamicApiController, ITransient
     [ApiDescriptionSettings(Name = "Delete"), HttpPost]
     public async Task Delete(BaseIdInput input)
     {
-        var entity = await _sysUserRegWayRep.GetFirstAsync(u => u.Id == input.Id) ?? throw Oops.Oh(ErrorCodeEnum.D1002);
+        var entity = await FindOwned(input.Id);
 
         // 关闭相关租户注册功能
         await _sysUserRegWayRep.Context.Updateable(new SysTenant { EnableReg = YesNoEnum.N, RegWayId = null })
             .UpdateColumns(u => new { u.EnableReg, u.RegWayId })
-            .Where(u => u.RegWayId == input.Id)
+            .Where(u => u.Id == entity.TenantId && u.RegWayId == input.Id)
             .ExecuteCommandAsync();
 
         // 删除方案

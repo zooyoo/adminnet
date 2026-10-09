@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { AuthApi } from '#/api/core/auth';
 
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { SliderCaptcha } from '@vben/common-ui';
@@ -10,6 +10,7 @@ import { Alert, Button, Form, FormItem, Input, InputPassword, Select, Spin } fro
 
 import { getCaptchaApi, getSystemInfoApi, getTenantOptionsApi, isEnabled } from '#/api';
 import { useAuthStore } from '#/store';
+import { applySiteBrand } from '#/utils/site-brand';
 
 defineOptions({ name: 'Login' });
 const store = useAuthStore();
@@ -23,6 +24,26 @@ const loading = ref(true);
 const errorMessage = ref('');
 const form = reactive<AuthApi.LoginParams>({ account: '', password: '', code: '', tenantId: undefined });
 const requireCaptcha = computed(() => isEnabled(info.value?.captcha));
+let generation = 0;
+
+async function loadTenantInfo() {
+	const current = ++generation;
+	loading.value = true;
+	info.value = undefined;
+	verified.value = false;
+	errorMessage.value = '';
+	try {
+		const result = await getSystemInfoApi(form.tenantId);
+		if (current !== generation) return;
+		info.value = result;
+		applySiteBrand(result);
+		await refreshCaptcha();
+	} catch (error) {
+		if (current === generation) errorMessage.value = error instanceof Error ? error.message : '无法加载登录配置';
+	} finally {
+		if (current === generation) loading.value = false;
+	}
+}
 
 async function refreshCaptcha() {
 	if (!requireCaptcha.value) return;
@@ -32,25 +53,32 @@ async function refreshCaptcha() {
 }
 
 async function initialize() {
+	const current = ++generation;
 	loading.value = true;
 	errorMessage.value = '';
 	try {
-		info.value = await getSystemInfoApi();
+		const initial = await getSystemInfoApi();
+		if (current !== generation) return;
+		info.value = initial;
 		if (!info.value.hideTenantForLogin) {
-			tenants.value = await getTenantOptionsApi();
+			const options = await getTenantOptionsApi();
+			if (current !== generation) return;
+			tenants.value = options;
 			const host = window.location.hostname.toLowerCase();
 			const matchingTenant = tenants.value.find((item) => item.host === host);
-			form.tenantId = matchingTenant?.value ?? tenants.value[0]?.value;
+			const requested = tenants.value.find((item) => String(item.value) === route.query.tenantId);
+			form.tenantId = requested?.value ?? matchingTenant?.value ?? tenants.value[0]?.value;
 		}
-		await refreshCaptcha();
+		await loadTenantInfo();
 	} catch (error) {
-		errorMessage.value = error instanceof Error ? error.message : '无法加载登录配置';
+		if (current === generation) errorMessage.value = error instanceof Error ? error.message : '无法加载登录配置';
 	} finally {
-		loading.value = false;
+		if (current === generation) loading.value = false;
 	}
 }
 
 async function submit() {
+	if (loading.value || !info.value) return;
 	errorMessage.value = '';
 	if (isEnabled(info.value?.secondVer) && !verified.value) {
 		errorMessage.value = '请先完成验证';
@@ -66,6 +94,13 @@ async function submit() {
 }
 
 onMounted(initialize);
+let activated = false;
+onActivated(() => {
+	if (activated) void initialize();
+	activated = true;
+});
+onDeactivated(() => generation++);
+onBeforeUnmount(() => generation++);
 </script>
 
 <template>
@@ -74,8 +109,8 @@ onMounted(initialize);
 		<Alert v-if="errorMessage" :message="errorMessage" type="error" show-icon class="mb-4" />
 		<Spin :spinning="loading">
 			<Form :model="form" layout="vertical" @finish="submit">
-				<FormItem v-if="info && !info.hideTenantForLogin" name="tenantId" label="租户" :rules="[{ required: true, message: '请选择租户' }]">
-					<Select v-model:value="form.tenantId" :options="tenants" show-search option-filter-prop="label" />
+				<FormItem v-if="tenants.length" name="tenantId" label="租户" :rules="[{ required: true, message: '请选择租户' }]">
+					<Select v-model:value="form.tenantId" :options="tenants" show-search option-filter-prop="label" @change="loadTenantInfo" />
 				</FormItem>
 				<FormItem name="account" label="账号" :rules="[{ required: true, message: '请输入账号' }]">
 					<Input v-model:value="form.account" autocomplete="username" size="large" />
@@ -97,7 +132,7 @@ onMounted(initialize);
 		</Spin>
 		<div class="mt-4 flex justify-between">
 			<Button type="link" @click="router.push({ path: '/auth/code-login', query: route.query })">手机登录</Button>
-			<Button v-if="isEnabled(info?.enableReg)" type="link" @click="router.push({ path: '/auth/register', query: route.query })">注册账号</Button>
+			<Button v-if="isEnabled(info?.enableReg)" type="link" @click="router.push({ path: '/auth/register', query: { ...route.query, tenantId: form.tenantId } })">注册账号</Button>
 			<Button v-if="!info && !loading" type="link" @click="initialize">重新加载</Button>
 		</div>
 	</section>

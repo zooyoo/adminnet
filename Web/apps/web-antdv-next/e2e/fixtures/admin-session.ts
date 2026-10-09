@@ -65,7 +65,7 @@ export async function mockAdminSession(page: Page, module: AdminModule, options:
 					tenantId: 1,
 					currentTenantId: 1,
 					roleIds: [1],
-					buttons: module === 'dict' ? ['sysDictType', 'sysDictData'].flatMap((code) => actions.map((action) => `${code}:${action}`)) : actions.map((action) => `${prefix}:${action}`),
+					buttons: module === 'infoSetting' ? (options.readOnly ? [] : ['sysConfig:saveSysInfo']) : module === 'dict' ? ['sysDictType', 'sysDictData'].flatMap((code) => actions.map((action) => `${code}:${action}`)) : actions.map((action) => `${prefix}:${action}`),
 				},
 			},
 		})

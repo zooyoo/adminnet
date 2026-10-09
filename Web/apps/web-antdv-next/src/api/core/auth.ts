@@ -45,6 +45,11 @@ export namespace AuthApi {
 	export interface SystemInfo {
 		title: string;
 		logo: string;
+		viceTitle?: string;
+		viceDesc?: string;
+		copyright?: string;
+		icp?: string;
+		icpUrl?: string;
 		captcha: number | string;
 		secondVer: number | string;
 		hideTenantForLogin: boolean;
@@ -85,8 +90,8 @@ export function getCaptchaApi() {
 	return requestClient.get<AuthApi.Captcha>('/api/sysAuth/captcha', { adminAnonymous: true });
 }
 
-export function getSystemInfoApi() {
-	return requestClient.get<AuthApi.SystemInfo>('/api/sysConfig/sysInfo', { adminAnonymous: true });
+export function getSystemInfoApi(tenantId?: number | string) {
+	return requestClient.get<AuthApi.SystemInfo>('/api/sysConfig/sysInfo', { adminAnonymous: true, params: { tenantId } });
 }
 
 export function getTenantOptionsApi() {

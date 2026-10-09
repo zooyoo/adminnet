@@ -447,7 +447,7 @@ public class SysAuthService : IDynamicApiController, ITransient
 
         // 查找注册方案
         var wayId = input.WayId <= 0 ? tenant.RegWayId : input.WayId;
-        var regWay = await _sysUserRep.Context.Queryable<SysUserRegWay>().FirstAsync(u => u.Id == wayId) ?? throw Oops.Oh(ErrorCodeEnum.D1035);
+        var regWay = await _sysUserRep.Context.Queryable<SysUserRegWay>().FirstAsync(u => u.Id == wayId && u.TenantId == tenant.Id) ?? throw Oops.Oh(ErrorCodeEnum.D1035);
 
         var addUserInput = new AddUserInput
         {

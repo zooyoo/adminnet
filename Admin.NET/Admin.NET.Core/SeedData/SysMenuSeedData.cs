@@ -240,6 +240,7 @@ public class SysMenuSeedData : ISqlSugarEntitySeedData<SysMenu>
 
             // 系统配置
             new SysMenu{ Id=1300300140101, Pid=1300300000101, Title="系统配置", Path="/platform/infoSetting", Name="sysInfoSetting", Component="/system/infoSetting/index", Icon="ele-Setting", Type=MenuTypeEnum.Menu, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=220 },
+            new SysMenu{ Id=1300300140201, Pid=1300300140101, Title="保存", Permission="sysConfig:saveSysInfo", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=100 },
 
             // 微信支付
             new SysMenu{ Id=1300300150101, Pid=1300300000101, Title="微信支付", Path="/platform/wechatpay", Name="sysWechatPay", Component="/system/weChatPay/index", Icon="ele-Coin", Type=MenuTypeEnum.Menu, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=230 },

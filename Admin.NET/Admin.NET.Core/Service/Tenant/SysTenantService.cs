@@ -122,14 +122,15 @@ public class SysTenantService : IDynamicApiController, ITransient
     /// </summary>
     /// <returns></returns>
     [NonAction]
-    public async Task<SysTenant> GetCurrentTenantSysInfo()
+    public async Task<SysTenant> GetCurrentTenantSysInfo(long? selectedTenantId = null)
     {
-        var tenantId = long.Parse(App.User?.FindFirst(ClaimConst.TenantId)?.Value ?? "0");
-        var host = App.HttpContext.Request.Host.Host.ToLower();
-        var tenant = await _sysTenantRep.AsQueryable()
-            .WhereIF(tenantId > 0, u => u.Id == tenantId && SqlFunc.ToLower(u.Host).Contains(host))
-            .WhereIF(!(tenantId > 0), u => SqlFunc.ToLower(u.Host).Contains(host))
-            .FirstAsync();
+        // 已登录用户始终读取当前身份的配置，匿名入口可显式选择启用的租户。
+        var tenantId = _userManager.TenantId > 0 ? _userManager.TenantId : selectedTenantId.GetValueOrDefault();
+        if (tenantId > 0)
+            return await _sysTenantRep.GetFirstAsync(u => u.Id == tenantId && u.Status == StatusEnum.Enable)
+                ?? throw Oops.Oh(ErrorCodeEnum.D1002);
+        var host = App.HttpContext.Request.Host.Host.ToLowerInvariant();
+        var tenant = await _sysTenantRep.GetFirstAsync(u => u.Status == StatusEnum.Enable && SqlFunc.ToLower(u.Host) == host);
         tenant ??= await _sysTenantRep.GetFirstAsync(u => u.Id == SqlSugarConst.DefaultTenantId);
         _ = tenant ?? throw Oops.Oh(ErrorCodeEnum.D1002);
         return tenant;
@@ -206,36 +207,27 @@ public class SysTenantService : IDynamicApiController, ITransient
     [NonAction]
     public void SetLogoUrl(SysTenant tenant, string logoBase64, string logoFileName)
     {
-        if (string.IsNullOrEmpty(tenant?.Logo) && string.IsNullOrEmpty(tenant?.Logo)) return;
-
-        // 旧图标文件相对路径
-        var oldSysLogoRelativeFilePath = tenant.Logo ?? "";
-        var oldSysLogoAbsoluteFilePath = Path.Combine(App.WebHostEnvironment.WebRootPath, oldSysLogoRelativeFilePath.TrimStart('/'));
-
-        var groups = Regex.Match(logoBase64, @"data:image/(?<type>.+?);base64,(?<data>.+)").Groups;
-
-        //var type = groups["type"].Value;
-        var base64Data = groups["data"].Value;
-        var binData = Convert.FromBase64String(base64Data);
-
-        // 根据文件名取扩展名
-        var ext = string.IsNullOrWhiteSpace(logoFileName) ? ".png" : Path.GetExtension(logoFileName);
-
-        // 本地图标保存路径
-        var fileName = $"{tenant.ViceTitle}-logo{ext}".ToLower();
-        var path = _uploadOptions.Path.Replace("/{yyyy}/{MM}/{dd}", "");
-        path = path.StartsWith("/") || Regex.IsMatch(path, "^[A-Z|a-z]:") ? path : Path.Combine(App.WebHostEnvironment.WebRootPath, path);
+        if (string.IsNullOrWhiteSpace(logoBase64)) return;
+        if (logoBase64.Length > 7 * 1024 * 1024) throw Oops.Oh(ErrorCodeEnum.D3005);
+        var match = Regex.Match(logoBase64, @"\Adata:image/(?<type>png|jpeg|gif|webp);base64,(?<data>[A-Za-z0-9+/=\r\n]+)\z");
+        if (!match.Success) throw Oops.Oh(ErrorCodeEnum.D3005);
+        byte[] binData;
+        try { binData = Convert.FromBase64String(match.Groups["data"].Value); }
+        catch (FormatException) { throw Oops.Oh(ErrorCodeEnum.D3005); }
+        if (binData.Length == 0 || binData.Length > 5 * 1024 * 1024) throw Oops.Oh(ErrorCodeEnum.D3005);
+        // 文件名不使用用户输入，避免路径越界和不同租户同名覆盖；保留旧资源以支持失败恢复。
+        var ext = match.Groups["type"].Value == "jpeg" ? "jpg" : match.Groups["type"].Value;
+        var fileName = $"logo-{Guid.NewGuid():N}.{ext}";
+        // Logo 是公开站点资源，磁盘位置与公开 URL 保持一致。
+        var path = Path.Combine(App.WebHostEnvironment.WebRootPath, "upload");
         var absoluteFilePath = Path.Combine(path, fileName);
-
-        // 删除已存在文件
-        if (File.Exists(oldSysLogoAbsoluteFilePath)) File.Delete(oldSysLogoAbsoluteFilePath);
 
         // 创建文件夹
         var absoluteFileDir = Path.GetDirectoryName(absoluteFilePath);
         if (!Directory.Exists(absoluteFileDir)) Directory.CreateDirectory(absoluteFileDir);
 
         // 保存图标文件
-        File.WriteAllBytesAsync(absoluteFilePath, binData);
+        File.WriteAllBytes(absoluteFilePath, binData);
 
         // 保存图标配置
         tenant.Logo = $"/upload/{fileName}";

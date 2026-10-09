@@ -17,7 +17,7 @@ public static class RoutePermissionUtil
     public static bool RequiresExplicitGrant(string permission)
     {
         return permission?.ToLowerInvariant() is "syslangtext:export" or "syslangtext:import" or
-            "syslangtext:batchdelete" or "syslangtext:batchsave" or "syslangtext:aitranslatetext";
+            "syslangtext:batchdelete" or "syslangtext:batchsave" or "syslangtext:aitranslatetext" or "sysconfig:savesysinfo";
     }
 
     public static string GetPermissionName(HttpContext context)

@@ -3,17 +3,21 @@ import type { InfoSaveInput } from '#/api-services/models';
 
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
+import { useAccess } from '@vben/access';
 import { createIconifyIcon } from '@vben/icons';
 import { updatePreferences } from '@vben/preferences';
 
 import { Alert, Button, Form, FormItem, Image, Input, message, RadioGroup, Select, Spin, Upload } from 'antdv-next';
 
+import { sessionBoundary } from '#/api/session';
 import { getSiteInfo, saveSiteInfo, siteDraft } from '#/api/system/site-info';
+import { siteLogoUrl } from '#/utils/site-logo';
 import { logoAsDataUrl } from '#/views/system/tenant/tenant-form';
 
 defineOptions({ name: 'SysInfoSetting' });
 const Save = createIconifyIcon('lucide:save');
 const Refresh = createIconifyIcon('lucide:refresh-cw');
+const { hasAccessByCodes } = useAccess();
 const loading = ref(true);
 const saving = ref(false);
 const reading = ref(false);
@@ -23,16 +27,21 @@ const logo = ref('');
 const logoName = ref('');
 const ways = ref<Array<{ label: string; value: number }>>([]);
 let generation = 0;
+let editorSession = sessionBoundary.version;
+let logoGeneration = 0;
 
 async function load() {
 	const current = ++generation;
+	const version = sessionBoundary.version;
+	editorSession = version;
+	logoGeneration++;
 	loading.value = true;
 	error.value = '';
 	try {
 		const info = await getSiteInfo();
-		if (current !== generation) return;
+		if (current !== generation || version !== sessionBoundary.version) return;
 		value.value = siteDraft(info);
-		logo.value = info.logo ?? '';
+		logo.value = siteLogoUrl(info.logo);
 		logoName.value = '';
 		ways.value = info.wayList ?? [];
 	} catch (cause) {
@@ -42,8 +51,9 @@ async function load() {
 	}
 }
 async function selectLogo(file: File) {
-	if (!file.type.startsWith('image/')) {
-		message.warning('请选择图片文件');
+	if (loading.value || saving.value || error.value || editorSession !== sessionBoundary.version) return false;
+	if (!['image/gif', 'image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+		message.warning('请选择 PNG、JPEG、GIF 或 WebP 图片');
 		return false;
 	}
 	if (file.size > 5 * 1024 * 1024) {
@@ -51,10 +61,12 @@ async function selectLogo(file: File) {
 		return false;
 	}
 	const current = generation;
+	const selection = ++logoGeneration;
+	const version = editorSession;
 	reading.value = true;
 	try {
 		const data = await logoAsDataUrl(file);
-		if (current === generation) {
+		if (current === generation && selection === logoGeneration && version === sessionBoundary.version) {
 			value.value.logoBase64 = data;
 			value.value.logoFileName = file.name;
 			logoName.value = file.name;
@@ -62,24 +74,32 @@ async function selectLogo(file: File) {
 	} catch (cause) {
 		message.error(cause instanceof Error ? cause.message : 'Logo 读取失败');
 	} finally {
-		if (current === generation) reading.value = false;
+		if (current === generation && selection === logoGeneration) reading.value = false;
 	}
 	return false;
 }
+function cancelLogo() {
+	logoGeneration++;
+	reading.value = false;
+	value.value.logoBase64 = undefined;
+	value.value.logoFileName = undefined;
+	logoName.value = '';
+}
 async function save() {
-	if (saving.value || loading.value || reading.value || error.value) return;
+	if (saving.value || loading.value || reading.value || error.value || editorSession !== sessionBoundary.version || !hasAccessByCodes(['sysConfig:saveSysInfo'])) return;
 	if (value.value.enableReg === 1 && !value.value.regWayId) {
 		message.warning('请选择注册方案');
 		return;
 	}
 	saving.value = true;
 	const current = generation;
+	const version = editorSession;
 	try {
 		await saveSiteInfo({ ...value.value, regWayId: value.value.enableReg === 1 ? value.value.regWayId : undefined });
-		if (current !== generation) return;
+		if (current !== generation || version !== sessionBoundary.version) return;
 		message.success('系统信息已保存');
 		await load();
-		if (!error.value) {
+		if (!error.value && version === sessionBoundary.version) {
 			updatePreferences({
 				app: { name: value.value.title || 'Admin.NET' },
 				logo: { source: logo.value || `${import.meta.env.BASE_URL}logo.png`, sourceDark: logo.value || `${import.meta.env.BASE_URL}logo.png` },
@@ -109,9 +129,10 @@ onBeforeUnmount(() => {
 				<FormItem name="logoBase64" label="系统图标"
 					><div class="logo-row">
 						<Image v-if="value.logoBase64 || logo" :src="value.logoBase64 || logo" :width="88" :height="88" />
-						<Upload accept="image/*" :show-upload-list="false" :before-upload="selectLogo" :disabled="loading || saving || reading"
+						<Upload accept="image/png,image/jpeg,image/gif,image/webp" :show-upload-list="false" :before-upload="selectLogo" :disabled="loading || saving || reading || !!error"
 							><Button :loading="reading" :disabled="loading || saving">选择 Logo</Button></Upload
 						><span>{{ logoName }}</span>
+						<Button v-if="value.logoBase64 || reading" :disabled="saving" @click="cancelLogo">取消 Logo 更改</Button>
 					</div></FormItem
 				>
 				<div class="field-grid">
@@ -134,7 +155,7 @@ onBeforeUnmount(() => {
 				<FormItem v-if="value.enableReg === 1" name="regWayId" label="注册方案" :rules="[{ required: true, message: '请选择注册方案' }]"
 					><Select v-model:value="value.regWayId" :options="ways" :virtual="false" allow-clear
 				/></FormItem>
-				<Button type="primary" html-type="submit" :loading="saving" :disabled="reading || loading || !!error"><Save :size="16" />保存</Button>
+				<Button v-if="hasAccessByCodes(['sysConfig:saveSysInfo'])" type="primary" html-type="submit" :loading="saving" :disabled="reading || loading || !!error"><Save :size="16" />保存</Button>
 			</Form>
 		</Spin>
 	</section>

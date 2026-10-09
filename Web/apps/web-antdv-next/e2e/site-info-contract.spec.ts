@@ -58,6 +58,13 @@ test('system logo submits base64 once and an authenticated load failure blocks s
 	await expect(page.getByRole('button', { name: /^保\s*存$/ })).toBeEnabled();
 	await page.locator('input[type=file]').setInputFiles({ name: 'site-logo.png', mimeType: 'image/png', buffer: readFileSync(new URL('../public/logo.png', import.meta.url)) });
 	await expect(page.getByText('site-logo.png', { exact: true })).toBeVisible();
+	await page.getByRole('button', { name: '取消 Logo 更改', exact: true }).click();
+	const [cancelled] = await Promise.all([page.waitForRequest((req) => req.url().endsWith('/sysConfig/saveSysInfo')), page.getByRole('button', { name: /^保\s*存$/ }).click()]);
+	expect(cancelled.postDataJSON()).not.toHaveProperty('logoBase64');
+	expect(cancelled.postDataJSON()).not.toHaveProperty('logoFileName');
+	await expect(page.getByRole('button', { name: /^保\s*存$/ })).toBeEnabled();
+	await page.locator('input[type=file]').setInputFiles({ name: 'site-logo.png', mimeType: 'image/png', buffer: readFileSync(new URL('../public/logo.png', import.meta.url)) });
+	await expect(page.getByText('site-logo.png', { exact: true })).toBeVisible();
 	const [saved] = await Promise.all([page.waitForRequest((req) => req.url().endsWith('/sysConfig/saveSysInfo')), page.getByRole('button', { name: /^保\s*存$/ }).click()]);
 	expect(saved.postDataJSON().logoBase64).toMatch(/^data:image\/png;base64,/);
 	expect(saved.postDataJSON().logoFileName).toBe('site-logo.png');
@@ -66,4 +73,11 @@ test('system logo submits base64 once and an authenticated load failure blocks s
 	await page.getByRole('button', { name: '重新加载系统信息', exact: true }).click();
 	await expect(page.locator('.site-info-page').getByRole('alert')).toContainText('系统信息不可用');
 	await expect(page.getByRole('button', { name: /^保\s*存$/ })).toBeDisabled();
+});
+
+test('read-only site settings cannot save', async ({ page }) => {
+	await mockAdminSession(page, 'infoSetting', { readOnly: true });
+	await loginAdmin(page, 'infoSetting');
+	await expect(page.getByRole('textbox', { name: '系统主标题', exact: true })).toBeVisible();
+	await expect(page.getByRole('button', { name: /^保\s*存$/ })).toHaveCount(0);
 });

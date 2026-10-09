@@ -3,10 +3,13 @@ import type { FormInstance } from 'antdv-next';
 
 import type { RegistrationDraft, RegistrationRecord } from '#/api/system/registration';
 
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
+
+import { useUserStore } from '@vben/stores';
 
 import { Alert, Form, FormItem, Input, InputNumber, Modal, Select, Spin, TextArea, TreeSelect } from 'antdv-next';
 
+import { sessionBoundary } from '#/api/session';
 import { registrationOptions, saveRegistration } from '#/api/system/registration';
 import { useReferenceStore } from '#/store/reference';
 import { treeOptions } from '#/utils/admin-tree';
@@ -23,11 +26,15 @@ const options = ref<Awaited<ReturnType<typeof registrationOptions>>>({ orgs: [],
 const orgs = computed(() => treeOptions(options.value.orgs, undefined, value.value.tenantId ?? undefined));
 const accountTypes = computed(() => reference.options('AccountTypeEnum').filter((item) => item.value !== 888 && item.value !== 999));
 let generation = 0;
+let editorSession = sessionBoundary.version;
 async function show(record?: RegistrationRecord, tenantId?: number) {
+	if (saving.value) return;
 	const current = ++generation;
+	const version = sessionBoundary.version;
+	editorSession = version;
 	value.value = {
 		id: record?.id,
-		tenantId: record?.tenantId ?? tenantId,
+		tenantId: record?.tenantId ?? tenantId ?? (Number(useUserStore().userInfo?.currentTenantId) || undefined),
 		name: record?.name ?? '',
 		accountType: record?.accountType ?? 777,
 		roleId: record?.roleId,
@@ -42,7 +49,7 @@ async function show(record?: RegistrationRecord, tenantId?: number) {
 	error.value = '';
 	try {
 		const [result] = await Promise.all([registrationOptions(value.value.tenantId ?? undefined), reference.load()]);
-		if (current !== generation) return;
+		if (current !== generation || version !== sessionBoundary.version) return;
 		options.value = result;
 		form.value?.clearValidate();
 	} catch (cause) {
@@ -52,15 +59,19 @@ async function show(record?: RegistrationRecord, tenantId?: number) {
 	}
 }
 async function save() {
-	if (loading.value || saving.value || error.value) return;
+	if (loading.value || saving.value || error.value || editorSession !== sessionBoundary.version) return;
+	const current = generation;
+	const version = editorSession;
 	try {
 		await form.value?.validate();
 	} catch {
 		return;
 	}
+	if (current !== generation || version !== sessionBoundary.version || !open.value || saving.value) return;
 	saving.value = true;
 	try {
 		await saveRegistration(value.value);
+		if (current !== generation || version !== sessionBoundary.version) return;
 		open.value = false;
 		emit('saved');
 	} catch {
@@ -69,6 +80,7 @@ async function save() {
 		saving.value = false;
 	}
 }
+onBeforeUnmount(() => generation++);
 defineExpose({ show });
 </script>
 
@@ -77,7 +89,12 @@ defineExpose({ show });
 		v-model:open="open"
 		:title="value.id ? '编辑注册方案' : '添加注册方案'"
 		:width="640"
-		:mask-closable="false"
+		:mask="{ closable: false }"
+		centered
+		:styles="{ body: { maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto' } }"
+		:closable="!saving"
+		:keyboard="!saving"
+		:cancel-button-props="{ disabled: saving }"
 		:confirm-loading="saving"
 		:ok-button-props="{ disabled: loading || !!error }"
 		@ok="save"
