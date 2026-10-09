@@ -2,6 +2,20 @@
 
 日期：2026-10-09（Asia/Shanghai）。
 
+## 最新接续：第 08 项已完成，下一项 09
+
+本节覆盖下方第 07 项交接的“当前/下一项”状态；历史说明保留。
+
+- 01 至 08 已完成，整体 8 / 48，goal 仍 active。第 08 项随本次交接提交，使用 `git log` 核验。
+- 字典租户缓存键、状态更新、父类型保护、删除顺序与失效已修复；参数按租户读写、共享定义保护、改名缓存、特殊字符键解码已修复；真实字典样式渲染及编辑会话保护通过。
+- 后端 156 项（新增 13 项）、Vitest 24 项、生产桌面契约 16 项通过，2 项手机专用跳过。lint 0 错误、3 条既有警告；类型/构建通过。Antdv lint 仍仅回显参数。
+- 最终真实 API/浏览器报告：`C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-dea69df8bb18453191fd45822e4d8333/evidence/`，passed/cleanupPassed 均 true。最终 `--outage` 已停止 API，证据保留。
+- 最终生产契约目录：`C:/Users/zoyo/AppData/Local/Temp/adminnet-dictionary-ui-jRtbwe/`。完整矩阵在 issue 08。
+- API 构建目录更新为 `C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-build-08`，测试输出为 `adminnet-vben-test-08`。
+- 执行期间 `doc/frontend-vben-tickets-draft.md` 出现外部排版修改，保留并排除第 08 项提交。
+- 下一项 09：语言/翻译 CRUD、模板、真实 Excel 导入、部分失败工作簿、选中导出、二进制错误与权限。先检查既有 AI 翻译配置及可用测试服务，不用 Mock 关闭真实验收。
+- 未获用户委派授权，不启动子代理。继续仅桌面和既有 Skill/PowerShell/隔离环境约束。
+
 ## 当前状态
 
 - 用户要求严格按 01 → 48 实施，每项完成验收、更新进度并提交，再整理上下文继续。已完成 01 至 07，下一项 08；整个 goal 仍然有效，不能将 7 / 48 记为整体完成。

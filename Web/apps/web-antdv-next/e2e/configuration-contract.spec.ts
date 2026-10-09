@@ -85,15 +85,24 @@ test('configuration printing renders an escaped real print document', async ({ p
 	await page.goto('/#/auth/login');
 	await page.addInitScript(() => {
 		window.print = () => {
-			(window as Window & { printInvoked?: boolean }).printInvoked = true;
+			// 打印引擎会在焦点恢复后移除 iframe，在真实打印调用时采集文档。
+			const target = window.top as Window & { printedDocument?: { heading: string; cells: string[]; images: number } };
+			target.printedDocument = {
+				heading: document.querySelector('h1')?.textContent ?? '',
+				cells: [...document.querySelectorAll('td')].map((cell) => cell.textContent ?? ''),
+				images: document.querySelectorAll('img').length,
+			};
 		};
 	});
 	await loginAdmin(page, 'config');
 	await page.getByRole('button', { name: '打印', exact: true }).click();
-	const frame = page.frameLocator('#printJS');
-	await expect(frame.locator('h1')).toHaveText('系统参数');
-	await expect(frame.locator('td').filter({ hasText: '<img src=x onerror=alert(1)>' })).toHaveText('<img src=x onerror=alert(1)>');
-	await expect(frame.locator('img')).toHaveCount(0);
+	await expect
+		.poll(() => page.evaluate(() => (window as Window & { printedDocument?: unknown }).printedDocument))
+		.toEqual({
+			heading: '系统参数',
+			cells: ['业务配置', 'Business', '<img src=x onerror=alert(1)>', '否', 'business', '2'],
+			images: 0,
+		});
 });
 
 test('read-only configuration hides mutations but retains read-only export', async ({ page }) => {

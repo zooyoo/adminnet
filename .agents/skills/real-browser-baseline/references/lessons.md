@@ -63,6 +63,13 @@
 
 ## 本仓库参考入口
 
+### 2026-10-09：切换响应令牌、样式渲染与短生命周期打印文档
+
+- 切换身份的真实 API helper 如自动采用响应头令牌，应以原 session 的副本发送切换请求；否则验证双租户时两个变量可能已经指向同一身份。第 08 项通过读取双方 `currentTenantId` 与隔离数据库记录定位并验证。
+- Antdv-Next 1.5.2 的 `Tag` 要求 `CSSProperties` 对象；真实字典 `styleSetting` 字符串会在样式合并时触发 `CSSStyleDeclaration` 索引写异常。API 正常返回但列表停留加载时，应收集脱敏 console error；Vue 捕获的渲染异常不一定触发 Playwright `pageerror`。通过浏览器 CSS 解析器转成样式对象后，实际颜色、字重及真实桌面流程通过。
+- `print-js` 在打印返回、焦点恢复后移除 iframe。测试若断言打印调用后的 iframe 长期存在会不稳定；在实际 `window.print` 调用时采集文档标题、单元格文本及图片数，可保留真实打印文档与转义断言。此方法验证输出合同，不代表授权设备实体打印通过。
+- 保持业务菜单 Path 与组件路径的区别：真实隔离种子中的字典/平台参数路由分别为 `/platform/dict`、`/platform/config`，组件在 `system/` 目录。浏览器直达地址应取真实菜单，不能从源码目录推导。
+
 相对于仓库根目录：
 
 - `.scratch/frontend-vben-migration/run-user-browser-baseline.mjs`：真实桌面 CRUD、授权、错误草稿和停机示例。

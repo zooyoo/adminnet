@@ -16,12 +16,14 @@ public class SysCacheService : IDynamicApiController, ISingleton
 {
     private readonly ICacheProvider _cacheProvider;
     private readonly CacheOptions _cacheOptions;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public SysCacheService(ICacheProvider cacheProvider,
-        IOptions<CacheOptions> cacheOptions)
+        IOptions<CacheOptions> cacheOptions, IHttpContextAccessor httpContextAccessor = null)
     {
         _cacheProvider = cacheProvider;
         _cacheOptions = cacheOptions.Value;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     /// <summary>
@@ -81,6 +83,7 @@ public class SysCacheService : IDynamicApiController, ISingleton
     [DisplayName("删除缓存")]
     public int Remove(string key)
     {
+        key = GetRequestCacheKey(key, "delete");
         return _cacheProvider.Cache.Remove($"{_cacheOptions.Prefix}{key}");
     }
 
@@ -169,9 +172,7 @@ public class SysCacheService : IDynamicApiController, ISingleton
     {
         if (string.IsNullOrEmpty(key)) return null;
 
-        // 若Key经过URL编码则进行解码
-        if (Regex.IsMatch(key, @"%[0-9a-fA-F]{2}"))
-            key = HttpUtility.UrlDecode(key);
+        key = GetRequestCacheKey(key, "value");
 
         var fullKey = $"{_cacheOptions.Prefix}{key}";
 
@@ -231,6 +232,20 @@ public class SysCacheService : IDynamicApiController, ISingleton
         }
 
         return _cacheProvider.Cache.Get<object>(fullKey);
+    }
+
+    /// <summary>
+    /// 从原始路径解码一次，保留键中的加号、字面百分号和编码斜杠。
+    /// 内部调用传入的键不做 URL 解码。
+    /// </summary>
+    private string GetRequestCacheKey(string key, string action)
+    {
+        var rawTarget = _httpContextAccessor?.HttpContext?.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpRequestFeature>()?.RawTarget;
+        if (string.IsNullOrEmpty(rawTarget)) return key;
+        var path = rawTarget.Split('?')[0];
+        var prefix = $"/api/sysCache/{action}/";
+        var index = path.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+        return index < 0 ? key : Uri.UnescapeDataString(path[(index + prefix.Length)..]);
     }
 
     /// <summary>

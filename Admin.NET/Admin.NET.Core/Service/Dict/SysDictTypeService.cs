@@ -43,8 +43,7 @@ public class SysDictTypeService : IDynamicApiController, ITransient
             .WhereIF(!_userManager.SuperAdmin, u => u.IsTenant == YesNoEnum.Y)
             .WhereIF(!string.IsNullOrEmpty(input.Code?.Trim()), u => u.Code.Contains(input.Code))
             .WhereIF(!string.IsNullOrEmpty(input.Name?.Trim()), u => u.Name.Contains(input.Name));
-        //.OrderBy(u => new { u.OrderNo, u.Code })
-        var pageList = await baseQuery.ToPagedListAsync(input.Page, input.PageSize);
+        var pageList = await baseQuery.OrderBuilder(input).ToPagedListAsync(input.Page, input.PageSize);
         var list = pageList.Items;
         var ids = list.Select(d => d.Id).Distinct().ToList();
         var translations = await _sysLangTextCacheService.GetTranslations(
@@ -130,7 +129,7 @@ public class SysDictTypeService : IDynamicApiController, ITransient
         var isExist = await _sysDictTypeRep.IsAnyAsync(u => u.Code == input.Code);
         if (isExist) throw Oops.Oh(ErrorCodeEnum.D3001);
 
-        if (_userManager.SuperAdmin) input.IsTenant = YesNoEnum.N;  // 超级管理员添加的字典类型默认非租户级
+        if (!_userManager.SuperAdmin) input.IsTenant = YesNoEnum.Y; // 普通租户新增只能维护租户字典值。
 
         await _sysDictTypeRep.InsertAsync(input.Adapt<SysDictType>());
     }
@@ -146,17 +145,18 @@ public class SysDictTypeService : IDynamicApiController, ITransient
     public async Task UpdateDictType(UpdateDictTypeInput input)
     {
         var dict = await _sysDictTypeRep.GetFirstAsync(x => x.Id == input.Id);
-        if (dict.IsTenant != input.IsTenant) throw Oops.Oh(ErrorCodeEnum.D3012);
         if (dict == null) throw Oops.Oh(ErrorCodeEnum.D3000);
+        if (dict.IsTenant != input.IsTenant) throw Oops.Oh(ErrorCodeEnum.D3012);
 
         if (dict.Code.ToLower().EndsWith("enum") && input.Code != dict.Code) throw Oops.Oh(ErrorCodeEnum.D3007);
-        if (input.SysFlag == YesNoEnum.Y && !_userManager.SuperAdmin) throw Oops.Oh(ErrorCodeEnum.D3009);
+        if ((dict.SysFlag == YesNoEnum.Y || input.SysFlag == YesNoEnum.Y) && !_userManager.SuperAdmin) throw Oops.Oh(ErrorCodeEnum.D3009);
 
         var isExist = await _sysDictTypeRep.IsAnyAsync(u => u.Code == input.Code && u.Id != input.Id);
         if (isExist) throw Oops.Oh(ErrorCodeEnum.D3001);
 
-        _sysCacheService.Remove($"{CacheConst.KeyDict}{input.Code}");
         await _sysDictTypeRep.UpdateAsync(input.Adapt<SysDictType>());
+        await _sysDictDataService.InvalidateTypeCache(dict);
+        await _sysDictDataService.InvalidateTypeCache(input.Adapt<SysDictType>());
     }
 
     /// <summary>
@@ -173,8 +173,8 @@ public class SysDictTypeService : IDynamicApiController, ITransient
         if (dictType.SysFlag == YesNoEnum.Y && !_userManager.SuperAdmin) throw Oops.Oh(ErrorCodeEnum.D3010);
 
         // 删除字典值
-        await _sysDictTypeRep.DeleteAsync(dictType);
         await _sysDictDataService.DeleteDictData(input.Id);
+        await _sysDictTypeRep.DeleteAsync(dictType);
     }
 
     /// <summary>
@@ -200,10 +200,9 @@ public class SysDictTypeService : IDynamicApiController, ITransient
         var dictType = await _sysDictTypeRep.GetByIdAsync(input.Id) ?? throw Oops.Oh(ErrorCodeEnum.D3000);
         if (dictType.SysFlag == YesNoEnum.Y && !_userManager.SuperAdmin) throw Oops.Oh(ErrorCodeEnum.D3009);
 
-        _sysCacheService.Remove($"{CacheConst.KeyDict}{dictType.Code}");
-
         dictType.Status = input.Status;
         await _sysDictTypeRep.AsUpdateable(dictType).UpdateColumns(u => new { u.Status }, true).ExecuteCommandAsync();
+        await _sysDictDataService.InvalidateTypeCache(dictType);
     }
 
     /// <summary>

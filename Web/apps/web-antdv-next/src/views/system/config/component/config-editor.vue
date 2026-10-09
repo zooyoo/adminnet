@@ -3,10 +3,13 @@ import type { FormInstance } from 'antdv-next';
 
 import type { ConfigRecord, ConfigScope, UpdateConfigInput } from '#/api/system/config';
 
-import { ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
+
+import { useUserStore } from '@vben/stores';
 
 import { Alert, AutoComplete, Button, Dropdown, Form, FormItem, Input, InputNumber, Modal, RadioGroup, TextArea } from 'antdv-next';
 
+import { sessionBoundary } from '#/api/session';
 import { configService } from '#/api/system/config';
 
 const props = defineProps<{ scope: ConfigScope; groups: string[] }>();
@@ -17,7 +20,14 @@ const error = ref('');
 const builtin = ref(false);
 const value = ref<UpdateConfigInput>({ name: '', code: '', value: '', sysFlag: 2, orderNo: 100, groupCode: '', remark: '' });
 const form = ref<FormInstance>();
+const user = useUserStore();
+const valueOnly = computed(() => props.scope === 'tenant' && user.userInfo?.accountType !== 999);
+let generation = 0;
+let editorSession = sessionBoundary.version;
 function show(record?: ConfigRecord) {
+	if (saving.value) return;
+	generation++;
+	editorSession = sessionBoundary.version;
 	value.value = {
 		id: record?.id,
 		name: record?.name ?? '',
@@ -34,32 +44,50 @@ function show(record?: ConfigRecord) {
 	form.value?.clearValidate();
 }
 async function save() {
-	if (saving.value) return;
+	if (saving.value || editorSession !== sessionBoundary.version) return;
+	const current = generation;
+	const version = editorSession;
 	try {
 		await form.value?.validate();
 	} catch {
 		return;
 	}
+	if (current !== generation || version !== sessionBoundary.version || !open.value || saving.value) return;
 	saving.value = true;
 	try {
 		await configService(props.scope).save(value.value);
+		if (current !== generation || version !== sessionBoundary.version) return;
 		open.value = false;
 		emit('saved');
 	} catch (cause) {
-		error.value = cause instanceof Error ? cause.message : '配置保存失败';
+		if (current === generation && version === sessionBoundary.version) error.value = cause instanceof Error ? cause.message : '配置保存失败';
 	} finally {
 		saving.value = false;
 	}
 }
+onBeforeUnmount(() => generation++);
 defineExpose({ show });
 </script>
 
 <template>
-	<Modal v-model:open="open" :title="value.id ? '编辑配置' : '添加配置'" :width="640" :mask-closable="false" :confirm-loading="saving" @ok="save">
+	<Modal
+		v-model:open="open"
+		:title="value.id ? '编辑配置' : '添加配置'"
+		:width="640"
+		:mask="{ closable: false }"
+		:confirm-loading="saving"
+		centered
+		:styles="{ body: { maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto' } }"
+		:closable="!saving"
+		:keyboard="!saving"
+		:cancel-button-props="{ disabled: saving }"
+		@ok="save"
+		@cancel="generation++"
+	>
 		<Alert v-if="error" :message="error" type="error" show-icon class="mb-3" />
 		<Form ref="form" name="config-editor" :model="value" layout="vertical">
-			<FormItem name="name" label="配置名称" :rules="[{ required: true, message: '请输入配置名称' }]"><Input v-model:value="value.name" /></FormItem>
-			<FormItem name="code" label="配置编码" :rules="[{ required: true, message: '请输入配置编码' }]"><Input v-model:value="value.code" :disabled="value.sysFlag === 1" /></FormItem>
+			<FormItem name="name" label="配置名称" :rules="[{ required: true, message: '请输入配置名称' }]"><Input v-model:value="value.name" :disabled="valueOnly" /></FormItem>
+			<FormItem name="code" label="配置编码" :rules="[{ required: true, message: '请输入配置编码' }]"><Input v-model:value="value.code" :disabled="valueOnly || value.sysFlag === 1" /></FormItem>
 			<FormItem name="value" label="值" :rules="[{ required: true, message: '请输入值' }]">
 				<Input v-model:value="value.value"
 					><template #addonAfter
@@ -80,15 +108,17 @@ defineExpose({ show });
 			<FormItem name="sysFlag" label="内置参数" :rules="[{ required: true }]"
 				><RadioGroup
 					v-model:value="value.sysFlag"
-					:disabled="builtin"
+					:disabled="builtin || valueOnly"
 					:options="[
 						{ label: '是', value: 1 },
 						{ label: '否', value: 2 },
 					]"
 			/></FormItem>
-			<FormItem name="groupCode" label="分组编码"><AutoComplete v-model:value="value.groupCode" :options="groups.map((item) => ({ value: item }))" :disabled="value.sysFlag === 1" /></FormItem>
-			<FormItem name="orderNo" label="排序"><InputNumber v-model:value="value.orderNo" class="w-full" /></FormItem>
-			<FormItem name="remark" label="备注"><TextArea v-model:value="value.remark" :rows="3" /></FormItem>
+			<FormItem name="groupCode" label="分组编码"
+				><AutoComplete v-model:value="value.groupCode" :options="groups.map((item) => ({ value: item }))" :disabled="valueOnly || value.sysFlag === 1"
+			/></FormItem>
+			<FormItem name="orderNo" label="排序"><InputNumber v-model:value="value.orderNo" :disabled="valueOnly" class="w-full" /></FormItem>
+			<FormItem name="remark" label="备注"><TextArea v-model:value="value.remark" :disabled="valueOnly" :rows="3" /></FormItem>
 		</Form>
 	</Modal>
 </template>

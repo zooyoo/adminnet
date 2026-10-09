@@ -3,10 +3,11 @@ import type { FormInstance } from 'antdv-next';
 
 import type { DictData, DictType, UpdateDictDataInput } from '#/api/system/dict';
 
-import { ref } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
 
 import { Form, FormItem, Input, InputNumber, Modal, Radio, RadioGroup, Tag, TextArea } from 'antdv-next';
 
+import { sessionBoundary } from '#/api/session';
 import { dictTagColor, saveDictData } from '#/api/system/dict';
 import MultiLangInput from '#/components/admin/multi-lang-input.vue';
 
@@ -17,6 +18,8 @@ const title = ref('');
 const builtin = ref(false);
 const form = ref<FormInstance>();
 const value = ref<UpdateDictDataInput>({ label: '', value: '', status: 1, orderNo: 100 });
+let generation = 0;
+let editorSession = sessionBoundary.version;
 const colors = [
 	{ label: '主题色', value: 'primary' },
 	{ label: '成功', value: 'success' },
@@ -25,6 +28,9 @@ const colors = [
 	{ label: '危险', value: 'danger' },
 ];
 function show(type: DictType, record?: DictData, copy = false) {
+	if (saving.value) return;
+	generation++;
+	editorSession = sessionBoundary.version;
 	builtin.value = Boolean(record?.id && !copy && type.sysFlag !== 2);
 	title.value = record ? (copy ? '复制字典值' : '编辑字典值') : '添加字典值';
 	value.value = {
@@ -45,15 +51,19 @@ function show(type: DictType, record?: DictData, copy = false) {
 	form.value?.clearValidate();
 }
 async function save() {
-	if (saving.value) return;
+	if (saving.value || editorSession !== sessionBoundary.version) return;
+	const current = generation;
+	const version = editorSession;
 	try {
 		await form.value?.validate();
 	} catch {
 		return;
 	}
+	if (current !== generation || version !== sessionBoundary.version || !open.value || saving.value) return;
 	saving.value = true;
 	try {
 		await saveDictData(value.value);
+		if (current !== generation || version !== sessionBoundary.version) return;
 		open.value = false;
 		emit('saved');
 	} catch {
@@ -62,11 +72,25 @@ async function save() {
 		saving.value = false;
 	}
 }
+onBeforeUnmount(() => generation++);
 defineExpose({ show });
 </script>
 
 <template>
-	<Modal v-model:open="open" :title="title" :width="640" :mask-closable="false" :confirm-loading="saving" @ok="save">
+	<Modal
+		v-model:open="open"
+		:title="title"
+		:width="640"
+		:mask="{ closable: false }"
+		:confirm-loading="saving"
+		centered
+		:styles="{ body: { maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto' } }"
+		:closable="!saving"
+		:keyboard="!saving"
+		:cancel-button-props="{ disabled: saving }"
+		@ok="save"
+		@cancel="generation++"
+	>
 		<Form ref="form" name="dict-data-editor" :model="value" layout="vertical">
 			<FormItem name="label" label="显示文本" html-for="dict-data-label" :rules="[{ required: true, message: '请输入显示文本' }]"
 				><MultiLangInput id="dict-data-label" v-model="value.label" entity-name="SysDictData" field-name="Label" :entity-id="value.id"

@@ -5,7 +5,21 @@ const types = [
 	{ id: 10, name: '业务状态', code: 'business_status', sysFlag: 2, isTenant: 2, status: 1, orderNo: 100 },
 	{ id: 20, name: '内置状态', code: 'StatusEnum', sysFlag: 1, isTenant: 2, status: 1, orderNo: 100 },
 ];
-const values = [{ id: 101, dictTypeId: 10, label: '已完成', value: 'done', code: 'DONE', tagType: 'success', status: 1, orderNo: 100, extData: '{"checked":true}' }];
+const values = [
+	{
+		id: 101,
+		dictTypeId: 10,
+		label: '已完成',
+		value: 'done',
+		code: 'DONE',
+		tagType: 'success',
+		styleSetting: 'color: red; font-weight: 600',
+		classSetting: 'dictionary-custom',
+		status: 1,
+		orderNo: 100,
+		extData: '{"checked":true}',
+	},
+];
 test.beforeEach(async ({ page }) => {
 	await mockAdminSession(page, 'dict');
 	await page.route('**/prod-api/api/sysDictType/page', (route) => route.fulfill({ json: { code: 200, result: { items: types, total: 2 } } }));
@@ -24,6 +38,9 @@ test('selecting a dictionary loads its values and edits preserve style and exten
 	await page.route('**/prod-api/api/sysDictData/update', (route) => route.fulfill({ json: { code: 200 } }));
 	const [query] = await Promise.all([page.waitForRequest((req) => req.url().endsWith('/sysDictData/page')), page.getByRole('button', { name: '业务状态', exact: true }).click()]);
 	expect(query.postDataJSON()).toMatchObject({ dictTypeId: 10, page: 1, pageSize: 50 });
+	await expect(page.locator('.dictionary-custom')).toHaveText('已完成');
+	await expect(page.locator('.dictionary-custom')).toHaveCSS('color', 'rgb(255, 0, 0)');
+	await expect(page.locator('.dictionary-custom')).toHaveCSS('font-weight', '600');
 	await page.getByRole('button', { name: '编辑字典值', exact: true }).click();
 	const dialog = page.getByRole('dialog');
 	await expect(dialog.getByLabel('扩展数据', { exact: true })).toHaveValue('{"checked":true}');

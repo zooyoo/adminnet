@@ -29,7 +29,7 @@ public class SysTenantConfigService : IDynamicApiController, ITransient
         _sysConfigDataRep = sysConfigDataRep;
         VSysConfig = _sysConfigRep.AsQueryable()
             .InnerJoin(
-                _sysConfigDataRep.AsQueryable().WhereIF(!_userManager.SuperAdmin, cv => cv.TenantId == _userManager.TenantId),
+                _sysConfigDataRep.AsQueryable().Where(cv => cv.TenantId == _userManager.TenantId),
                 (c, cv) => c.Id == cv.ConfigId
             )
             //.Select<SysConfig>().MergeTable();
@@ -72,8 +72,10 @@ public class SysTenantConfigService : IDynamicApiController, ITransient
     /// <returns></returns>
     [ApiDescriptionSettings(Name = "Add"), HttpPost]
     [DisplayName("增加配置参数")]
+    [UnitOfWork]
     public async Task AddConfig(AddConfigInput input)
     {
+        if (!_userManager.SuperAdmin) throw Oops.Oh(ErrorCodeEnum.D1016);
         var isExist = await _sysConfigRep.IsAnyAsync(u => u.Name == input.Name || u.Code == input.Code);
         if (isExist) throw Oops.Oh(ErrorCodeEnum.D9000);
 
@@ -81,7 +83,8 @@ public class SysTenantConfigService : IDynamicApiController, ITransient
         await _sysConfigDataRep.InsertAsync(new SysTenantConfigData()
         {
             ConfigId = configId,
-            Value = input.Value
+            Value = input.Value,
+            TenantId = _userManager.TenantId
         });
     }
 
@@ -95,21 +98,31 @@ public class SysTenantConfigService : IDynamicApiController, ITransient
     [UnitOfWork]
     public async Task UpdateConfig(UpdateConfigInput input)
     {
+        var existing = await _sysConfigRep.GetByIdAsync(input.Id) ?? throw Oops.Oh("配置不存在");
+        if (existing.SysFlag == YesNoEnum.Y && (input.SysFlag != existing.SysFlag || input.Code != existing.Code))
+            throw Oops.Oh(ErrorCodeEnum.D9001);
+        // 定义为平台共享，普通租户只能维护当前租户的值。
+        if (!_userManager.SuperAdmin && (input.Name != existing.Name || input.Code != existing.Code ||
+            (input.GroupCode ?? "") != (existing.GroupCode ?? "") || input.SysFlag != existing.SysFlag ||
+            input.OrderNo != existing.OrderNo || (input.Remark ?? "") != (existing.Remark ?? "")))
+            throw Oops.Oh(ErrorCodeEnum.D1016);
         var isExist = await _sysConfigRep.IsAnyAsync(u => (u.Name == input.Name || u.Code == input.Code) && u.Id != input.Id);
         if (isExist) throw Oops.Oh(ErrorCodeEnum.D9000);
 
         var config = input.Adapt<SysTenantConfig>();
         await _sysConfigRep.AsUpdateable(config).IgnoreColumns(true).ExecuteCommandAsync();
-        var configData = await _sysConfigDataRep.GetFirstAsync(cv => cv.ConfigId == input.Id);
+        var configData = await _sysConfigDataRep.GetFirstAsync(cv => cv.ConfigId == input.Id && cv.TenantId == _userManager.TenantId);
         if (configData == null)
-            await _sysConfigDataRep.AsInsertable(new SysTenantConfigData() { ConfigId = input.Id, Value = input.Value }).ExecuteCommandAsync();
+            await _sysConfigDataRep.AsInsertable(new SysTenantConfigData() { ConfigId = input.Id, Value = input.Value, TenantId = _userManager.TenantId }).ExecuteCommandAsync();
         else
         {
             configData.Value = input.Value;
             await _sysConfigDataRep.AsUpdateable(configData).IgnoreColumns(true).ExecuteCommandAsync();
         }
 
+        RemoveConfigCache(existing);
         RemoveConfigCache(config);
+        if (existing.Code != config.Code) await RemoveAllConfigCaches(existing);
     }
 
     /// <summary>
@@ -119,16 +132,17 @@ public class SysTenantConfigService : IDynamicApiController, ITransient
     /// <returns></returns>
     [ApiDescriptionSettings(Name = "Delete"), HttpPost]
     [DisplayName("删除配置参数")]
+    [UnitOfWork]
     public async Task DeleteConfig(DeleteConfigInput input)
     {
-        var config = await _sysConfigRep.GetByIdAsync(input.Id);
+        var config = await _sysConfigRep.GetByIdAsync(input.Id) ?? throw Oops.Oh("配置不存在");
         // 禁止删除系统参数
         if (config.SysFlag == YesNoEnum.Y) throw Oops.Oh(ErrorCodeEnum.D9001);
+        if (!_userManager.SuperAdmin) throw Oops.Oh(ErrorCodeEnum.D1016);
 
+        await RemoveAllConfigCaches(config);
+        await _sysConfigDataRep.Context.Deleteable<SysTenantConfigData>().Where(it => it.ConfigId == config.Id).ExecuteCommandAsync();
         await _sysConfigRep.DeleteAsync(config);
-        await _sysConfigDataRep.DeleteAsync(it => it.TenantId == _userManager.TenantId && it.ConfigId == config.Id);
-
-        RemoveConfigCache(config);
     }
 
     /// <summary>
@@ -138,18 +152,17 @@ public class SysTenantConfigService : IDynamicApiController, ITransient
     /// <returns></returns>
     [ApiDescriptionSettings(Name = "BatchDelete"), HttpPost]
     [DisplayName("批量删除配置参数")]
+    [UnitOfWork]
     public async Task BatchDeleteConfig(List<long> ids)
     {
         foreach (var id in ids)
         {
             var config = await _sysConfigRep.GetByIdAsync(id);
+            if (config == null) continue;
             // 禁止删除系统参数
             if (config.SysFlag == YesNoEnum.Y) continue;
 
-            await _sysConfigRep.DeleteAsync(config);
-            await _sysConfigDataRep.DeleteAsync(it => it.TenantId == _userManager.TenantId && it.ConfigId == config.Id);
-
-            RemoveConfigCache(config);
+            await DeleteConfig(new DeleteConfigInput { Id = id });
         }
     }
 
@@ -224,11 +237,13 @@ public class SysTenantConfigService : IDynamicApiController, ITransient
     {
         if (string.IsNullOrWhiteSpace(code)) return defaultValue;
 
-        var value = _sysCacheService.Get<string>($"{CacheConst.KeyTenantConfig}{tenantId}{code}");
+        var value = _sysCacheService.Get<string>($"{CacheConst.KeyTenantConfig}{tenantId}:{code}");
         if (string.IsNullOrEmpty(value))
         {
-            value = (await VSysConfig.FirstAsync(u => u.Code == code))?.Value;
-            _sysCacheService.Set($"{CacheConst.KeyTenantConfig}{tenantId}{code}", value);
+            value = await _sysConfigRep.AsQueryable()
+                .InnerJoin(_sysConfigDataRep.AsQueryable().ClearFilter().Where(d => d.TenantId == tenantId), (c, d) => c.Id == d.ConfigId)
+                .Where((c, d) => c.Code == code).Select((c, d) => d.Value).FirstAsync();
+            _sysCacheService.Set($"{CacheConst.KeyTenantConfig}{tenantId}:{code}", value);
         }
         if (string.IsNullOrWhiteSpace(value)) return defaultValue;
         return (T)Convert.ChangeType(value, typeof(T));
@@ -284,6 +299,18 @@ public class SysTenantConfigService : IDynamicApiController, ITransient
     /// <param name="config"></param>
     private void RemoveConfigCache(SysTenantConfig config)
     {
-        _sysCacheService.Remove($"{CacheConst.KeyTenantConfig}{_userManager.TenantId}{config.Code}");
+        _sysCacheService.Remove($"{CacheConst.KeyTenantConfig}{_userManager.TenantId}:{config.Code}");
+    }
+
+    /// <summary>
+    /// 共享定义变更时逐个失效实际租户缓存，不使用编码前缀匹配。
+    /// </summary>
+    private async Task RemoveAllConfigCaches(SysTenantConfig config)
+    {
+        RemoveConfigCache(config);
+        var tenantIds = await _sysConfigDataRep.AsQueryable().ClearFilter().Where(d => d.ConfigId == config.Id)
+            .Select(d => d.TenantId).Distinct().ToListAsync();
+        foreach (var tenantId in tenantIds)
+            _sysCacheService.Remove($"{CacheConst.KeyTenantConfig}{tenantId}:{config.Code}");
     }
 }

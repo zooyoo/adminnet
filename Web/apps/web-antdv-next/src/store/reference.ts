@@ -9,6 +9,7 @@ export interface DictOption {
 	label: string;
 	value: number | string;
 	color?: string;
+	status?: number;
 }
 
 export const useReferenceStore = defineStore('admin-reference', () => {
@@ -27,7 +28,10 @@ export const useReferenceStore = defineStore('admin-reference', () => {
 			.then((data) => {
 				if (version !== sessionBoundary.version || current !== epoch) return;
 				dictionaries.value = Object.fromEntries(
-					Object.entries(data ?? {}).map(([key, options]) => [key, options.map((option) => ({ ...option, value: key.endsWith('Enum') ? Number(option.value) : option.value }))])
+					Object.entries(data ?? {}).map(([key, options]) => [
+						key,
+						options.filter((option) => option.status !== 2).map((option) => ({ ...option, value: key.endsWith('Enum') ? Number(option.value) : option.value })),
+					])
 				);
 				loaded = true;
 			})

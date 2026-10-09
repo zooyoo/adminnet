@@ -3,13 +3,15 @@ import type { TableProps } from 'antdv-next';
 
 import type { ConfigRecord, ConfigScope } from '#/api/system/config';
 
-import { onMounted, reactive, ref } from 'vue';
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 
 import { useAccess } from '@vben/access';
 import { createIconifyIcon, Plus, Search } from '@vben/icons';
+import { useUserStore } from '@vben/stores';
 
 import { Alert, Button, Form, FormItem, Input, Modal, Popconfirm, Select, Tag, Tooltip } from 'antdv-next';
 
+import { sessionBoundary } from '#/api/session';
 import { configService } from '#/api/system/config';
 import AdminTable from '#/components/admin-table/index.vue';
 import { useAdminTable } from '#/components/admin-table/use-admin-table';
@@ -20,10 +22,13 @@ import ConfigEditor from './config-editor.vue';
 const props = defineProps<{ scope: ConfigScope }>();
 const service = configService(props.scope);
 const { hasAccessByCodes } = useAccess();
-const can = (action: string) => hasAccessByCodes([`${service.prefix}:${action}`]);
+const user = useUserStore();
+const can = (action: string) =>
+	hasAccessByCodes([`${service.prefix}:${action}`]) && (props.scope !== 'tenant' || user.userInfo?.accountType === 999 || !['add', 'batchDelete', 'delete'].includes(action));
 const filters = reactive({ name: '', code: '', groupCode: undefined as string | undefined });
 const groups = ref<string[]>([]);
 const groupError = ref('');
+let groupGeneration = 0;
 const editor = ref<InstanceType<typeof ConfigEditor>>();
 const Reset = createIconifyIcon('lucide:rotate-ccw');
 const Pencil = createIconifyIcon('lucide:pencil');
@@ -44,11 +49,14 @@ const columns: NonNullable<TableProps<ConfigRecord>['columns']> = [
 	{ title: '操作', key: 'actions', width: 85, fixed: 'right' },
 ];
 async function loadGroups() {
+	const current = ++groupGeneration;
+	const version = sessionBoundary.version;
 	groupError.value = '';
 	try {
-		groups.value = await service.groups();
+		const result = await service.groups();
+		if (current === groupGeneration && version === sessionBoundary.version) groups.value = result;
 	} catch (cause) {
-		groupError.value = cause instanceof Error ? cause.message : '分组加载失败';
+		if (current === groupGeneration && version === sessionBoundary.version) groupError.value = cause instanceof Error ? cause.message : '分组加载失败';
 	}
 }
 async function refresh() {
@@ -79,6 +87,7 @@ function batchRemove() {
 	});
 }
 onMounted(refresh);
+onBeforeUnmount(() => groupGeneration++);
 </script>
 
 <template>

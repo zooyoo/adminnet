@@ -19,6 +19,7 @@ import { useReferenceStore } from '#/store/reference';
 
 import DictDataEditor from './component/dict-data-editor.vue';
 import DictTypeEditor from './component/dict-type-editor.vue';
+import { dictStyle } from './dict-style';
 
 defineOptions({ name: 'SysDict' });
 const Pencil = createIconifyIcon('lucide:pencil');
@@ -153,7 +154,7 @@ onMounted(typeTable.reload);
 					><Button v-if="can('Data', 'add')" type="primary" :disabled="!mutable(selected)" @click="selected && dataEditor?.show(selected)"><Plus :size="16" />新增字典值</Button></template
 				>
 				<template #bodyCell="{ column, record }">
-					<Tag v-if="column.key === 'label'" :color="dictTagColor(record.tagType)" :style="record.styleSetting ?? undefined" :class="record.classSetting">{{ record.label }}</Tag>
+					<Tag v-if="column.key === 'label'" :color="dictTagColor(record.tagType)" :style="dictStyle(record.styleSetting)" :class="record.classSetting">{{ record.label }}</Tag>
 					<Tag v-else-if="column.key === 'extData'" :color="record.extData ? 'success' : 'warning'">{{ record.extData ? '有值' : '空' }}</Tag>
 					<Tag v-else-if="column.key === 'status'" :color="record.status === 1 ? 'success' : 'default'">{{ record.status === 1 ? '启用' : '禁用' }}</Tag>
 					<AuditRecord v-else-if="column.key === 'audit'" :record="record" />

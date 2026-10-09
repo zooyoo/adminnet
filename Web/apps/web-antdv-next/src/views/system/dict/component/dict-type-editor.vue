@@ -3,12 +3,13 @@ import type { FormInstance } from 'antdv-next';
 
 import type { DictType, UpdateDictTypeInput } from '#/api/system/dict';
 
-import { ref } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
 
 import { useUserStore } from '@vben/stores';
 
 import { Form, FormItem, Input, InputNumber, Modal, RadioGroup, TextArea } from 'antdv-next';
 
+import { sessionBoundary } from '#/api/session';
 import { saveDictType } from '#/api/system/dict';
 import MultiLangInput from '#/components/admin/multi-lang-input.vue';
 
@@ -19,7 +20,12 @@ const saving = ref(false);
 const form = ref<FormInstance>();
 const value = ref<UpdateDictTypeInput>({ name: '', code: '', sysFlag: 2, isTenant: 2, status: 1, orderNo: 100 });
 const builtin = ref(false);
+let generation = 0;
+let editorSession = sessionBoundary.version;
 function show(record?: DictType) {
+	if (saving.value) return;
+	generation++;
+	editorSession = sessionBoundary.version;
 	value.value = {
 		id: record?.id,
 		name: record?.name ?? '',
@@ -35,15 +41,19 @@ function show(record?: DictType) {
 	form.value?.clearValidate();
 }
 async function save() {
-	if (saving.value) return;
+	if (saving.value || editorSession !== sessionBoundary.version) return;
+	const current = generation;
+	const version = editorSession;
 	try {
 		await form.value?.validate();
 	} catch {
 		return;
 	}
+	if (current !== generation || version !== sessionBoundary.version || !open.value || saving.value) return;
 	saving.value = true;
 	try {
 		await saveDictType(value.value);
+		if (current !== generation || version !== sessionBoundary.version) return;
 		open.value = false;
 		emit('saved', { ...value.value });
 	} catch {
@@ -52,11 +62,25 @@ async function save() {
 		saving.value = false;
 	}
 }
+onBeforeUnmount(() => generation++);
 defineExpose({ show });
 </script>
 
 <template>
-	<Modal v-model:open="open" :title="value.id ? '编辑字典' : '添加字典'" :width="600" :mask-closable="false" :confirm-loading="saving" @ok="save">
+	<Modal
+		v-model:open="open"
+		:title="value.id ? '编辑字典' : '添加字典'"
+		:width="600"
+		:mask="{ closable: false }"
+		:confirm-loading="saving"
+		centered
+		:styles="{ body: { maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto' } }"
+		:closable="!saving"
+		:keyboard="!saving"
+		:cancel-button-props="{ disabled: saving }"
+		@ok="save"
+		@cancel="generation++"
+	>
 		<Form ref="form" name="dict-type-editor" :model="value" layout="vertical">
 			<FormItem name="name" label="字典名称" html-for="dict-type-name" :rules="[{ required: true, message: '请输入字典名称' }]"
 				><MultiLangInput id="dict-type-name" v-model="value.name" entity-name="SysDictType" field-name="Name" :entity-id="value.id"

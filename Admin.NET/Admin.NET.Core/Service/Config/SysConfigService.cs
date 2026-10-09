@@ -86,7 +86,8 @@ public class SysConfigService : IDynamicApiController, ITransient
     [DisplayName("更新参数配置")]
     public async Task UpdateConfig(UpdateConfigInput input)
     {
-        if (input.SysFlag == YesNoEnum.Y && !_userManager.SuperAdmin) throw Oops.Oh(ErrorCodeEnum.D3010);
+        var existing = await _sysConfigRep.GetByIdAsync(input.Id) ?? throw Oops.Oh("配置不存在");
+        if ((existing.SysFlag == YesNoEnum.Y || input.SysFlag == YesNoEnum.Y) && !_userManager.SuperAdmin) throw Oops.Oh(ErrorCodeEnum.D3010);
 
         var isExist = await _sysConfigRep.IsAnyAsync(u => (u.Name == input.Name || u.Code == input.Code) && u.Id != input.Id);
         if (isExist) throw Oops.Oh(ErrorCodeEnum.D9000);
@@ -94,6 +95,7 @@ public class SysConfigService : IDynamicApiController, ITransient
         var config = input.Adapt<SysConfig>();
         await _sysConfigRep.AsUpdateable(config).IgnoreColumns(true).ExecuteCommandAsync();
 
+        Remove(existing);
         Remove(config);
     }
 
