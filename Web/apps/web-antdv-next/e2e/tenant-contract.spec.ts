@@ -18,6 +18,7 @@ const tenant = {
 };
 
 test.beforeEach(async ({ page }) => {
+	await page.route('**/prod-api/api/**', (route) => route.fulfill({ status: 404, json: { message: 'Contract fixture: undeclared API' } }));
 	await mockAdminSession(page, 'tenant', { superAdmin: true });
 	await page.route('**/prod-api/api/sysTenant/page', (route) => route.fulfill({ json: { code: 200, result: { items: [tenant], total: 1 } } }));
 	await page.route('**/prod-api/api/sysMenu/list**', (route) =>
@@ -38,6 +39,67 @@ test.beforeEach(async ({ page }) => {
 		})
 	);
 	await page.route('**/prod-api/api/sysTenant/tenantMenuList**', (route) => route.fulfill({ json: { code: 200, result: [11] } }));
+});
+
+test('tenant save blocks closing and preserves the draft after failure', async ({ page }) => {
+	let release!: () => void;
+	const pending = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	await page.route('**/prod-api/api/sysTenant/update', async (route) => {
+		await pending;
+		await route.fulfill({ status: 500, json: { message: '租户保存失败测试' } });
+	});
+	await loginAdmin(page, 'tenant');
+	await page.getByRole('button', { name: '编辑租户', exact: true }).click();
+	const dialog = page.getByRole('dialog', { name: '编辑租户', exact: true });
+	await dialog.getByLabel('备注', { exact: true }).fill('保留的租户草稿');
+	try {
+		await Promise.all([page.waitForRequest((request) => request.url().endsWith('/sysTenant/update')), dialog.getByRole('button', { name: /^确\s*定$/ }).click()]);
+		await expect(dialog.getByRole('button', { name: /^取\s*消$/ })).toBeDisabled();
+		await expect(dialog.getByRole('button', { name: '关闭', exact: true })).toHaveCount(0);
+		await page.keyboard.press('Escape');
+		await expect(dialog).toBeVisible();
+	} finally {
+		release();
+	}
+	await expect(dialog.getByRole('alert')).toContainText('租户保存失败测试');
+	await expect(dialog.getByLabel('备注', { exact: true })).toHaveValue('保留的租户草稿');
+	await expect(dialog.getByRole('button', { name: /^取\s*消$/ })).toBeEnabled();
+});
+
+test('late tenant password response cannot reopen the password dialog after leaving the page', async ({ page }) => {
+	let release!: () => void;
+	const pending = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	await page.route('**/prod-api/api/sysTenant/resetPwd', async (route) => {
+		await pending;
+		await route.fulfill({ json: { code: 200, result: 'late-test-only-password' } });
+	});
+	await loginAdmin(page, 'tenant');
+	await page.getByRole('button', { name: '更多租户操作' }).click();
+	await page.getByRole('menuitem', { name: '重置密码', exact: true }).click();
+	const response = page.waitForResponse((item) => item.url().endsWith('/sysTenant/resetPwd'));
+	try {
+		await Promise.all([
+			page.waitForRequest((request) => request.url().endsWith('/sysTenant/resetPwd')),
+			page
+				.getByRole('dialog')
+				.getByRole('button', { name: /^确\s*定$/ })
+				.click(),
+		]);
+		await page.evaluate(() => {
+			window.location.hash = '/dashboard/notice';
+		});
+		await expect(page).toHaveURL(/#\/dashboard\/notice$/);
+	} finally {
+		release();
+	}
+	await response;
+	await expect(page.getByRole('dialog').filter({ hasText: '重置租管密码？' })).toHaveCount(0);
+	await expect(page.getByRole('dialog', { name: '租管密码已重置', exact: true })).toHaveCount(0);
+	await expect(page.getByLabel('重置后的密码')).toHaveCount(0);
 });
 
 test('tenant editing preserves isolation type and uses numeric database types', async ({ page }, testInfo) => {
@@ -194,4 +256,83 @@ test('read-only tenant view exposes no management actions', async ({ page }) => 
 	await loginAdmin(page, 'tenant');
 	await expect(page.getByRole('cell', { name: 'tenant-admin', exact: true })).toBeVisible();
 	await expect(page.getByRole('button', { name: /新增租户|编辑租户|创建数据库|更多租户操作/ })).toHaveCount(0);
+});
+
+for (const failedEndpoint of ['sysAuth/userInfo', 'sysMenu/vbenMenuTree']) {
+	test(`failed candidate ${failedEndpoint} preserves the active tenant and token`, async ({ page }) => {
+		const initialRequest = page.waitForRequest((item) => item.url().endsWith('/sysTenant/page'));
+		await loginAdmin(page, 'tenant');
+		const originalAuthorization = (await initialRequest).headers().authorization;
+		const candidateToken = testToken(2);
+		await page.route('**/prod-api/api/sysTenant/changeTenant', (route) =>
+			route.fulfill({
+				headers: { 'access-token': candidateToken, 'x-access-token': 'candidate-refresh' },
+				json: { code: 200, result: { accessToken: candidateToken, refreshToken: 'candidate-refresh', homepage: '/system/tenant' } },
+			})
+		);
+		await page.route(`**/prod-api/api/${failedEndpoint}`, async (route) => {
+			if (route.request().headers().authorization === `Bearer ${candidateToken}`) {
+				await route.fulfill({ status: 500, json: { message: '候选身份初始化失败' } });
+			} else {
+				await route.fallback();
+			}
+		});
+		await page.getByRole('button', { name: '切换租户', exact: true }).click();
+		const dialog = page.getByRole('dialog', { name: '切换租户', exact: true });
+		await dialog.getByLabel('租户', { exact: true }).click();
+		await page.getByRole('option', { name: '租户二', exact: true }).click();
+		await dialog.getByRole('button', { name: /^确\s*定$/ }).click();
+		await expect(page.getByText('候选身份初始化失败', { exact: true }).first()).toBeVisible();
+		await expect(dialog).toBeVisible();
+		await expect(dialog.getByRole('button', { name: /^确\s*定$/ })).toBeEnabled();
+		await dialog.getByRole('button', { name: /^取\s*消$/ }).click();
+		await expect(page.getByRole('button', { name: '编辑租户', exact: true })).toBeVisible();
+		const [request] = await Promise.all([page.waitForRequest((item) => item.url().endsWith('/sysTenant/page')), page.getByRole('button', { name: /^查\s*询$/ }).click()]);
+		expect(request.headers().authorization).toBe(originalAuthorization);
+		await expect(page).toHaveURL(/#\/system\/tenant$/);
+	});
+}
+
+test('a candidate identity arriving after logout cannot recreate the session', async ({ page }) => {
+	let release!: () => void;
+	const pending = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	await loginAdmin(page, 'tenant');
+	const candidateToken = testToken(2);
+	await page.route('**/prod-api/api/sysAuth/logout', (route) => route.fulfill({ json: { code: 200 } }));
+	await page.route('**/prod-api/api/sysTenant/changeTenant', (route) =>
+		route.fulfill({
+			json: { code: 200, result: { accessToken: candidateToken, refreshToken: 'candidate-refresh', homepage: '/system/tenant' } },
+		})
+	);
+	await page.route('**/prod-api/api/sysAuth/userInfo', async (route) => {
+		if (route.request().headers().authorization !== `Bearer ${candidateToken}`) return route.fallback();
+		await pending;
+		await route.fulfill({ json: { code: 200, result: { id: 22, account: 'candidate', realName: '候选身份', roleIds: [], buttons: [] } } }).catch(() => {});
+	});
+	try {
+		await page.getByRole('button', { name: '切换租户', exact: true }).click();
+		const dialog = page.getByRole('dialog', { name: '切换租户', exact: true });
+		await dialog.getByLabel('租户', { exact: true }).click();
+		await page.getByRole('option', { name: '租户二', exact: true }).click();
+		await Promise.all([
+			page.waitForRequest((request) => request.url().endsWith('/sysAuth/userInfo') && request.headers().authorization === `Bearer ${candidateToken}`),
+			dialog.getByRole('button', { name: /^确\s*定$/ }).click(),
+		]);
+		await dialog.getByRole('button', { name: /^取\s*消$/ }).click();
+		await expect(dialog).toBeHidden();
+		await page.keyboard.press('Alt+q');
+		await page
+			.getByRole('dialog')
+			.getByRole('button', { name: /^确\s*认$/ })
+			.click();
+		await expect(page).toHaveURL(/#\/auth\/login/);
+	} finally {
+		release();
+	}
+	await expect(page.getByLabel('账号', { exact: true })).toBeVisible();
+	await page.reload();
+	await expect(page).toHaveURL(/#\/auth\/login/);
+	await expect(page.getByLabel('账号', { exact: true })).toBeVisible();
 });

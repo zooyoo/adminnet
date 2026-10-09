@@ -12,9 +12,13 @@ namespace Admin.NET.Core;
 /// <typeparam name="T"></typeparam>
 public class SqlSugarRepository<T> : SimpleClient<T>, ISqlSugarRepository<T> where T : class, new()
 {
-    public SqlSugarRepository()
+    public SqlSugarRepository() : this(SqlSugarSetup.ITenant, () => App.HttpContext,
+        tenantId => App.GetRequiredService<SysTenantService>().GetTenantDbConnectionScope(tenantId))
     {
-        var iTenant = SqlSugarSetup.ITenant; // App.GetRequiredService<ISqlSugarClient>().AsTenant();
+    }
+
+    protected SqlSugarRepository(ITenant iTenant, Func<HttpContext> getHttpContext, Func<long, SqlSugarScopeProvider> getTenantConnection)
+    {
         base.Context = iTenant.GetConnectionScope(SqlSugarConst.MainConfigId);
 
         // 若实体贴有多库特性，则返回指定库连接
@@ -36,18 +40,26 @@ public class SqlSugarRepository<T> : SimpleClient<T>, ISqlSugarRepository<T> whe
         if (typeof(T).IsDefined(typeof(SysTableAttribute), false))
             return;
 
-        // 看请求头有没有租户id
-        var tenantId = App.HttpContext?.Request.Headers[ClaimConst.TenantId].FirstOrDefault();
+        var httpContext = getHttpContext();
+        var claimTenantId = httpContext?.User.FindFirst(ClaimConst.TenantId)?.Value;
+        var tenantId = httpContext?.Request.Headers[ClaimConst.TenantId].FirstOrDefault();
+        // 登录用户不能通过请求头绕过当前身份选择其他业务库，包括默认主库。
+        if (httpContext?.User.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(tenantId) &&
+            httpContext.User.FindFirst(ClaimConst.AccountType)?.Value != ((int)AccountTypeEnum.SuperAdmin).ToString() &&
+            (!long.TryParse(tenantId, out var headerId) || !long.TryParse(claimTenantId, out var currentId) || headerId != currentId))
+            throw Oops.Oh(ErrorCodeEnum.D1016);
+
         if (tenantId == SqlSugarConst.MainConfigId) return;
         else if (string.IsNullOrWhiteSpace(tenantId))
         {
             // 若未贴任何表特性或当前未登录或是默认租户Id，则返回默认库连接
-            tenantId = App.User?.FindFirst(ClaimConst.TenantId)?.Value;
+            tenantId = claimTenantId;
             if (string.IsNullOrWhiteSpace(tenantId) || tenantId == SqlSugarConst.MainConfigId) return;
         }
 
         // 根据租户Id切换库连接 为空则返回默认库连接
-        var sqlSugarScopeProviderTenant = App.GetRequiredService<SysTenantService>().GetTenantDbConnectionScope(long.Parse(tenantId));
+        if (!long.TryParse(tenantId, out var selectedId) || selectedId <= 0) throw Oops.Oh(ErrorCodeEnum.D1012);
+        var sqlSugarScopeProviderTenant = getTenantConnection(selectedId);
         if (sqlSugarScopeProviderTenant == null) return;
         base.Context = sqlSugarScopeProviderTenant;
     }

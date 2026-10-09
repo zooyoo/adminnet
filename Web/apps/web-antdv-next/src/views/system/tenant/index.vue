@@ -3,13 +3,14 @@ import type { TableProps } from 'antdv-next';
 
 import type { TenantRecord } from '#/api/system/tenant';
 
-import { onMounted, reactive, ref } from 'vue';
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 
 import { useAccess } from '@vben/access';
 import { createIconifyIcon, Plus, Search } from '@vben/icons';
 
 import { Avatar, Button, Descriptions, DescriptionsItem, Dropdown, Form, FormItem, Input, InputPassword, message, Modal, Switch, Tag, Tooltip } from 'antdv-next';
 
+import { sessionBoundary } from '#/api/session';
 import { createTenantDatabase, databaseTypes, removeTenant, resetTenantPassword, setTenantStatus, synchronizeTenantMenus, tenantPage } from '#/api/system/tenant';
 import AdminTable from '#/components/admin-table/index.vue';
 import { useAdminTable } from '#/components/admin-table/use-admin-table';
@@ -35,6 +36,12 @@ const grant = ref<InstanceType<typeof TenantMenuEditor>>();
 const pending = ref<number[]>([]);
 const passwordOpen = ref(false);
 const password = ref('');
+let active = true;
+onBeforeUnmount(() => {
+	active = false;
+	password.value = '';
+	passwordOpen.value = false;
+});
 const columns: NonNullable<TableProps<TenantRecord>['columns']> = [
 	{ title: '名称', key: 'name', dataIndex: 'name', width: 180 },
 	{ title: '租管账号', key: 'adminAccount', dataIndex: 'adminAccount', width: 140 },
@@ -67,9 +74,11 @@ function reset() {
 async function status(record: TenantRecord) {
 	if (!record.id || pending.value.includes(record.id) || isDefaultTenant(record)) return;
 	pending.value.push(record.id);
+	const version = sessionBoundary.version;
 	try {
 		const next = record.status === 1 ? 2 : 1;
 		await setTenantStatus(record.id, next);
+		if (!active || version !== sessionBoundary.version) return;
 		record.status = next;
 	} catch {
 		/* 请求层提示失败，保留原状态。 */
@@ -84,35 +93,48 @@ function command(action: string, record: TenantRecord) {
 		return;
 	}
 	const labels: Record<string, string> = { createDb: '创建数据库', goTenant: '进入租管端', changeTenant: '切换租户', syncGrantMenu: '同步授权', resetPwd: '重置租管密码', delete: '删除租户' };
+	const version = sessionBoundary.version;
 	Modal.confirm({
 		title: `确定为“${record.name}”${labels[action]}？`,
 		okButtonProps: { danger: action === 'delete' },
 		onOk: async () => {
-			const id = record.id!;
-			switch (action) {
-				case 'createDb':
-					await createTenantDatabase(id);
-					break;
-				case 'goTenant':
-					await auth.changeTenant(id, true);
-					return;
-				case 'changeTenant':
-					await auth.changeTenant(id);
-					return;
-				case 'syncGrantMenu':
-					await synchronizeTenantMenus(id);
-					break;
-				case 'resetPwd':
-					if (!record.userId) throw new Error('未找到租管账号');
-					password.value = await resetTenantPassword(record.userId);
-					passwordOpen.value = true;
-					return;
-				case 'delete':
-					await removeTenant(id);
-					break;
+			if (!active || version !== sessionBoundary.version) return;
+			try {
+				const id = record.id!;
+				switch (action) {
+					case 'createDb':
+						await createTenantDatabase(id);
+						break;
+					case 'goTenant':
+						await auth.changeTenant(id, true);
+						return;
+					case 'changeTenant':
+						await auth.changeTenant(id);
+						return;
+					case 'syncGrantMenu':
+						await synchronizeTenantMenus(id);
+						break;
+					case 'resetPwd': {
+						if (!record.userId) {
+							message.error('未找到租管账号');
+							return;
+						}
+						const result = await resetTenantPassword(record.userId);
+						if (!active || version !== sessionBoundary.version) return;
+						password.value = result;
+						passwordOpen.value = true;
+						return;
+					}
+					case 'delete':
+						await removeTenant(id);
+						break;
+				}
+				if (!active || version !== sessionBoundary.version) return;
+				message.success('操作成功');
+				await table.reload();
+			} catch {
+				/* 请求层已提示失败，保留当前身份和列表，允许重新操作。 */
 			}
-			message.success('操作成功');
-			await table.reload();
 		},
 	});
 }

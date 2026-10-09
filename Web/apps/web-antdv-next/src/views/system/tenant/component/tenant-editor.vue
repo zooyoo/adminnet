@@ -3,10 +3,11 @@ import type { FormInstance } from 'antdv-next';
 
 import type { TenantRecord, UpdateTenantInput } from '#/api/system/tenant';
 
-import { ref } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
 
 import { Alert, Button, Form, FormItem, Image, Input, InputNumber, InputPassword, message, Modal, RadioGroup, Select, TabPane, Tabs, TextArea, Upload } from 'antdv-next';
 
+import { sessionBoundary } from '#/api/session';
 import { databaseTypes, saveTenant } from '#/api/system/tenant';
 
 import { createTenantDraft, logoAsDataUrl } from '../tenant-form';
@@ -21,15 +22,19 @@ const value = ref<UpdateTenantInput>(createTenantDraft());
 const form = ref<FormInstance>();
 const logo = ref<File>();
 let generation = 0;
+let editorSession = sessionBoundary.version;
 
 async function validateLogo() {
 	if (!value.value.logo && !value.value.logoBase64) throw new Error('请选择应用 Logo');
 }
 
 function show(record?: TenantRecord) {
+	if (saving.value) return;
 	generation += 1;
+	editorSession = sessionBoundary.version;
 	value.value = createTenantDraft(record);
 	logo.value = undefined;
+	readingLogo.value = false;
 	error.value = '';
 	activeTab.value = 'base';
 	open.value = true;
@@ -46,47 +51,67 @@ async function chooseLogo(file: File) {
 		return false;
 	}
 	const current = generation;
+	const version = editorSession;
 	readingLogo.value = true;
 	try {
 		const data = await logoAsDataUrl(file);
-		if (current !== generation) return false;
+		if (current !== generation || version !== sessionBoundary.version || !open.value) return false;
 		logo.value = file;
 		value.value.logoBase64 = data;
 		value.value.logoFileName = file.name;
 	} catch (cause) {
-		error.value = cause instanceof Error ? cause.message : '图片读取失败';
+		if (current === generation && version === sessionBoundary.version) error.value = cause instanceof Error ? cause.message : '图片读取失败';
 	} finally {
-		readingLogo.value = false;
+		if (current === generation) readingLogo.value = false;
 	}
 	return false;
 }
 
 async function save() {
-	if (saving.value || readingLogo.value) return;
+	if (saving.value || readingLogo.value || editorSession !== sessionBoundary.version) return;
+	const current = generation;
+	const version = editorSession;
 	error.value = '';
 	try {
 		await form.value?.validate();
 	} catch (cause) {
+		if (current !== generation || version !== sessionBoundary.version) return;
 		const fields = (cause as { errorFields?: Array<{ name: string[] }> }).errorFields ?? [];
 		activeTab.value = fields.some((field) => ['copyright', 'icpUrl', 'logo', 'title', 'viceDesc', 'viceTitle'].includes(field.name[0] ?? '')) ? 'site' : 'base';
 		return;
 	}
+	if (current !== generation || version !== sessionBoundary.version || !open.value) return;
 	saving.value = true;
 	try {
 		await saveTenant({ ...value.value, regWayId: value.value.enableReg === 1 ? value.value.regWayId : undefined });
+		if (current !== generation || version !== sessionBoundary.version) return;
 		open.value = false;
 		emit('saved');
 	} catch (cause) {
-		error.value = cause instanceof Error ? cause.message : '租户保存失败';
+		if (current === generation && version === sessionBoundary.version) error.value = cause instanceof Error ? cause.message : '租户保存失败';
 	} finally {
 		saving.value = false;
 	}
 }
+onBeforeUnmount(() => generation++);
 defineExpose({ show });
 </script>
 
 <template>
-	<Modal v-model:open="open" :title="value.id ? '编辑租户' : '添加租户'" :width="780" :mask-closable="false" :confirm-loading="saving" @ok="save" @cancel="generation++">
+	<Modal
+		v-model:open="open"
+		:title="value.id ? '编辑租户' : '添加租户'"
+		:width="780"
+		centered
+		:styles="{ body: { maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto' } }"
+		:closable="!saving"
+		:keyboard="!saving"
+		:cancel-button-props="{ disabled: saving }"
+		:mask-closable="false"
+		:confirm-loading="saving"
+		@ok="save"
+		@cancel="generation++"
+	>
 		<Alert v-if="error" :message="error" type="error" show-icon class="mb-3" />
 		<Form ref="form" name="tenant-editor" :model="value" layout="vertical">
 			<Tabs v-model:active-key="activeTab">

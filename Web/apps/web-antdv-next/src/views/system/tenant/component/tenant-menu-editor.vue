@@ -2,10 +2,11 @@
 import type { TenantRecord } from '#/api/system/tenant';
 import type { TreeOption } from '#/utils/admin-tree';
 
-import { ref } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
 
 import { Alert, Modal, Spin, Tree } from 'antdv-next';
 
+import { sessionBoundary } from '#/api/session';
 import { menuList } from '#/api/system/access-admin';
 import { grantTenantMenus, tenantMenuIds } from '#/api/system/tenant';
 import { treeOptions } from '#/utils/admin-tree';
@@ -19,9 +20,12 @@ const name = ref('');
 const checked = ref<number[]>([]);
 const nodes = ref<TreeOption[]>([]);
 let generation = 0;
+let editorSession = sessionBoundary.version;
 async function show(record: TenantRecord) {
-	if (!record.id) return;
+	if (!record.id || saving.value) return;
 	const current = ++generation;
+	const version = sessionBoundary.version;
+	editorSession = version;
 	id.value = record.id;
 	name.value = record.name ?? '';
 	open.value = true;
@@ -31,20 +35,23 @@ async function show(record: TenantRecord) {
 	nodes.value = [];
 	try {
 		const [menus, ids] = await Promise.all([menuList(), tenantMenuIds(record.id)]);
-		if (current !== generation || !open.value) return;
+		if (current !== generation || version !== sessionBoundary.version || !open.value) return;
 		nodes.value = treeOptions(menus);
 		checked.value = ids;
 	} catch (cause) {
-		if (current === generation) error.value = cause instanceof Error ? cause.message : '授权加载失败';
+		if (current === generation && version === sessionBoundary.version) error.value = cause instanceof Error ? cause.message : '授权加载失败';
 	} finally {
 		if (current === generation) loading.value = false;
 	}
 }
 async function save() {
-	if (loading.value || saving.value || error.value) return;
+	if (loading.value || saving.value || error.value || editorSession !== sessionBoundary.version) return;
+	const current = generation;
+	const version = editorSession;
 	saving.value = true;
 	try {
 		await grantTenantMenus(id.value, [...checked.value]);
+		if (current !== generation || version !== sessionBoundary.version) return;
 		open.value = false;
 	} catch {
 		/* 请求层已提示错误，保留选择。 */
@@ -52,6 +59,7 @@ async function save() {
 		saving.value = false;
 	}
 }
+onBeforeUnmount(() => generation++);
 defineExpose({ show });
 </script>
 
@@ -60,6 +68,11 @@ defineExpose({ show });
 		v-model:open="open"
 		:title="`授权菜单：${name}`"
 		:width="620"
+		centered
+		:styles="{ body: { maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto' } }"
+		:closable="!saving"
+		:keyboard="!saving"
+		:cancel-button-props="{ disabled: saving }"
 		:mask-closable="false"
 		:confirm-loading="saving"
 		:ok-button-props="{ disabled: loading || !!error }"

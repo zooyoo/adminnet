@@ -9,6 +9,9 @@ import { isTokenExpired } from './session';
 declare module 'axios' {
 	export interface AxiosRequestConfig {
 		adminAnonymous?: boolean;
+		/** 候选身份请求只验证新会话，不替换或注销当前身份。 */
+		adminIdentity?: SessionTokens;
+		adminManualTokens?: boolean;
 		silentError?: boolean;
 		adminSession?: {
 			controller: AbortController;
@@ -50,7 +53,7 @@ export function installAdminInterceptors(instance: AxiosInstance, options: Inter
 
 	instance.interceptors.request.use((config) => {
 		const controller = new AbortController();
-		const session = options.getSession();
+		const session = config.adminIdentity ?? options.getSession();
 		config.signal = config.signal ? AbortSignal.any([config.signal as AbortSignal, controller.signal]) : controller.signal;
 		config.adminSession = { controller, token: session.accessToken, version: boundary.version };
 		boundary.track(controller);
@@ -101,7 +104,7 @@ export function installAdminInterceptors(instance: AxiosInstance, options: Inter
 		const accessToken = headers['access-token'];
 		const refreshToken = headers['x-access-token'];
 		// 同一会话并发响应只能换发当前请求所使用的令牌，避免较旧响应覆盖新令牌。
-		if (!config.adminAnonymous && accessToken && refreshToken && options.getSession().accessToken === config.adminSession?.token) {
+		if (!config.adminAnonymous && !config.adminIdentity && !config.adminManualTokens && accessToken && refreshToken && options.getSession().accessToken === config.adminSession?.token) {
 			options.setTokens({ accessToken, refreshToken });
 		}
 		const mode = (config as InternalAxiosRequestConfig & { responseReturn?: string }).responseReturn;
@@ -115,7 +118,7 @@ export function installAdminInterceptors(instance: AxiosInstance, options: Inter
 		release(config);
 		ensureCurrent(config);
 		if (isCancel(error)) throw error;
-		if (isAxiosError(error) && error.response?.status === 401 && !config?.adminAnonymous) {
+		if (isAxiosError(error) && error.response?.status === 401 && !config?.adminAnonymous && !config?.adminIdentity) {
 			await options.onExpired();
 		} else if (!config?.silentError) {
 			const response = isAxiosError(error) ? error.response : undefined;

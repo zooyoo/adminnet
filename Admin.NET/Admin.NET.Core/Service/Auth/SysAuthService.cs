@@ -236,9 +236,9 @@ public class SysAuthService : IDynamicApiController, ITransient
     /// <param name="sysUserEventTypeEnum"></param>\
     /// <returns></returns>
     [NonAction]
-    internal virtual async Task<LoginOutput> CreateToken(SysUser user, SysUserEventTypeEnum sysUserEventTypeEnum = SysUserEventTypeEnum.Login)
+    internal virtual async Task<LoginOutput> CreateToken(SysUser user, SysUserEventTypeEnum sysUserEventTypeEnum = SysUserEventTypeEnum.Login, bool skipSingleLogin = false)
     {
-        if (sysUserEventTypeEnum != SysUserEventTypeEnum.RefreshToken)
+        if (!skipSingleLogin && sysUserEventTypeEnum != SysUserEventTypeEnum.RefreshToken)
         {
             // 单用户登录
             await _sysOnlineUserService.SingleLogin(user.Id);
@@ -372,6 +372,11 @@ public class SysAuthService : IDynamicApiController, ITransient
 
         // 获取用户Id
         var user = await _sysUserRep.AsQueryable().ClearFilter().FirstAsync(u => u.Id == _userManager.UserId) ?? throw Oops.Oh(ErrorCodeEnum.D1011).StatusCode(401);
+        // 刷新当前身份，不能从用户归属记录恢复成切换前的租户。
+        var tenant = await _sysUserRep.Context.Queryable<SysTenant>().FirstAsync(u => u.Id == _userManager.TenantId);
+        if (tenant == null || tenant.Status != StatusEnum.Enable || user.Status != StatusEnum.Enable)
+            throw Oops.Oh(ErrorCodeEnum.D1011).StatusCode(401);
+        user.TenantId = tenant.Id;
         return await CreateToken(user, SysUserEventTypeEnum.RefreshToken);
     }
 

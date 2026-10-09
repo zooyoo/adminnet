@@ -1,5 +1,7 @@
 import type { UserInfo } from '@vben/types';
 
+import type { SessionTokens } from '#/api/session';
+
 import { requestClient } from '#/api/request';
 
 export interface AdminUserInfo extends UserInfo {
@@ -12,8 +14,8 @@ export interface AdminUserInfo extends UserInfo {
 	watermarkText?: string;
 }
 
-export async function getUserInfoApi() {
-	const data = await requestClient.get<AdminUserInfo>('/api/sysAuth/userInfo');
+export async function getUserInfoApi(identity?: SessionTokens, signal?: AbortSignal) {
+	const data = await requestClient.get<AdminUserInfo>('/api/sysAuth/userInfo', { adminIdentity: identity, signal });
 	return {
 		...data,
 		userId: String(data.id),

@@ -97,10 +97,10 @@ export function sendSmsApi(phone: string) {
 	return requestClient.post(`/api/sysSms/sendSms/${encodeURIComponent(phone)}/0`, undefined, { adminAnonymous: true });
 }
 
-export function changeTenantApi(id: number | string) {
-	return requestClient.post<AuthApi.LoginResult>('/api/sysTenant/changeTenant', { id });
+export function changeTenantApi(id: number | string, signal?: AbortSignal) {
+	return requestClient.post<AuthApi.LoginResult>('/api/sysTenant/changeTenant', { id }, { adminManualTokens: true, signal });
 }
 
-export function enterTenantApi(id: number | string) {
-	return requestClient.post<AuthApi.LoginResult>('/api/sysTenant/goTenant', { id });
+export function enterTenantApi(id: number | string, signal?: AbortSignal) {
+	return requestClient.post<AuthApi.LoginResult>('/api/sysTenant/goTenant', { id }, { adminManualTokens: true, signal });
 }

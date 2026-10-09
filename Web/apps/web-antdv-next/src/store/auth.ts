@@ -11,6 +11,7 @@ import { notification } from 'antdv-next';
 import { defineStore } from 'pinia';
 
 import { changeTenantApi, enterTenantApi, getUserInfoApi, loginApi, logoutApi, phoneLoginApi } from '#/api';
+import { getAllMenusApi, prepareSessionMenus } from '#/api/core/menu';
 import { onlineSession } from '#/api/realtime';
 import { isTokenExpired, sessionBoundary } from '#/api/session';
 import { resetRoutes } from '#/router';
@@ -33,13 +34,13 @@ export const useAuthStore = defineStore(
 			resetAllStores();
 		}
 
-		async function completeLogin(result: AuthApi.LoginResult, version: number, onSuccess?: () => Promise<void> | void) {
+		async function completeLogin(result: AuthApi.LoginResult, version: number, onSuccess?: () => Promise<void> | void, preparedUser?: Awaited<ReturnType<typeof getUserInfoApi>>) {
 			if (version !== sessionBoundary.version) return;
 			if (!result.accessToken || !result.refreshToken) throw new Error('登录响应缺少令牌');
 			accessStore.setAccessToken(result.accessToken);
 			accessStore.setRefreshToken(result.refreshToken);
 			homePath.value = safeRedirect(result.homepage, preferences.app.defaultHomePath);
-			const userInfo = await fetchUserInfo();
+			const userInfo = await fetchUserInfo(preparedUser);
 			if (version !== sessionBoundary.version) return;
 			accessStore.setLoginExpired(false);
 			if (onSuccess) await onSuccess();
@@ -114,19 +115,24 @@ export const useAuthStore = defineStore(
 			}
 		}
 
-		async function changeTenant(id: number | string, enterAdmin = false) {
-			if (loginLoading.value) return;
+		async function changeTenant(id: number | string, enterAdmin = false, signal?: AbortSignal) {
+			if (loginLoading.value || signal?.aborted) return;
 			let version = sessionBoundary.version;
 			let adopted = false;
 			loginLoading.value = true;
 			try {
-				const result = await (enterAdmin ? enterTenantApi(id) : changeTenantApi(id));
-				if (version !== sessionBoundary.version) return;
+				const result = await (enterAdmin ? enterTenantApi(id, signal) : changeTenantApi(id, signal));
+				if (version !== sessionBoundary.version || signal?.aborted) return;
+				if (!result.accessToken || !result.refreshToken) throw new Error('切换响应缺少令牌');
+				// 当前页面及连接继续使用原身份，候选身份验证失败时不丢失原会话。
+				const [userInfo, menus] = await Promise.all([getUserInfoApi(result, signal), getAllMenusApi(result, signal)]);
+				if (version !== sessionBoundary.version || signal?.aborted) return;
 				clearSession();
 				adopted = true;
 				version = sessionBoundary.version;
 				loginLoading.value = true;
-				return await completeLogin(result, version);
+				prepareSessionMenus(menus, version);
+				return await completeLogin(result, version, undefined, userInfo);
 			} catch (error) {
 				if (adopted && version === sessionBoundary.version) await expireSession();
 				throw error;
@@ -135,9 +141,9 @@ export const useAuthStore = defineStore(
 			}
 		}
 
-		async function fetchUserInfo() {
+		async function fetchUserInfo(preparedUser?: Awaited<ReturnType<typeof getUserInfoApi>>) {
 			const version = sessionBoundary.version;
-			const userInfo = await getUserInfoApi();
+			const userInfo = preparedUser ?? (await getUserInfoApi());
 			if (version === sessionBoundary.version) {
 				userInfo.homePath = homePath.value || preferences.app.defaultHomePath;
 				userStore.setUserInfo(userInfo);

@@ -86,6 +86,57 @@ describe('Admin.NET request contract', () => {
 		expect(setTokens).not.toHaveBeenCalled();
 	});
 
+	it('validates a candidate identity without adopting its response tokens', async () => {
+		const original = { ...session };
+		const candidate = { accessToken: jwt(1), refreshToken: 'candidate-refresh' };
+		const instance = client(async (config) => ({
+			config,
+			status: 200,
+			statusText: 'OK',
+			headers: { 'access-token': 'candidate-renewed', 'x-access-token': 'candidate-refresh-renewed' },
+			data: { code: 200, result: {} },
+		}));
+		const result = await instance.get('/api/sysAuth/userInfo', { adminIdentity: candidate });
+		expect(result.config.headers.get('Authorization')).toBe(`Bearer ${candidate.accessToken}`);
+		expect(result.config.headers.get('X-Authorization')).toBe('Bearer candidate-refresh');
+		expect(session).toEqual(original);
+		expect(setTokens).not.toHaveBeenCalled();
+	});
+
+	it('a rejected candidate identity does not expire the active session', async () => {
+		const original = { ...session };
+		const instance = client(async (config) => ({
+			config,
+			status: 200,
+			statusText: 'OK',
+			headers: {},
+			data: { code: 401, message: '候选身份已失效' },
+		}));
+		await expect(
+			instance.get('/api/sysAuth/userInfo', {
+				adminIdentity: { accessToken: 'candidate', refreshToken: 'candidate-refresh' },
+			})
+		).rejects.toThrow();
+		expect(session).toEqual(original);
+		expect(onExpired).not.toHaveBeenCalled();
+		expect(onError).toHaveBeenCalledOnce();
+	});
+
+	it('switch responses defer token adoption until the authentication store commits', async () => {
+		const instance = client(async (config) => ({
+			config,
+			status: 200,
+			statusText: 'OK',
+			headers: { 'access-token': 'candidate', 'x-access-token': 'candidate-refresh' },
+			data: { code: 200, result: {} },
+		}));
+		const original = { ...session };
+		const result = await instance.post('/api/sysTenant/changeTenant', { id: 2 }, { adminManualTokens: true });
+		expect(result.config.headers.get('Authorization')).toBe(`Bearer ${original.accessToken}`);
+		expect(session).toEqual(original);
+		expect(setTokens).not.toHaveBeenCalled();
+	});
+
 	it('rejects business errors in SDK raw mode and reports them once', async () => {
 		const instance = client(async (config) => ({
 			config,
