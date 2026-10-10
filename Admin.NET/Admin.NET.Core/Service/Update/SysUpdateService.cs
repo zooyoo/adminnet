@@ -1,4 +1,4 @@
-// Admin.NET 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
+﻿// Admin.NET 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //
 // 本项目主要遵循 MIT 许可证和 Apache 许可证（版本 2.0）进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 和 LICENSE-APACHE 文件。
 //
@@ -18,188 +18,309 @@ public class SysUpdateService : IDynamicApiController, ITransient
 {
     private readonly SysCacheService _sysCacheService;
     private readonly CDConfigOptions _cdConfigOptions;
+    private readonly UpdateDeploymentCoordinator _deployment;
 
-    public SysUpdateService(IOptions<CDConfigOptions> giteeOptions, SysCacheService sysCacheService)
+    public SysUpdateService(IOptions<CDConfigOptions> options, SysCacheService sysCacheService, UpdateDeploymentCoordinator deployment)
     {
-        _cdConfigOptions = giteeOptions.Value;
+        _cdConfigOptions = options.Value;
         _sysCacheService = sysCacheService;
+        _deployment = deployment;
     }
+
+    /// <summary>
+    /// 获取脱敏的隔离部署授权状态
+    /// </summary>
+    [SuppressMonitor]
+    [DisplayName("隔离部署状态")]
+    [ApiDescriptionSettings(Name = "Status"), HttpGet]
+    public UpdateStatusOutput GetStatus() => _deployment.GetStatus();
 
     /// <summary>
     /// 备份列表
     /// </summary>
-    /// <returns></returns>
+    [SuppressMonitor]
     [DisplayName("备份列表")]
     [ApiDescriptionSettings(Name = "List"), HttpPost]
     public Task<List<BackupOutput>> List()
     {
-        const string backendDir = "Admin.NET";
-        var rootPath = Path.GetFullPath(Path.Combine(_cdConfigOptions.BackendOutput, ".."));
-        return Task.FromResult(Directory.GetFiles(rootPath, backendDir + "*.zip", SearchOption.TopDirectoryOnly)
-            .Select(filePath =>
-            {
-                var file = new FileInfo(filePath);
-                return new BackupOutput
-                {
-                    CreateTime = file.CreationTime,
-                    FilePath = filePath,
-                    FileName = file.Name
-                };
-            })
-            .OrderByDescending(u => u.CreateTime)
-            .ToList());
+        if (!_deployment.GetStatus().Enabled) return Task.FromResult(new List<BackupOutput>());
+        var paths = CheckConfig();
+        var backups = Directory.GetFiles(paths.Root, _cdConfigOptions.Repo + "*.zip", SearchOption.TopDirectoryOnly)
+            .Where(path => UpdateDeploymentCoordinator.IsOwnedBackupName(Path.GetFileName(path), _cdConfigOptions.Repo) && (File.GetAttributes(path) & FileAttributes.ReparsePoint) == 0)
+            .Select(path => new FileInfo(path))
+            .Select(file => new BackupOutput { CreateTime = file.CreationTime, FilePath = file.FullName, FileName = file.Name })
+            .OrderByDescending(file => file.CreateTime).ThenByDescending(file => file.FileName).ToList();
+        return Task.FromResult(backups);
     }
 
     /// <summary>
-    /// 还原
+    /// 还原已存在的备份
     /// </summary>
-    /// <returns></returns>
+    [SuppressMonitor]
     [DisplayName("还原")]
     [ApiDescriptionSettings(Name = "Restore"), HttpPost]
     public async Task Restore(RestoreInput input)
     {
-        // 检查参数
-        CheckConfig();
+        var paths = CheckConfig();
+        if (input == null || string.IsNullOrWhiteSpace(input.FileName) || input.FileName != Path.GetFileName(input.FileName) || input.FileName.Contains('/') || input.FileName.Contains('\\'))
+            throw Oops.Oh("还原文件名无效");
         try
         {
-            var file = (await List()).FirstOrDefault(u => u.FileName.EqualIgnoreCase(input.FileName));
-            if (file == null)
+            await _deployment.RunExclusiveAsync(async cancellationToken =>
             {
-                PrintfLog("文件不存在...");
-                return;
-            }
-
-            PrintfLog("正在还原...");
-            using ZipArchive archive = new(File.OpenRead(file.FilePath), ZipArchiveMode.Read, leaveOpen: false);
-            archive.ExtractToDirectory(_cdConfigOptions.BackendOutput, true);
-            PrintfLog("还原成功...");
+                var backup = (await List()).FirstOrDefault(file => file.FileName.Equals(input.FileName, StringComparison.OrdinalIgnoreCase));
+                if (backup == null) throw new ArgumentException("备份文件不存在");
+                var operation = _deployment.CreateOperationDirectory(paths);
+                var replacementCompleted = false;
+                try
+                {
+                    PrintfLog("正在还原选中的备份...");
+                    var candidate = Path.Combine(operation, "candidate");
+                    using (var stream = File.OpenRead(backup.FilePath)) UpdateDeploymentCoordinator.ExtractArchive(stream, candidate, allowEmpty: true);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    PrintfLog("备份还原前的部署文件...");
+                    _deployment.CreateBackup(paths);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    UpdateDeploymentCoordinator.ReplaceDeployment(paths, candidate, operation);
+                    replacementCompleted = true;
+                    await CleanupBackupsAsync(paths);
+                    PrintfLog("还原成功，重新启动目标部署后生效...");
+                }
+                finally { _deployment.DeleteOperationDirectory(paths, operation, replacementCompleted); }
+            }, App.HttpContext.RequestAborted);
+        }
+        catch (OperationCanceledException)
+        {
+            PrintfLog("还原观察已中断，请重新查看部署结果...");
+            throw;
         }
         catch (Exception ex)
         {
-            PrintfLog("发生异常：" + ex.Message);
-            throw;
+            PrintfLog("还原失败：" + ex.Message);
+            throw Oops.Oh("还原失败，请查看更新日志");
         }
     }
 
     /// <summary>
-    /// 从远端更新系统
+    /// 从配置的仓库更新已授权部署
     /// </summary>
-    /// <returns></returns>
+    [SuppressMonitor]
     [DisplayName("系统更新")]
     [ApiDescriptionSettings(Name = "Update"), HttpPost]
-    public async Task Update()
+    public Task Update() => ExecuteUpdateAsync(false, App.HttpContext.RequestAborted);
+
+    private async Task ExecuteUpdateAsync(bool skipInterval, CancellationToken cancellationToken)
     {
-        var originColor = Console.ForegroundColor;
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine($"【{DateTime.Now}】从远端仓库部署项目");
+        var paths = CheckConfig();
         try
         {
-            PrintfLog("----------------------------从远端仓库部署项目-开始----------------------------");
-
-            // 检查参数
-            CheckConfig();
-
-            // 检查操作间隔
-            if (_cdConfigOptions.UpdateInterval > 0)
+            await _deployment.RunExclusiveAsync(async token =>
             {
-                if (_sysCacheService.Get<bool>(CacheConst.KeySysUpdateInterval)) throw Oops.Oh("请勿频繁操作");
-                _sysCacheService.Set(CacheConst.KeySysUpdateInterval, true, TimeSpan.FromMinutes(_cdConfigOptions.UpdateInterval));
-            }
-
-            PrintfLog($"客户端host：{App.HttpContext.Request.Host}");
-            PrintfLog($"客户端IP：{App.HttpContext.GetRemoteIpAddressToIPv4(true)}");
-            PrintfLog($"仓库地址：https://gitee.com/{_cdConfigOptions.Owner}/{_cdConfigOptions.Repo}.git");
-            PrintfLog($"仓库分支：{_cdConfigOptions.Branch}");
-
-            // 获取解压后的根目录
-            var rootPath = Path.GetFullPath(Path.Combine(_cdConfigOptions.BackendOutput, ".."));
-            var tempDir = Path.Combine(rootPath, $"{_cdConfigOptions.Repo}-{_cdConfigOptions.Branch}");
-
-            PrintfLog("清理旧文件...");
-            FileHelper.TryDelete(tempDir);
-
-            PrintfLog("拉取远端代码...");
-            var stream = await GiteeHelper.DownloadRepoZip(_cdConfigOptions.Owner, _cdConfigOptions.Repo,
-                _cdConfigOptions.AccessToken, _cdConfigOptions.Branch);
-
-            PrintfLog("文件包解压...");
-            using ZipArchive archive = new(stream, ZipArchiveMode.Read, leaveOpen: false);
-            archive.ExtractToDirectory(rootPath);
-
-            // 项目目录
-            var backendDir = "Admin.NET"; // 后端根目录
-            var entryProjectName = "Admin.NET.Web.Entry"; // 启动项目目录
-            var tempOutput = Path.Combine(rootPath, $"{_cdConfigOptions.Repo}_temp");
-
-            PrintfLog("编译项目...");
-            PrintfLog($"发布版本：{_cdConfigOptions.Publish.Configuration}");
-            PrintfLog($"目标框架：{_cdConfigOptions.Publish.TargetFramework}");
-            PrintfLog($"运行环境：{_cdConfigOptions.Publish.RuntimeIdentifier}");
-            var option = _cdConfigOptions.Publish;
-            var adminNetDir = Path.Combine(tempDir, backendDir);
-            var args = $"publish \"{entryProjectName}\" -c {option.Configuration} -f {option.TargetFramework} -r {option.RuntimeIdentifier} --output \"{tempOutput}\"";
-            await RunCommandAsync("dotnet", args, adminNetDir);
-
-            PrintfLog("复制 wwwroot 目录...");
-            var wwwrootDir = Path.Combine(adminNetDir, entryProjectName, "wwwroot");
-            FileHelper.CopyDirectory(wwwrootDir, Path.Combine(tempOutput, "wwwroot"), true);
-
-            // 删除排除文件
-            foreach (var filePath in (_cdConfigOptions.ExcludeFiles ?? new()).SelectMany(file => Directory.GetFiles(tempOutput, file, SearchOption.TopDirectoryOnly)))
-            {
-                PrintfLog($"排除文件：{filePath}");
-                FileHelper.TryDelete(filePath);
-            }
-
-            PrintfLog("备份原项目文件...");
-            string backupPath = Path.Combine(rootPath, $"{_cdConfigOptions.Repo}_{DateTime.Now:yyyy_MM_dd}.zip");
-            if (File.Exists(backupPath)) File.Delete(backupPath);
-            ZipFile.CreateFromDirectory(_cdConfigOptions.BackendOutput, backupPath);
-
-            // 将临时文件移动到正式目录
-            FileHelper.CopyDirectory(tempOutput, _cdConfigOptions.BackendOutput, true);
-
-            PrintfLog("清理文件...");
-            FileHelper.TryDelete(tempOutput);
-            FileHelper.TryDelete(tempDir);
-
-            if (_cdConfigOptions.BackupCount > 0)
-            {
-                var fileList = await List();
-                if (fileList.Count > _cdConfigOptions.BackupCount)
-                    PrintfLog("清除多余的备份文件...");
-                while (fileList.Count > _cdConfigOptions.BackupCount)
+                if (!skipInterval && _cdConfigOptions.UpdateInterval > 0)
                 {
-                    var last = fileList.Last();
-                    FileHelper.TryDelete(last.FilePath);
-                    fileList.Remove(last);
+                    if (_sysCacheService.Get<bool>(CacheConst.KeySysUpdateInterval)) throw new ArgumentException("请勿频繁操作");
+                    _sysCacheService.Set(CacheConst.KeySysUpdateInterval, true, TimeSpan.FromMinutes(_cdConfigOptions.UpdateInterval));
                 }
-            }
-
-            PrintfLog("重启项目后生效...");
+                var operation = _deployment.CreateOperationDirectory(paths);
+                var replacementCompleted = false;
+                try
+                {
+                    PrintfLog("----------------------------隔离部署更新-开始----------------------------");
+                    PrintfLog("下载仓库更新包...");
+                    var source = Path.Combine(operation, "source");
+                    using (var stream = await DownloadArchiveAsync(token)) UpdateDeploymentCoordinator.ExtractArchive(stream, source);
+                    var backend = FindBackendDirectory(source);
+                    var published = Path.Combine(operation, "published");
+                    PrintfLog("编译发布项目...");
+                    await _deployment.PublishAsync(backend, published, PrintfLog, token);
+                    var wwwroot = Path.Combine(backend, "Admin.NET.Web.Entry", "wwwroot");
+                    if (Directory.Exists(wwwroot)) FileHelper.CopyDirectory(wwwroot, Path.Combine(published, "wwwroot"), true);
+                    foreach (var pattern in _cdConfigOptions.ExcludeFiles ?? [])
+                        foreach (var excluded in Directory.GetFiles(published, pattern, SearchOption.TopDirectoryOnly)) File.Delete(excluded);
+                    var candidate = Path.Combine(operation, "candidate");
+                    UpdateDeploymentCoordinator.ValidateTree(paths.Live);
+                    FileHelper.CopyDirectory(paths.Live, candidate, true);
+                    FileHelper.CopyDirectory(published, candidate, true);
+                    UpdateDeploymentCoordinator.ValidateTree(candidate, enforceSnapshotLimits: true);
+                    token.ThrowIfCancellationRequested();
+                    PrintfLog("备份原部署文件...");
+                    _deployment.CreateBackup(paths);
+                    token.ThrowIfCancellationRequested();
+                    PrintfLog("替换部署文件...");
+                    UpdateDeploymentCoordinator.ReplaceDeployment(paths, candidate, operation);
+                    replacementCompleted = true;
+                    await CleanupBackupsAsync(paths);
+                    PrintfLog("更新成功，重新启动目标部署后生效...");
+                }
+                finally
+                {
+                    _deployment.DeleteOperationDirectory(paths, operation, replacementCompleted);
+                    PrintfLog("----------------------------隔离部署更新-结束----------------------------");
+                }
+            }, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            PrintfLog("更新观察已中断，请重新查看部署结果...");
+            throw;
         }
         catch (Exception ex)
         {
-            PrintfLog("发生异常：" + ex.Message);
-            throw;
-        }
-        finally
-        {
-            PrintfLog("----------------------------从远端仓库部署项目-结束----------------------------");
-            Console.ForegroundColor = originColor;
+            PrintfLog("更新失败：" + ex.Message);
+            throw Oops.Oh("更新失败，请查看更新日志");
         }
     }
 
+    private async Task CleanupBackupsAsync(UpdateDeploymentPaths paths)
+    {
+        if (_cdConfigOptions.BackupCount <= 0) return;
+        foreach (var backup in (await List()).Skip(_cdConfigOptions.BackupCount))
+        {
+            if (!UpdateDeploymentCoordinator.IsChildOf(paths.Root, backup.FilePath) || !UpdateDeploymentCoordinator.IsOwnedBackupName(backup.FileName, _cdConfigOptions.Repo) || (File.GetAttributes(backup.FilePath) & FileAttributes.ReparsePoint) != 0)
+                throw new ArgumentException("备份清理目录无效");
+            File.Delete(backup.FilePath);
+        }
+    }
+
+    private async Task<Stream> DownloadArchiveAsync(CancellationToken cancellationToken)
+    {
+        Stream source;
+        HttpClient client = null;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_cdConfigOptions.RepositoryArchiveUrl))
+                source = await GiteeHelper.DownloadRepoZip(_cdConfigOptions.Owner, _cdConfigOptions.Repo, _cdConfigOptions.AccessToken, _cdConfigOptions.Branch);
+            else
+            {
+                client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false, UseCookies = false })
+                    { Timeout = TimeSpan.FromSeconds(60), MaxResponseContentBufferSize = 64L * 1024 * 1024 };
+                var bytes = await client.GetByteArrayAsync(UpdateDeploymentCoordinator.ValidateArchiveUri(_cdConfigOptions.RepositoryArchiveUrl), cancellationToken);
+                source = new MemoryStream(bytes, writable: false);
+            }
+            using (source)
+            {
+                var buffered = new MemoryStream();
+                var buffer = new byte[81920];
+                int read;
+                while ((read = await source.ReadAsync(buffer, cancellationToken)) > 0)
+                {
+                    if (buffered.Length + read > 64L * 1024 * 1024)
+                    {
+                        buffered.Dispose();
+                        throw new ArgumentException("仓库压缩包超出大小上限");
+                    }
+                    await buffered.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                }
+                buffered.Position = 0;
+                return buffered;
+            }
+        }
+        finally { client?.Dispose(); }
+    }
+
+    private static string FindBackendDirectory(string source)
+    {
+        var candidates = Directory.EnumerateDirectories(source).Prepend(source)
+            .Select(directory => Path.Combine(directory, "Admin.NET"))
+            .Where(directory => Directory.Exists(Path.Combine(directory, "Admin.NET.Web.Entry"))).ToArray();
+        if (candidates.Length != 1) throw new ArgumentException("更新包必须包含唯一的 Admin.NET 后端启动项目");
+        return candidates[0];
+    }
+
     /// <summary>
-    /// 仓库WebHook接口
+    /// 获取 WebHook 密钥，仅显式授权调用，响应不进入监控日志
     /// </summary>
-    /// <returns></returns>
+    [SuppressMonitor]
+    [DisplayName("获取WebHook接口密钥")]
+    [ApiDescriptionSettings(Name = "WebHookKey"), HttpGet]
+    public string GetWebHookKey()
+    {
+        CheckConfig();
+        return GetWebHookKeyCore();
+    }
+
+    private string GetWebHookKeyCore()
+    {
+        if (string.IsNullOrWhiteSpace(_cdConfigOptions.AccessToken)) throw Oops.Oh("WebHook 密钥尚未配置");
+        // 保留明确支持的 MD5/SM4 旧值；SM2 和未知模式安全派生，禁止随机密钥或明文 Token。
+        return CryptogramUtil.CryptoType is "MD5" or "SM4"
+            ? CryptogramUtil.Encrypt(_cdConfigOptions.AccessToken)
+            : UpdateDeploymentCoordinator.DeriveStableWebHookKey(_cdConfigOptions.AccessToken);
+    }
+
+    /// <summary>
+    /// 获取日志列表
+    /// </summary>
+    [SuppressMonitor]
+    [DisplayName("获取日志列表")]
+    [ApiDescriptionSettings(Name = "Logs"), HttpGet]
+    public List<string> LogList()
+    {
+        lock (_deployment.LogSync)
+            return (_sysCacheService.Get<List<string>>(CacheConst.KeySysUpdateLog) ?? []).Select(SanitizeLog).ToList();
+    }
+
+    /// <summary>
+    /// 清空日志
+    /// </summary>
+    [SuppressMonitor]
+    [DisplayName("清空日志")]
+    [ApiDescriptionSettings(Name = "Clear"), HttpGet]
+    public async Task ClearLog()
+    {
+        try
+        {
+            await _deployment.RunExclusiveAsync(_ =>
+            {
+                lock (_deployment.LogSync) _sysCacheService.Remove(CacheConst.KeySysUpdateLog);
+                return Task.CompletedTask;
+            }, App.HttpContext.RequestAborted);
+        }
+        catch (InvalidOperationException) { throw Oops.Oh("更新或还原执行期间不能清空日志"); }
+    }
+
+    private UpdateDeploymentPaths CheckConfig()
+    {
+        try { return _deployment.ValidateConfiguration(); }
+        catch (ArgumentException ex) { throw Oops.Oh(ex.Message); }
+        catch (IOException) { throw Oops.Oh("无法读取授权部署目标"); }
+        catch (UnauthorizedAccessException) { throw Oops.Oh("授权部署目标不可访问"); }
+    }
+
+    private string SanitizeLog(string message)
+    {
+        var result = message ?? string.Empty;
+        foreach (var sensitive in new[] { _cdConfigOptions.AccessToken, _cdConfigOptions.AllowedDeploymentRoot, _cdConfigOptions.BackendOutput, _cdConfigOptions.RepositoryArchiveUrl })
+        {
+            if (string.IsNullOrWhiteSpace(sensitive)) continue;
+            result = result.Replace(sensitive, "[已脱敏]", StringComparison.OrdinalIgnoreCase)
+                .Replace(sensitive.Replace('\\', '/'), "[已脱敏]", StringComparison.OrdinalIgnoreCase);
+        }
+        if (!string.IsNullOrWhiteSpace(_cdConfigOptions.AccessToken))
+            result = result.Replace(GetWebHookKeyCore(), "[已脱敏]", StringComparison.Ordinal);
+        result = UpdateDeploymentCoordinator.SanitizePaths(LogDataSanitizer.Sanitize(result));
+        return result.Length <= 4096 ? result : result[..4096] + "…";
+    }
+
+    private void PrintfLog(string message)
+    {
+        lock (_deployment.LogSync)
+        {
+            var logs = (_sysCacheService.Get<List<string>>(CacheConst.KeySysUpdateLog) ?? []).TakeLast(1999).ToList();
+            var content = $"【{DateTime.Now}】 {SanitizeLog(message)}";
+            Console.WriteLine(content);
+            logs.Add(content);
+            _sysCacheService.Set(CacheConst.KeySysUpdateLog, logs);
+        }
+    }
+
     [AllowAnonymous]
+    [SuppressMonitor]
     [DisplayName("仓库WebHook接口")]
     [ApiDescriptionSettings(Name = "WebHook"), HttpPost]
     public async Task WebHook(Dictionary<string, object> input)
     {
-        if (!_cdConfigOptions.Enabled) throw Oops.Oh("未启用持续部署功能");
+        CheckConfig();
         PrintfLog("----------------------------收到WebHook请求-开始----------------------------");
 
         try
@@ -213,18 +334,18 @@ public class SysUpdateService : IDynamicApiController, ITransient
             var token = input.GetValueOrDefault("sign")?.ToString();
             PrintfLog("User-Agent：" + ua);
             PrintfLog("Gitee-Event：" + even);
-            PrintfLog("Gitee-Token：" + token);
-            PrintfLog("Gitee-Timestamp：" + timestamp);
 
             PrintfLog("开始验签...");
-            var secret = GetWebHookKey();
+            var secret = GetWebHookKeyCore();
             var stringToSign = $"{timestamp}\n{secret}";
             using var mac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
             var signData = mac.ComputeHash(Encoding.UTF8.GetBytes(stringToSign));
             var encodedSignData = Convert.ToBase64String(signData);
             var calculatedSignature = WebUtility.UrlEncode(encodedSignData);
 
-            if (calculatedSignature != token) throw Oops.Oh("非法签名");
+            if (string.IsNullOrEmpty(token) || !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(calculatedSignature), Encoding.UTF8.GetBytes(token))) throw Oops.Oh("非法签名");
+            try { _deployment.RegisterWebHook(timestamp, token); }
+            catch (ArgumentException ex) { throw Oops.Oh(ex.Message); }
             PrintfLog("验签成功...");
 
             var hookName = input.GetValueOrDefault("hook_name") as string;
@@ -286,135 +407,11 @@ public class SysUpdateService : IDynamicApiController, ITransient
                     return;
             }
 
-            var updateInterval = _cdConfigOptions.UpdateInterval;
-            try
-            {
-                _cdConfigOptions.UpdateInterval = 0;
-                await Update();
-            }
-            finally
-            {
-                _cdConfigOptions.UpdateInterval = updateInterval;
-            }
+            await ExecuteUpdateAsync(true, App.HttpContext.RequestAborted);
         }
         finally
         {
             PrintfLog("----------------------------收到WebHook请求-结束----------------------------");
         }
-    }
-
-    /// <summary>
-    /// 获取WebHook接口密钥
-    /// </summary>
-    /// <returns></returns>
-    [DisplayName("获取WebHook接口密钥")]
-    [ApiDescriptionSettings(Name = "WebHookKey"), HttpGet]
-    public string GetWebHookKey()
-    {
-        return CryptogramUtil.Encrypt(_cdConfigOptions.AccessToken);
-    }
-
-    /// <summary>
-    /// 获取日志列表
-    /// </summary>
-    /// <returns></returns>
-    [DisplayName("获取日志列表")]
-    [ApiDescriptionSettings(Name = "Logs"), HttpGet]
-    public List<string> LogList()
-    {
-        return _sysCacheService.Get<List<string>>(CacheConst.KeySysUpdateLog) ?? new();
-    }
-
-    /// <summary>
-    /// 清空日志
-    /// </summary>
-    /// <returns></returns>
-    [DisplayName("清空日志")]
-    [ApiDescriptionSettings(Name = "Clear"), HttpGet]
-    public void ClearLog()
-    {
-        _sysCacheService.Remove(CacheConst.KeySysUpdateLog);
-    }
-
-    /// <summary>
-    /// 检查参数
-    /// </summary>
-    /// <returns></returns>
-    private void CheckConfig()
-    {
-        PrintfLog("检查CD配置参数...");
-
-        if (_cdConfigOptions == null) throw Oops.Oh("CDConfig配置不能为空");
-
-        if (string.IsNullOrWhiteSpace(_cdConfigOptions.Owner)) throw Oops.Oh("仓库用户名不能为空");
-
-        if (string.IsNullOrWhiteSpace(_cdConfigOptions.Repo)) throw Oops.Oh("仓库名不能为空");
-
-        // if (string.IsNullOrWhiteSpace(_cdConfigOptions.Branch)) throw Oops.Oh("分支名不能为空");
-
-        if (string.IsNullOrWhiteSpace(_cdConfigOptions.AccessToken)) throw Oops.Oh("授权信息不能为空");
-
-        if (string.IsNullOrWhiteSpace(_cdConfigOptions.BackendOutput)) throw Oops.Oh("部署目录不能为空");
-
-        if (_cdConfigOptions.Publish == null) throw Oops.Oh("编译配置不能为空");
-
-        if (string.IsNullOrWhiteSpace(_cdConfigOptions.Publish.Configuration)) throw Oops.Oh("运行环境编译配置不能为空");
-
-        if (string.IsNullOrWhiteSpace(_cdConfigOptions.Publish.TargetFramework)) throw Oops.Oh(".NET版本编译配置不能为空");
-
-        if (string.IsNullOrWhiteSpace(_cdConfigOptions.Publish.RuntimeIdentifier)) throw Oops.Oh("运行平台配置不能为空");
-    }
-
-    /// <summary>
-    /// 打印日志
-    /// </summary>
-    /// <param name="message"></param>
-    private void PrintfLog(string message)
-    {
-        var logList = _sysCacheService.Get<List<string>>(CacheConst.KeySysUpdateLog) ?? new();
-
-        var content = $"【{DateTime.Now}】 {message}";
-
-        Console.WriteLine(content);
-
-        logList.Add(content);
-
-        _sysCacheService.Set(CacheConst.KeySysUpdateLog, logList);
-    }
-
-    /// <summary>
-    /// 执行命令
-    /// </summary>
-    /// <param name="command">命令</param>
-    /// <param name="arguments">参数</param>
-    /// <param name="workingDirectory">工作目录</param>
-    private async Task RunCommandAsync(string command, string arguments, string workingDirectory)
-    {
-        var processStartInfo = new ProcessStartInfo
-        {
-            FileName = command,
-            Arguments = arguments,
-            WorkingDirectory = workingDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using var process = new Process();
-        process.StartInfo = processStartInfo;
-        process.Start();
-        //修复CA2024 ，去掉EndOfStream
-        //while (!process.StandardOutput.EndOfStream)
-        string? line;
-        while ((line = await process.StandardOutput.ReadLineAsync()) != null)
-        {
-            //string line = await process.StandardOutput.ReadLineAsync();
-            if (string.IsNullOrEmpty(line)) continue;
-            PrintfLog(line.Trim());
-        }
-        await process.WaitForExitAsync();
     }
 }

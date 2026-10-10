@@ -19,6 +19,7 @@ public static class RoutePermissionUtil
         return string.Equals(permission, "sysCommon:stressTest", StringComparison.OrdinalIgnoreCase) ||
             permission?.StartsWith("sysJob:", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysServer:", StringComparison.OrdinalIgnoreCase) == true ||
+            permission?.StartsWith("sysUpdate:", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysVislog:", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysOplog:", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysExlog:", StringComparison.OrdinalIgnoreCase) == true ||
@@ -44,6 +45,7 @@ public static class RoutePermissionUtil
         return permission.ToLowerInvariant() switch
         {
             "syscommon:stresstest" or "syscommon:stresstesttargets" => "sysCommon:stressTest",
+            "sysupdate:status" => "sysUpdate:list",
             "sysserver:hardwareinfo" or "sysserver:runtimeinfo" or "sysserver:nugetpackageinfo" => "sysServer:page",
             "syslogvis:page" or "syslogvis:list" => "sysVislog:page",
             "syslogvis:clear" => "sysVislog:clear",

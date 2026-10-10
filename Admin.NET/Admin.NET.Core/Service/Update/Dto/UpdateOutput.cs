@@ -6,6 +6,17 @@
 
 namespace Admin.NET.Core.Service;
 
+/// <summary>
+/// 脱敏的隔离系统更新状态
+/// </summary>
+public class UpdateStatusOutput
+{
+    public bool Enabled { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string TargetName { get; set; } = string.Empty;
+    public bool IsRunning { get; set; }
+}
+
 public class BackupOutput
 {
     /// <summary>

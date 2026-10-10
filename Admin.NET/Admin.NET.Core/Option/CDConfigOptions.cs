@@ -1,4 +1,4 @@
-﻿// Admin.NET 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
+// Admin.NET 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //
 // 本项目主要遵循 MIT 许可证和 Apache 许可证（版本 2.0）进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 和 LICENSE-APACHE 文件。
 //
@@ -50,6 +50,31 @@ public class CDConfigOptions : IConfigurableOptions
     /// 输出目录配置
     /// </summary>
     public string BackendOutput { get; set; }
+
+    /// <summary>
+    /// 明确授权的隔离部署根目录；空值时禁止更新与还原
+    /// </summary>
+    public string AllowedDeploymentRoot { get; set; }
+
+    /// <summary>
+    /// 与授权根目录标识文件一致的部署标识
+    /// </summary>
+    public string DeploymentId { get; set; }
+
+    /// <summary>
+    /// 展示用部署名称，不返回服务器物理路径
+    /// </summary>
+    public string DeploymentName { get; set; } = "隔离更新部署";
+
+    /// <summary>
+    /// 可选的已授权数字 IP 仓库 ZIP 地址；空值沿用 Gitee 仓库来源
+    /// </summary>
+    public string RepositoryArchiveUrl { get; set; }
+
+    /// <summary>
+    /// 发布命令超时秒数
+    /// </summary>
+    public int PublishTimeoutSeconds { get; set; } = 300;
 
     /// <summary>
     /// 发布配置选项

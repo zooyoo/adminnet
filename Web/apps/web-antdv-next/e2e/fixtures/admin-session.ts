@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 
 export const testToken = (tenant = 1) => `header.${Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 600, tenant })).toString('base64url')}.signature`;
 
-type AdminModule = 'user' | 'tenant' | 'dict' | 'config' | 'tenantConfig' | 'lang' | 'langText' | 'infoSetting' | 'cache' | 'userRegWay' | 'onlineUser' | 'notice' | 'ldap' | 'file' | 'job' | 'database' | 'stressTest';
+type AdminModule = 'user' | 'tenant' | 'dict' | 'config' | 'tenantConfig' | 'lang' | 'langText' | 'infoSetting' | 'cache' | 'userRegWay' | 'onlineUser' | 'notice' | 'ldap' | 'file' | 'job' | 'database' | 'stressTest' | 'update';
 const titles: Record<AdminModule, string> = {
 	user: '用户管理',
 	tenant: '租户管理',
@@ -22,12 +22,15 @@ const titles: Record<AdminModule, string> = {
 	job: '任务调度',
 	database: '库表管理',
 	stressTest: '受控接口压测',
+	update: '系统更新',
 };
-export async function mockAdminSession(page: Page, module: AdminModule, options: { readOnly?: boolean; superAdmin?: boolean } = {}) {
+export async function mockAdminSession(page: Page, module: AdminModule, options: { readOnly?: boolean; superAdmin?: boolean; updateActions?: string[]; updateMenuPath?: '/platform/update' } = {}) {
 	await page.route('**/prod-api/hubs/onlineUser/negotiate*', (route) => route.fulfill({ status: 503, json: { message: 'Contract fixture: real-time service unavailable' } }));
 	await page.route('**/prod-api/api/sysNotice/unReadList', (route) => route.fulfill({ json: { code: 200, result: [] } }));
 	const prefix = module === 'stressTest' ? 'sysCommon' : `sys${module[0]!.toUpperCase()}${module.slice(1)}`;
-	const actions = module === 'stressTest'
+	const actions = module === 'update'
+		? options.updateActions ?? (options.readOnly ? ['list', 'logs'] : ['list', 'logs', 'update', 'restore', 'clear', 'webHookKey'])
+		: module === 'stressTest'
 		? options.readOnly ? [] : ['stressTest']
 		: module === 'database'
 		? options.readOnly ? ['list', 'tableList', 'columnList', 'dbTypeList', 'visualDbTable'] : ['list', 'tableList', 'columnList', 'dbTypeList', 'addTable', 'updateTable', 'addColumn', 'updateColumn', 'deleteColumn', 'moveColumn', 'deleteTable', 'visualDbTable', 'createEntity', 'createSeedData']
@@ -90,7 +93,7 @@ export async function mockAdminSession(page: Page, module: AdminModule, options:
 		route.fulfill({
 			json: {
 				code: 200,
-				result: [{ name: prefix, path: `/system/${module}`, component: `/system/${module}/index`, meta: { title: titles[module], icon: 'lucide:users' } }],
+				result: [{ name: prefix, path: module === 'update' ? options.updateMenuPath ?? '/system/update' : `/system/${module}`, component: `/system/${module}/index`, meta: { title: titles[module], icon: 'lucide:users', ...(module === 'update' ? { keepAlive: true } : {}) } }],
 			},
 		})
 	);

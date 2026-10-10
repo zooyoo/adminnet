@@ -2,6 +2,18 @@
 
 日期：2026-10-10（Asia/Shanghai）。
 
+## 最新接续：提案 30 已完成，下一项 31
+
+- 总进度 30 / 48；整体 goal 继续 active。仍按编号完成后更新进度、提交并调用上下文压缩，再推进下一项；仅桌面和隔离 PostgreSQL。
+- 新 `system/update` 页面兼容 `/platform/update` 和旧 Component；保留六项 `sysUpdate:*` 独立权限，授权普通账号可执行。页面按 300ms 单 flight 观察状态和日志，身份 / 权限变化清数据，KeepAlive 离页停止观察；确认还原才发送请求，失败保留选择，WebHook 密钥仅显式点击后局部复制。
+- 更新默认关闭；目标必须是独立根目录下的部署、带 GUID marker、与 API / CWD / Git 双向隔离且无链接。下载、ZIP、实际 dotnet publish、退出码 / 超时 / 双流与进程树善后、排除配置、原子快照、完整还原和旧备份归属均校验；更新 / 还原 / 清日志共用互斥门，无法回滚时保留 previous 原部署。
+- WebHook 保留原 HMAC(timestamp + 换行 + key) 合同，5 分钟时间窗 / 重放拒绝；SM2 / 未知模式稳定派生，明确 MD5 / SM4 保留旧密钥合同。日志隐藏凭据与 SDK / 缓存 / 部署绝对路径。
+- API / Test 构建、137 后端、77 前端单元、11 Edge 生产桌面契约、类型 / ESLint / 生产构建通过；12 条既有 CS0618 与 fixture 13 条既有强制 lint 问题如实记录，默认 ignore / 仅回显不计有效检查。
+- 最终真实报告：`C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-1e8c1da78f2b447e9920de5afe4489ba/evidence/update-browser-baseline.json`，passed / cleanupPassed 均 true，15 阶段、执行器 exit0。可启动的 v1/v2/v3 发布、完整文件 SHA 快照还原、配置保留、仅所属旧备份清理、匿名 / 普通未授权拒绝及已授权普通账号执行、真实编译失败、签名、浏览器确认 / 取消 / 清日志 / 剪贴板 / 离页 / marker 禁用 / 停机均通过；API、浏览器、代理、接收端、PG 容器与卷、独立部署目录已清理，证据保留。
+- 最终真实明暗 1680×1100 页面和 1374×420 日志、还原确认、编译失败、停机截图已实际查看。首轮停机脚本将整个表单 innerText 混入虚拟 Select 辅助节点及双字间距；按 DOM 改为核对所选文件名后完整重跑通过，经验已沉淀。
+- 用户 `AGENTS.md` 与 `doc/frontend-vben-tickets-draft.md` 保留不提交；本地 .pnpm-store、日志、临时 patch / prefix / 输出路径 / 启动记录不提交。提案 29 已提交 ed16649bf，提案 30 本段完成后提交；CLI 用 pwsh 7 / UTF-8 / Stop 和退出码检查，dotnet 单节点禁 build server / shared compilation。
+- 下一项 31：开放访问配置、租户与用户绑定、既有签名规则和隔离调用；先核对服务 / 实体 / 鉴权中间件及旧页合同，帮助与示例不能包含真实凭据。全部 48 完成前不可关闭整体 goal；第 48 项生产切换仍需独立授权。
+
 ## 最新接续：提案 29 已完成，下一项 30
 
 - 总进度 29 / 48；继续按编号、每项完成后更新进度 / 提交 / 调用上下文压缩，仅桌面和隔离 PostgreSQL。当前整体 goal active，不能在全部 48 项完成前关闭。
