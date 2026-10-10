@@ -14,7 +14,7 @@ public static class DiskHelper
     /// <remarks>
     /// 推荐使用，默认有缓存
     /// </remarks>
-    public static List<DiskInfo> DiskInfos => Cache.Default.GetOrAdd("DiskInfos", _ => GetDiskInfos(), 60 * 60);
+    public static List<DiskInfo> DiskInfos => Cache.Default.GetOrAdd("DiskInfos", _ => GetDiskInfos(), 5);
 
     /// <summary>
     /// 获取磁盘信息

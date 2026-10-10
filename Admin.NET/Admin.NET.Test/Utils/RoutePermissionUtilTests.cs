@@ -44,6 +44,9 @@ public class RoutePermissionUtilTests
     [InlineData("/api/sysLogOp/export", "/api/sysLogOp/export", "sysOplog:export")]
     [InlineData("/api/sysLogEx/export", "/api/sysLogEx/export", "sysExlog:export")]
     [InlineData("/api/sysLogVis/clear", "/api/sysLogVis/clear", "sysVislog:clear")]
+    [InlineData("/api/sysServer/hardwareInfo", "/api/sysServer/hardwareInfo", "sysServer:page")]
+    [InlineData("/api/sysServer/runtimeInfo", "/api/sysServer/runtimeInfo", "sysServer:page")]
+    [InlineData("/api/sysServer/nuGetPackageInfo", "/api/sysServer/nuGetPackageInfo", "sysServer:page")]
     public void GetPermissionName_MatchedRoute_ExcludesParameterValues(string template, string path, string expected)
     {
         // 准备
@@ -86,6 +89,7 @@ public class RoutePermissionUtilTests
     [InlineData("sysExlog:export", true)]
     [InlineData("sysVislog:clear", true)]
     [InlineData("sysLogDiff:detail", true)]
+    [InlineData("sysServer:page", true)]
     public void RequiresExplicitGrant_TranslationSensitiveAction_DoesNotDependOnMenuRegistration(string permission, bool expected)
     {
         Assert.Equal(expected, RoutePermissionUtil.RequiresExplicitGrant(permission));

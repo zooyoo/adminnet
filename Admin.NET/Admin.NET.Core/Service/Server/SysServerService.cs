@@ -21,6 +21,7 @@ public class SysServerService : IDynamicApiController, ITransient
     /// </summary>
     /// <returns></returns>
     [DisplayName("获取服务器硬件信息")]
+    [SuppressMonitor]
     public SystemHardwareInfo GetHardwareInfo()
     {
         return HardwareInfoManager.GetSystemHardwareInfo();
@@ -31,9 +32,14 @@ public class SysServerService : IDynamicApiController, ITransient
     /// </summary>
     /// <returns></returns>
     [DisplayName("获取服务器运行时信息")]
+    [SuppressMonitor]
     public SystemRuntimeInfo GetRuntimeInfo()
     {
-        return RuntimeInfoManger.GetSystemRuntimeInfo();
+        return new SystemRuntimeInfo
+        {
+            RuntimeInfo = OsPlatformHelper.GetRuntimeInfo() with { CommandLineArgs = [] },
+            RunningTime = RunningTimeHelper.RunningTime
+        };
     }
 
     /// <summary>
@@ -41,6 +47,7 @@ public class SysServerService : IDynamicApiController, ITransient
     /// </summary>
     /// <returns></returns>
     [DisplayName("获取框架主要程序集")]
+    [SuppressMonitor]
     public List<NuGetPackage> GetNuGetPackageInfo()
     {
         return ReflectionHelper.GetNuGetPackages("Admin.NET");

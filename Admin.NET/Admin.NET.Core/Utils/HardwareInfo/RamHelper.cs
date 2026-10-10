@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2021-Present XiHanFun and contributors.
 // Licensed under the MIT License.
 
+using System.Management;
+
 namespace Admin.NET.Core;
 
 /// <summary>
@@ -14,7 +16,7 @@ public static class RamHelper
     /// <remarks>
     /// 推荐使用，默认有缓存
     /// </remarks>
-    public static RamInfo RamInfos => Cache.Default.GetOrAdd("RamInfos", _ => GetRamInfos(), 5 * 60);
+    public static RamInfo RamInfos => Cache.Default.GetOrAdd("RamInfos", _ => GetRamInfos(), 5);
 
     /// <summary>
     /// 获取内存信息
@@ -131,12 +133,13 @@ public static class RamHelper
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                var output = ShellHelper.Cmd("wmic", "OS get FreePhysicalMemory,TotalVisibleMemorySize /Value").Trim();
-                var lines = output.Split(Environment.NewLine);
-                if (lines.Length != 0)
+                using ManagementObjectSearcher searcher = new("SELECT FreePhysicalMemory,TotalVisibleMemorySize FROM Win32_OperatingSystem");
+                using ManagementObjectCollection systems = searcher.Get();
+                using ManagementObject system = systems.Cast<ManagementObject>().FirstOrDefault();
+                if (system != null)
                 {
-                    totalMemoryParts = lines.First(s => s.StartsWith("TotalVisibleMemorySize")).Split('=')[1].ParseToLong() * 1024;
-                    freeMemoryParts = lines.First(s => s.StartsWith("FreePhysicalMemory")).Split('=')[1].ParseToLong() * 1024;
+                    totalMemoryParts = Convert.ToInt64(system["TotalVisibleMemorySize"] ?? 0) * 1024;
+                    freeMemoryParts = Convert.ToInt64(system["FreePhysicalMemory"] ?? 0) * 1024;
                     usedMemoryParts = totalMemoryParts - freeMemoryParts;
                     availableMemoryParts = freeMemoryParts;
                 }

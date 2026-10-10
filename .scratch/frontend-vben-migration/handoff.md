@@ -2,6 +2,16 @@
 
 日期：2026-10-10（Asia/Shanghai）。
 
+## 最新接续：提案 28 已完成，下一项 29
+
+- 提案 27 提交 `64e971ada`；提案 28 已完成并准备提交，总进度 28 / 48。继续按编号、每项验收后提交，仅桌面和隔离 PostgreSQL。
+- 新 `system/server` 页面复用运行时、硬件、NuGet API；保留 `/platform/server` 入口，支持手动 / 10 秒自动刷新、CPU / 内存 / 磁盘图表、运行时与依赖版本；空值及 GPU 采集失败明确展示。
+- Windows CPU / 内存改为 WMI 采集并释放查询对象，动态缓存缩短至 5 秒；运行时响应移除命令行参数。三个监控 API 映射到新增的 `sysServer:page`，需要显式授权。
+- 缓存失活与离页取消请求和定时器，身份变化清除旧数据，隐藏页权限恢复不重启轮询。前端 Vitest 6 / 6、后端路由权限 53 / 53、ESLint / 类型 / API / Test / 生产构建通过。
+- 最终真实报告：`C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8e5066890d1e4dc79e69e84567593d81/evidence/server-browser-baseline.json`，功能、清理、容器移除通过；截图已实际查看。明暗背景与依赖版本均有真实断言，API、代理、Edge、PostgreSQL 已停止 / 清理。
+- 版本限定经验：Antdv-Next 1.5.2 Tag 只取首个默认 slot 子节点，名称与版本应放在同一容器中；截图等待 document 内所有有限动画结束。用户 `AGENTS.md` 与原提案文档保持不动、不提交。
+- 下一项 29 为受控压力测试。已定位原 `SysCommonService.StressTest` 与旧 `system/stressTest` 页面，需保留方法 / Headers / Body / Path / Query、轮数 / 并发，限定明确授权的隔离目标，核验真实请求与统计；先阅读当前服务合同后实施。
+
 ## 最新接续：提案 27 已完成，下一项 28
 
 - 提案 27 已完成并准备提交，总进度 27 / 48；继续严格编号、逐项验收后提交，仅桌面和隔离 PostgreSQL。

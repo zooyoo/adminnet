@@ -17,6 +17,7 @@ public static class RoutePermissionUtil
     public static bool RequiresExplicitGrant(string permission)
     {
         return permission?.StartsWith("sysJob:", StringComparison.OrdinalIgnoreCase) == true ||
+            permission?.StartsWith("sysServer:", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysVislog:", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysOplog:", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysExlog:", StringComparison.OrdinalIgnoreCase) == true ||
@@ -41,6 +42,7 @@ public static class RoutePermissionUtil
         // 缓存值和前缀操作复用现有查询、删除权限，不新增 API 或菜单权限。
         return permission.ToLowerInvariant() switch
         {
+            "sysserver:hardwareinfo" or "sysserver:runtimeinfo" or "sysserver:nugetpackageinfo" => "sysServer:page",
             "syslogvis:page" or "syslogvis:list" => "sysVislog:page",
             "syslogvis:clear" => "sysVislog:clear",
             "syslogop:page" or "syslogop:detail" => "sysOplog:page",

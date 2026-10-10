@@ -46,7 +46,7 @@ public static class HardwareInfoManager
             {
                 CpuName = cpuInfo.ProcessorName,
                 CpuCores = $"{cpuInfo.PhysicalCoreCount}C/{cpuInfo.LogicalCoreCount}T",
-                CpuUsage = $"{cpuInfo.UsagePercentage:F1}%",
+                CpuUsage = cpuInfo.UsagePercentage.HasValue ? $"{cpuInfo.UsagePercentage:F1}%" : "未提供",
                 TotalMemory = ramInfo.TotalBytes.FormatFileSizeToString(),
                 MemoryUsage = $"{ramInfo.UsagePercentage:F1}%",
                 TotalDiskSpace = diskInfos.Sum(d => d.TotalSpace).FormatFileSizeToString(),

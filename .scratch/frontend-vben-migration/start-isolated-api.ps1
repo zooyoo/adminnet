@@ -8,6 +8,7 @@ param(
     [switch]$PostgreSqlFixture,
     [switch]$CodeGenFixture,
     [switch]$LogFixture,
+    [switch]$MonitorFixture,
     [switch]$FileDeduplication,
     [switch]$TranslationTestService,
     [uri]$SmsTestService,
@@ -19,6 +20,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if (([int]$CrudFixture.IsPresent + [int]$AuthFixture.IsPresent + [int]$OnlineFixture.IsPresent) -gt 1) { throw 'Select only one isolated fixture.' }
+if ($MonitorFixture -and -not $PostgreSqlFixture) { throw 'MonitorFixture requires PostgreSqlFixture.' }
 
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $buildRoot = if ($BuildRoot) { [IO.Path]::GetFullPath($BuildRoot) } else { Join-Path $repositoryRoot 'Admin.NET/Admin.NET.Web.Entry/bin/Debug/net10.0' }
@@ -201,7 +203,7 @@ if ($PostgreSqlFixture) {
             TableSettings = @{ EnableInitTable = $false; EnableIncreTable = $false }
             SeedSettings = @{ EnableInitSeed = $false; EnableIncreSeed = $false }
         }
-        if ($LogFixture) {
+        if ($LogFixture -or $MonitorFixture) {
             $mainConnection = $configuration['DbConnection']['ConnectionConfigs'][0]
             $mainConnection['DbType'] = 'PostgreSQL'
             $mainConnection['ConnectionString'] = "Host=127.0.0.1;Port=$pgPort;Database=maintenance;Username=postgres;Password=$pgPassword"
@@ -209,7 +211,7 @@ if ($PostgreSqlFixture) {
             $logConnection['DbType'] = 'PostgreSQL'
             $logConnection['ConnectionString'] = "Host=127.0.0.1;Port=$pgPort;Database=maintenance;Username=postgres;Password=$pgPassword"
             $logConnection['SeedSettings']['EnableInitSeed'] = $false
-            $configuration['DbConnection']['ConnectionConfigs'][0]['DbSettings']['EnableDiffLog'] = $true
+            $configuration['DbConnection']['ConnectionConfigs'][0]['DbSettings']['EnableDiffLog'] = $LogFixture.IsPresent
         }
         @{ containerName = $containerName; runtimeRoot = $runtimeRoot; configId = '1300000000003' } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtimeRoot 'isolated-postgres.json') -Encoding UTF8
     }
@@ -259,11 +261,11 @@ $process = $null
 try {
     $process = Start-IsolatedProcess
     Wait-IsolatedApi $process
-    if ($CrudFixture -or $AuthFixture -or $OnlineFixture) {
+    if ($CrudFixture -or $AuthFixture -or $OnlineFixture -or $MonitorFixture) {
         Stop-Process -Id $process.Id
         $process.WaitForExit()
         $fixtureScript = if ($AuthFixture) { 'prepare-auth-db.mjs' } elseif ($OnlineFixture) { 'prepare-online-db.mjs' } else { 'prepare-crud-db.mjs' }
-        if ($LogFixture) {
+        if ($LogFixture -or $MonitorFixture) {
             & docker exec $containerName psql -U postgres -d maintenance -v ON_ERROR_STOP=1 -c "UPDATE sysconfig SET value = 'False' WHERE code = 'sys_captcha'" | Out-Null
             if ($LASTEXITCODE -ne 0) { throw 'Isolated PostgreSQL fixture preparation failed.' }
         }

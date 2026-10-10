@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2021-Present XiHanFun and contributors.
 // Licensed under the MIT License.
 
+using System.Management;
+
 namespace Admin.NET.Core;
 
 /// <summary>
@@ -14,7 +16,7 @@ public static class CpuHelper
     /// <remarks>
     /// 推荐使用，默认有缓存
     /// </remarks>
-    public static CpuInfo CpuInfos => Cache.Default.GetOrAdd("CpuInfos", _ => GetCpuInfos(), 5 * 60);
+    public static CpuInfo CpuInfos => Cache.Default.GetOrAdd("CpuInfos", _ => GetCpuInfos(), 5);
 
     /// <summary>
     /// 获取处理器信息
@@ -79,22 +81,22 @@ public static class CpuHelper
             // 使用WMI获取CPU使用率
             try
             {
-                var output = ShellHelper.Cmd("wmic", "cpu get LoadPercentage /Value").Trim();
-                var lines = output.Split(Environment.NewLine);
-                var loadLine = lines.FirstOrDefault(s => s.StartsWith("LoadPercentage="));
-                if (loadLine != null)
+                using ManagementObjectSearcher searcher = new("SELECT LoadPercentage FROM Win32_Processor");
+                using ManagementObjectCollection processors = searcher.Get();
+                List<double> values = new();
+                foreach (ManagementObject item in processors)
                 {
-                    var loadPercentage = loadLine.Split('=')[1].Trim();
-                    if (double.TryParse(loadPercentage, out var usage))
+                    using (item)
                     {
-                        cpuInfo.UsagePercentage = Math.Round(usage, 2);
+                        if (item["LoadPercentage"] != null) values.Add(Convert.ToDouble(item["LoadPercentage"]));
                     }
                 }
+                if (values.Count > 0) cpuInfo.UsagePercentage = Math.Round(values.Average(), 2);
             }
             catch
             {
-                // 如果WMI失败，使用默认值
-                cpuInfo.UsagePercentage = 0;
+                // 采集失败保留空值，避免将缺少数据展示为 0%。
+                cpuInfo.UsagePercentage = null;
             }
         }
     }
@@ -183,38 +185,20 @@ public static class CpuHelper
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            var output = ShellHelper.Cmd("wmic", "cpu get Name,NumberOfCores,MaxClockSpeed,L3CacheSize /Value").Trim();
-            var lines = output.Split(Environment.NewLine);
-
-            foreach (var line in lines)
+            using ManagementObjectSearcher searcher = new("SELECT Name,NumberOfCores,MaxClockSpeed,L3CacheSize FROM Win32_Processor");
+            using ManagementObjectCollection processors = searcher.Get();
+            List<string> names = new();
+            foreach (ManagementObject item in processors)
             {
-                if (line.StartsWith("Name="))
+                using (item)
                 {
-                    cpuInfo.ProcessorName = line.Split('=')[1].Trim();
-                }
-                else if (line.StartsWith("NumberOfCores="))
-                {
-                    if (int.TryParse(line.Split('=')[1], out var cores))
-                    {
-                        cpuInfo.PhysicalCoreCount = cores;
-                    }
-                }
-                else if (line.StartsWith("MaxClockSpeed="))
-                {
-                    if (double.TryParse(line.Split('=')[1], out var mhz))
-                    {
-                        cpuInfo.BaseClockSpeed = Math.Round(mhz / 1000, 2);
-                    }
-                }
-                else if (line.StartsWith("L3CacheSize="))
-                {
-                    var cache = line.Split('=')[1].Trim();
-                    if (!string.IsNullOrEmpty(cache) && cache != "0")
-                    {
-                        cpuInfo.CacheBytes = cache.ParseToLong() * 1024;
-                    }
+                    if (item["Name"] != null) names.Add(item["Name"].ToString());
+                    cpuInfo.PhysicalCoreCount += Convert.ToInt32(item["NumberOfCores"] ?? 0);
+                    cpuInfo.BaseClockSpeed = Math.Max(cpuInfo.BaseClockSpeed, Math.Round(Convert.ToDouble(item["MaxClockSpeed"] ?? 0) / 1000, 2));
+                    cpuInfo.CacheBytes += Convert.ToInt64(item["L3CacheSize"] ?? 0) * 1024;
                 }
             }
+            cpuInfo.ProcessorName = string.Join(", ", names.Distinct());
         }
     }
 }
@@ -257,7 +241,7 @@ public record CpuInfo
     /// <summary>
     /// CPU使用率(%)
     /// </summary>
-    public double UsagePercentage { get; set; }
+    public double? UsagePercentage { get; set; }
 
     /// <summary>
     /// CPU温度(°C)

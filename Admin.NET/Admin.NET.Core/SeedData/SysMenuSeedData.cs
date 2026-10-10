@@ -210,6 +210,7 @@ public class SysMenuSeedData : ISqlSugarEntitySeedData<SysMenu>
 
             // 系统监控
             new SysMenu{ Id=1300300070101, Pid=1300300000101, Title="系统监控", Path="/platform/server", Name="sysServer", Component="/system/server/index", Icon="ele-Monitor", Type=MenuTypeEnum.Menu, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=150 },
+            new SysMenu{ Id=1300300070201, Pid=1300300070101, Title="查询", Permission="sysServer:page", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2026-10-10 00:00:00"), OrderNo=100 },
 
             // 缓存管理
             new SysMenu{ Id=1300300080101, Pid=1300300000101, Title="缓存管理", Path="/platform/cache", Name="sysCache", Component="/system/cache/index", Icon="ele-Loading", Type=MenuTypeEnum.Menu, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=160 },
