@@ -35,13 +35,9 @@ public class SysTemplateService : IDynamicApiController, ITransient
     [DisplayName("获取模板列表")]
     public async Task<SqlSugarPagedList<SysTemplate>> Page(PageTemplateInput input)
     {
-        return await _sysTemplateRep.AsQueryable()
-            .WhereIF(!string.IsNullOrWhiteSpace(input.GroupName), u => u.GroupName.Contains(input.GroupName))
-            .WhereIF(_userManager.SuperAdmin && input.TenantId > 0, u => u.TenantId == input.TenantId)
-            .WhereIF(!string.IsNullOrWhiteSpace(input.Name), u => u.Name.Contains(input.Name))
-            .WhereIF(!string.IsNullOrWhiteSpace(input.Code), u => u.Code.Contains(input.Code))
-            .WhereIF(input.Type.HasValue, u => u.Type == input.Type)
-            .OrderBy(u => new { u.OrderNo, u.Id })
+        TemplateContracts.ValidatePage(input);
+        TemplateContracts.EnsureTenant(_userManager.SuperAdmin, _userManager.TenantId);
+        return await TemplateContracts.PageQuery(_sysTemplateRep.AsQueryable(), input, _userManager.SuperAdmin, _userManager.TenantId)
             .ToPagedListAsync(input.Page, input.PageSize);
     }
 
@@ -54,7 +50,10 @@ public class SysTemplateService : IDynamicApiController, ITransient
     [ApiDescriptionSettings]
     public async Task<SysTemplate> GetTemplate(string code)
     {
-        return await _sysTemplateRep.GetFirstAsync(u => u.Name == code);
+        TemplateContracts.ValidateLookup(code);
+        TemplateContracts.EnsureTenant(_userManager.SuperAdmin, _userManager.TenantId);
+        var template = await FindTemplateAsync(TemplateContracts.LegacyNamePredicate(code, _userManager.SuperAdmin, _userManager.TenantId));
+        return TemplateContracts.RequireAccessible(template, _userManager.SuperAdmin, _userManager.TenantId);
     }
 
     /// <summary>
@@ -66,8 +65,11 @@ public class SysTemplateService : IDynamicApiController, ITransient
     [ApiDescriptionSettings]
     public async Task<string> ProView(ProViewTemplateInput input)
     {
-        var template = await _sysTemplateRep.GetFirstAsync(u => u.Id == input.Id);
-        return await RenderAsync(template.Content, input.Data);
+        if (input == null) throw Oops.Oh("预览参数不能为空");
+        TemplateContracts.ValidateId(input.Id);
+        TemplateContracts.ValidateData(input.Data);
+        var template = await GetRequiredTemplateAsync(input.Id);
+        return await RenderHttpAsync(template.Content, input.Data);
     }
 
     /// <summary>
@@ -79,13 +81,11 @@ public class SysTemplateService : IDynamicApiController, ITransient
     [ApiDescriptionSettings(Name = "Add"), HttpPost]
     public async Task AddTemplate(AddTemplateInput input)
     {
-        var isExist = await _sysTemplateRep.IsAnyAsync(u => u.Name == input.Name);
-        if (isExist) throw Oops.Oh(ErrorCodeEnum.T1000);
-
-        isExist = await _sysTemplateRep.IsAnyAsync(u => u.Code == input.Code);
-        if (isExist) throw Oops.Oh(ErrorCodeEnum.T1001);
-
-        await _sysTemplateRep.InsertAsync(input.Adapt<SysTemplate>());
+        TemplateContracts.ValidateTemplate(input);
+        TemplateContracts.EnsureSuppliedTenant(input.TenantId, _userManager.SuperAdmin, _userManager.TenantId);
+        await EnsureUniqueAsync(input, 0);
+        var template = TemplateContracts.CreateEntity(input, _userManager.SuperAdmin, _userManager.TenantId);
+        await TemplateContracts.ExecuteMutationAsync(() => InsertTemplateAsync(template));
     }
 
     /// <summary>
@@ -97,13 +97,13 @@ public class SysTemplateService : IDynamicApiController, ITransient
     [ApiDescriptionSettings(Name = "Update"), HttpPost]
     public async Task UpdateTemplate(UpdateTemplateInput input)
     {
-        var isExist = await _sysTemplateRep.IsAnyAsync(u => u.Name == input.Name && u.Id != input.Id);
-        if (isExist) throw Oops.Oh(ErrorCodeEnum.T1000);
-
-        isExist = await _sysTemplateRep.IsAnyAsync(u => u.Code == input.Code && u.Id != input.Id);
-        if (isExist) throw Oops.Oh(ErrorCodeEnum.T1001);
-
-        await _sysTemplateRep.AsUpdateable(input.Adapt<SysTemplate>()).IgnoreColumns(true).ExecuteCommandAsync();
+        TemplateContracts.ValidateTemplate(input);
+        TemplateContracts.ValidateId(input.Id);
+        TemplateContracts.EnsureSuppliedTenant(input.TenantId, _userManager.SuperAdmin, _userManager.TenantId);
+        var existing = await GetRequiredTemplateAsync(input.Id);
+        await EnsureUniqueAsync(input, existing.Id);
+        var template = TemplateContracts.UpdateEntity(existing, input);
+        await TemplateContracts.ExecuteMutationAsync(() => UpdateTemplateAsync(template));
     }
 
     /// <summary>
@@ -115,7 +115,10 @@ public class SysTemplateService : IDynamicApiController, ITransient
     [ApiDescriptionSettings(Name = "Delete"), HttpPost]
     public async Task DeleteTemplate(BaseIdInput input)
     {
-        await _sysTemplateRep.DeleteAsync(u => u.Id == input.Id);
+        if (input == null) throw Oops.Oh("删除参数不能为空");
+        TemplateContracts.ValidateId(input.Id);
+        var template = await GetRequiredTemplateAsync(input.Id);
+        await TemplateContracts.ExecuteMutationAsync(() => DeleteTemplateAsync(template));
     }
 
     /// <summary>
@@ -126,7 +129,8 @@ public class SysTemplateService : IDynamicApiController, ITransient
     [DisplayName("获取分组列表")]
     public async Task<List<string>> GetGroupList()
     {
-        return await _sysTemplateRep.AsQueryable()
+        TemplateContracts.EnsureTenant(_userManager.SuperAdmin, _userManager.TenantId);
+        return await TemplateContracts.ScopeQuery(_sysTemplateRep.AsQueryable(), _userManager.SuperAdmin, _userManager.TenantId)
             .GroupBy(u => u.GroupName)
             .Select(u => u.GroupName).ToListAsync();
     }
@@ -140,7 +144,9 @@ public class SysTemplateService : IDynamicApiController, ITransient
     [ApiDescriptionSettings, HttpPost]
     public async Task<string> Render(RenderTemplateInput input)
     {
-        return await RenderAsync(input.Content, input.Data);
+        if (input == null) throw Oops.Oh("渲染参数不能为空");
+        TemplateContracts.ValidateRender(input.Content, input.Data);
+        return await RenderHttpAsync(input.Content, input.Data);
     }
 
     /// <summary>
@@ -175,5 +181,63 @@ public class SysTemplateService : IDynamicApiController, ITransient
     {
         var template = await _sysTemplateRep.GetFirstAsync(u => u.Code == code);
         return await RenderAsync(template.Content, data);
+    }
+
+    private async Task<SysTemplate> GetRequiredTemplateAsync(long id)
+    {
+        TemplateContracts.EnsureTenant(_userManager.SuperAdmin, _userManager.TenantId);
+        var template = await FindTemplateAsync(TemplateContracts.IdPredicate(id, _userManager.SuperAdmin, _userManager.TenantId));
+        return TemplateContracts.RequireAccessible(template, _userManager.SuperAdmin, _userManager.TenantId);
+    }
+
+    private async Task EnsureUniqueAsync(AddTemplateInput input, long excludeId)
+    {
+        if (await TemplateExistsAsync(TemplateContracts.NameDuplicatePredicate(input.Name, excludeId, _userManager.SuperAdmin, _userManager.TenantId), false))
+            throw Oops.Oh(ErrorCodeEnum.T1000);
+        if (await TemplateExistsAsync(TemplateContracts.CodeDuplicatePredicate(input.Code, excludeId), true))
+            throw Oops.Oh(ErrorCodeEnum.T1001);
+    }
+
+    private async Task<string> RenderHttpAsync(string content, object data)
+    {
+        TemplateContracts.ValidateRender(content, data);
+        try
+        {
+            return await RenderAsync(content, TemplateContracts.CreateHttpRenderModel(data));
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            throw Oops.Oh("模板渲染失败，请检查模板内容与渲染参数后重试");
+        }
+    }
+
+    // 将仓储读写保留为可替换的内部步骤，便于验证拒绝边界时确实没有写入或调用渲染引擎。
+    protected virtual Task<SysTemplate> FindTemplateAsync(Expression<Func<SysTemplate, bool>> predicate)
+    {
+        return _sysTemplateRep.GetFirstAsync(predicate);
+    }
+
+    protected virtual Task<bool> TemplateExistsAsync(Expression<Func<SysTemplate, bool>> predicate, bool globalCode)
+    {
+        return globalCode
+            ? _sysTemplateRep.AsQueryable().ClearFilter<ITenantIdFilter>().Where(predicate).AnyAsync()
+            : _sysTemplateRep.IsAnyAsync(predicate);
+    }
+
+    protected virtual async Task InsertTemplateAsync(SysTemplate template)
+    {
+        if (!await _sysTemplateRep.InsertAsync(template)) throw Oops.Oh("模板保存失败，请稍后重试");
+    }
+
+    protected virtual async Task UpdateTemplateAsync(SysTemplate template)
+    {
+        var changed = await TemplateContracts.UpdateQuery(_sysTemplateRep.AsUpdateable(template), template.Id, template.TenantId).ExecuteCommandAsync();
+        if (changed == 0) throw Oops.Oh(ErrorCodeEnum.D1002);
+    }
+
+    protected virtual async Task DeleteTemplateAsync(SysTemplate template)
+    {
+        var changed = await _sysTemplateRep.AsDeleteable().Where(item => item.Id == template.Id && item.TenantId == template.TenantId).ExecuteCommandAsync();
+        if (changed == 0) throw Oops.Oh(ErrorCodeEnum.D1002);
     }
 }

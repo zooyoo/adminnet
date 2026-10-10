@@ -26,6 +26,7 @@ public static class RoutePermissionUtil
             permission?.StartsWith("sysDifflog:", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysLog", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysOpenAccess:", StringComparison.OrdinalIgnoreCase) == true ||
+            permission?.StartsWith("sysTemplate:", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.ToLowerInvariant() is "sysregion:page" or "sysregion:add" or "sysregion:update" or "sysregion:delete" or "sysregion:sync" ||
             permission?.StartsWith("sysDatabase:", StringComparison.OrdinalIgnoreCase) == true || permission?.ToLowerInvariant() is "syslangtext:export" or "syslangtext:import" or
             "syslangtext:batchdelete" or "syslangtext:batchsave" or "syslangtext:aitranslatetext" or "sysconfig:savesysinfo" or
@@ -62,6 +63,8 @@ public static class RoutePermissionUtil
         return permission.ToLowerInvariant() switch
         {
             "sysopenaccess:generatesignature" => "sysOpenAccess:page",
+            "systemplate:grouplist" or "systemplate:template" => "sysTemplate:page",
+            "systemplate:render" or "systemplate:proview" => "sysTemplate:preview",
             "syscommon:stresstest" or "syscommon:stresstesttargets" => "sysCommon:stressTest",
             "sysupdate:status" => "sysUpdate:list",
             "sysserver:hardwareinfo" or "sysserver:runtimeinfo" or "sysserver:nugetpackageinfo" => "sysServer:page",

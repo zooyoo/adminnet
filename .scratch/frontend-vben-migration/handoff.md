@@ -1,3 +1,16 @@
+# 最新交接：提案33完成，下一项34
+
+- 当前总进度33/48；33全部工程、生产桌面/视觉、真实PG16阶段与独立清理通过。按用户要求完成记录后提交并调用上下文压缩，再开始34动态插件管理；全48前goal不得complete。
+- 最终报告：C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-1608732a23f441449be7fbb939c74583/evidence/template-browser-baseline.json，passed/cleanupPassed=true、16阶段、cleanupErrors空；3条既有全字段摘要2afad5fad120239b8e2a6269428b1b10前后一致、初始数据库恢复，全部实体/授权扩表0残留，browser/proxy/API/标识容器独立清理。
+- 最终113/113后端、53/53前端、15/15 production Edge desktop40.9秒（新CSS后的最终构建）；正式源码/严格E2E类型与lint通过，共享fixture13既有lint和antdv回显不冒称有效检查。
+- 模板原接口/6类型/7业务字段、code全局唯一、Name旧scope、原Content/Data键及两NonAction/引擎refs均保持；仅HTTP JsonElement模型适配、成功更新显式Id+Tenant、普通授权本租户与预览保护、真实Slate编辑/无损切换、隔离显示/原输出、迟到与失败草稿处理。
+- 最终真实10PNG已查看；6完整Mock明暗图与4活动/悬停选中图独立检查，暗色SVG白底问题修主题accent，实测11.09/11.82。截图动态无交互点先移走，再自然等待，不隐藏通知。经验已归档lessons。
+- 用户 AGENTS.md、doc/frontend-vben-tickets-draft.md、.gitignore 的SHA保持不变，不提交；日志/PNG/JSON/临时runtime/store不提交。33范围25文件=4backend+13frontend+7scratch+lesson。
+- 后续仅desktop/隔离PostgreSQL；pwsh7/UTF8/Stop/nativeexit，bundled Node执行bundled pnpm。never审批/fullaccess，不带sandbox_permissions，不请求升级；48生产切换仍独立授权，47仅46之后。
+- 34先读取原提案、领域/最近CLAUDE，再codegraph现行插件上传/加载/卸载/删除和权限/存储合同；使用标识隔离插件和API真实加载执行正向及卸载不再服务证明，不能用清单/mock替代动态运行。
+
+---
+
 # 编号提案上下文交接
 
 日期：2026-10-10（Asia/Shanghai）。

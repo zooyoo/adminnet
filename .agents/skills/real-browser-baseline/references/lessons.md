@@ -236,3 +236,13 @@
 - 离页地址以现行菜单/API为准；本次缓存地址为/platform/cache，Mock中的/system/cache不能代替真实路由。截图确认错误页后修正定位，整段真实流程复跑。
 - 验证KeepAlive使用同文档路由切换，保存并比较文档标识；目标页面具名控件可见、旧页面隐藏后检查保护请求无新增，重入须有实际请求且无遗留弹窗。整页goto的重载结果需与同文档生命周期证据区分。
 - 证据：提案32最终14真实阶段/独立清理、18生产桌面契约；非空4条既有数据摘要不变、初始数据恢复，最终明暗/编辑/错误/停机图均已实际查看。
+
+
+### 2026-10-10：模板真实模型、菜单就绪与活动图标
+
+- 适用：WangEditor-Next6.5.0/Antdv-Next1.5.2/Vue3.5.41/Furion4.9.9.92、生产Edge桌面与隔离PG18。Wang getEditableContainer是外层；字段role/name须放实际[data-slate-editor]，清外层冲突。真实selection已建立时菜单仍可能disabled，等待实际enabled及strong，再比较引擎/原render与save载荷/源码/重开，不能靠点击或任意等待认定格式成功。
+- 库SVG fill用toolbar-color，active背景默认#f1f1f1，暗色可能白底白图标。活动背景接主题accent；实际测SVG/path fill与透明祖先背景合成对比>=3，分别保active非hover、active+hover两主题JSON和PNG。此项实测11.09/11.82，不只检查变量/类名存在。line reporter不保证内存body attachment持久化，测量先独立writeFile再attach path，后处理核4JSON+4PNG。
+- 真实HTTP模型绑定可能为JsonElement，即使直接CLR/Expando引擎测试通过，Model.name仍会RuntimeBinderException。用实际ASP转换器+真实引擎验证，再只在HTTP共享入口适配对象/数组/标量，原内部helper/refs与能力不动。
+- SqlSugar对象update追加自定义Where可能没有自动主键谓词；contains(id)也会被tenantid满足。派生实际ToSql核独立Id+Tenant参数，真实成功更新同时比较同租户peer/他租户/既有全字段快照。旧GET模板路由以生成SDK的/template/{code}为准，不猜query后改生产接口。
+- 截图先动态选择可见无交互点移走鼠标，再自然等notice，否则hover暂停通知；分别诊断通知/有限动画/Modal终态/实际scroll与字体，复核同一指针坐标，不first、不隐藏通知、不增sleep。字段按实际role，AutoComplete为combobox；失败对象DOM先JSON序列化再脱敏。
+- 证据：提案33最终113后端/53前端/15生产桌面，16完整真实阶段与独立清理；3条非空既有摘要不变、准备数据恢复初始，完整明暗/编辑器/渲染/错误/停机及4对比度图已实际查看，原Razor两helper正文及refs保持。
