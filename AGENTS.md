@@ -18,6 +18,7 @@ dotnet test Admin.NET.Test/Admin.NET.Test.csproj
 ```
 
 ### 不需要测试mobil端，只测试桌面端
+### 用pgsql测试，不要用sqlite
 
 解决方案面向 .NET 8 和 .NET 10，Web 入口项目面向 .NET 10。在 `Web/` 中使用仓库指定版本的 pnpm 运行前端命令：
 
@@ -78,7 +79,65 @@ pnpm format
 - Antdv Next：[Skills](https://www.antdv-next.cn/docs/vue/skills-cn)、[MCP](https://www.antdv-next.cn/docs/vue/mcp-cn)、[CLI](https://antdv-next.com/docs/vue/cli-cn.md)、[Agent 指南](https://antdv-next.com/docs/vue/for-agents-cn.md)。
 - [Antfu Skills](https://github.com/antfu/skills)；项目内已安装的 Skill 以 `.agents/skills/` 为准。
 
+## 项目检索规则
+
+进行代码分析、定位实现、追踪调用链或修改代码前，优先使用 `codegraph` 和 `fast-context`，避免无目的地遍历整个仓库。
+
+### 工具选择
+
+- 已知类名、函数、接口、文件或业务入口时，优先调用 `codegraph_explore`。
+- 需要理解调用链、依赖关系、数据流或修改影响范围时，优先使用 `codegraph_explore`。
+- 不知道代码位置，仅有自然语言需求、错误现象或业务描述时，先调用 `fast_context_search`。
+- `codegraph` 没有索引、查询失败或结果不足时，使用 `fast_context_search`。
+- `fast-context` 找到候选文件或符号后，如项目存在 Codegraph 索引，再用 `codegraph_explore` 追踪调用关系和影响范围。
+
+### Codegraph 使用规范
+
+- 调用时始终传入当前项目的绝对路径 `projectPath`。
+- 查询应包含具体符号、文件名、业务流程或待修改行为，避免只有“分析项目”之类的宽泛描述。
+- Codegraph 返回的带行号源码视为已经读取过，不要立即重复打开同一段代码。
+- 修改共享方法、公共接口或核心流程前，使用 Codegraph 检查调用方和影响范围。
+- 如果项目没有 `.codegraph` 索引，立即切换到 `fast_context_search` 或本地检索继续任务，不要中断工作，也不要重复调用 Codegraph。
+- 同时说明 Codegraph 当前不可用于该项目，并提供用户可执行的 `codegraph init` 命令。
+- 不得自行升级 Codegraph，或删除、重建现有索引；发现版本、损坏或索引过期问题时，说明原因和建议操作。
+
+### Fast-context 使用规范
+
+- 调用时传入当前项目的绝对路径 `project_path`。
+- 查询应描述要寻找的行为、入口、数据流或故障现象，而不只是关键词列表。
+- 默认使用轻量检索：
+  - `include_code_snippets: false`
+  - `max_turns: 1-3`
+  - `max_results: 5-10`
+  - `tree_depth: 0`，让工具自动选择
+- 排除 `.git`、`node_modules`、`dist`、`build`、`coverage`、日志及其他生成目录。
+- 只有候选文件不足时才增加 `max_turns`、目录深度或启用代码片段。
+- Fast-context 返回的是候选位置，不应直接视为最终事实；修改前必须读取对应源码或用 Codegraph进一步验证。
+
+### 标准检索流程
+
+1. 判断是否已有明确符号或入口。
+2. 明确入口时调用 `codegraph_explore`；入口不明确时调用 `fast_context_search`。
+3. 根据结果进行一次有针对性的补充检索。
+4. 必要时再使用 `rg`、`git grep`、`Select-String` 或文件读取工具核实具体内容。
+5. 修改前确认定义位置、调用方、配置入口、测试位置和潜在影响范围。
+6. 以当前磁盘源码和 `git diff` 为最终依据；工具索引与源码冲突时，以源码为准。
+
+### 检索约束
+
+- 不要同时对两个工具发起相同的宽泛查询。
+- 不要重复读取工具已经返回的完整源码。
+- 不要为了探索代码而自动修改、初始化或升级项目。
+- 不得检索或输出 `.env`、密钥、令牌、证书及其他敏感内容。
+- 回答时区分“源码已验证”“工具推断”和“仍需确认”的内容。
+
+
+
 ## Agent skills
+
+### 提案推进门禁
+
+按编号推进提案、恢复执行或复用子智能体前，读取 `docs/agents/proposal-closeout.md`。当前批次业务验收完成且全部子智能体经宿主确认关闭后，才可派发下一批次；缺少关闭能力或回执时，记录阻塞并停留在当前批次。
 
 ### Issue tracker
 
