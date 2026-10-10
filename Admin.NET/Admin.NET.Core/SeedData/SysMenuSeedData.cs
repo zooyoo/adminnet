@@ -327,6 +327,7 @@ public class SysMenuSeedData : ISqlSugarEntitySeedData<SysMenu>
             new SysMenu{ Id=1300500011501, Pid=1300500010101, Title="生成种子数据", Permission="sysDatabase:createSeedData", Type=MenuTypeEnum.Btn, OrderNo=151 },
             new SysMenu{ Id=1300500020101, Pid=1300500000101, Title="代码生成", Path="/develop/codeGen", Name="sysCodeGen", Component="/system/codeGen/index", Icon="ele-Crop", Type=MenuTypeEnum.Menu, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=110 },
             new SysMenu{ Id=1300500040101, Pid=1300500000101, Title="接口压测", Path="/develop/stressTest", Name="SysStressTest", Component="/system/stressTest/index", Icon="ele-DataLine", Type=MenuTypeEnum.Menu, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=130 },
+            new SysMenu{ Id=1300500040111, Pid=1300500040101, Title="执行受控压测", Permission="sysCommon:stressTest", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=100 },
             new SysMenu{ Id=1300500050101, Pid=1300500000101, Title="系统接口", Path="/develop/api", Name="sysApi", Component="layout/routerView/iframe", IsIframe=true, OutLink="http://localhost:5005", Icon="ele-Help", Type=MenuTypeEnum.Menu, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=140 },
 
             #endregion 开发工具

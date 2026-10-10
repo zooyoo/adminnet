@@ -1,0 +1,11 @@
+{
+  "StressTest": {
+    "Enabled": false,
+    "Targets": [],
+    "MaxTotalRequests": 10000,
+    "MaxConcurrency": 64,
+    "MaxRounds": 100,
+    "MaxRequestsPerRound": 1000,
+    "RequestTimeoutSeconds": 10
+  }
+}

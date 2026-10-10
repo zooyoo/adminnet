@@ -9,6 +9,7 @@ param(
     [switch]$CodeGenFixture,
     [switch]$LogFixture,
     [switch]$MonitorFixture,
+    [uri]$StressTestService,
     [switch]$FileDeduplication,
     [switch]$TranslationTestService,
     [uri]$SmsTestService,
@@ -20,7 +21,11 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if (([int]$CrudFixture.IsPresent + [int]$AuthFixture.IsPresent + [int]$OnlineFixture.IsPresent) -gt 1) { throw 'Select only one isolated fixture.' }
-if ($MonitorFixture -and -not $PostgreSqlFixture) { throw 'MonitorFixture requires PostgreSqlFixture.' }
+if (($MonitorFixture -or $StressTestService) -and -not $PostgreSqlFixture) { throw 'Monitor and stress fixtures require PostgreSqlFixture.' }
+if ($StressTestService -and ($StressTestService.Scheme -ne 'http' -or $StressTestService.Host -ne '127.0.0.1' -or
+    $StressTestService.AbsolutePath -ne '/probe/' -or $StressTestService.Query -or $StressTestService.UserInfo -or $StressTestService.Fragment)) {
+    throw 'Stress test service must be an explicit local HTTP /probe/ endpoint.'
+}
 
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $buildRoot = if ($BuildRoot) { [IO.Path]::GetFullPath($BuildRoot) } else { Join-Path $repositoryRoot 'Admin.NET/Admin.NET.Web.Entry/bin/Debug/net10.0' }
@@ -65,6 +70,17 @@ foreach ($fileName in @('App.json', 'Enum.json', 'Captcha.json', 'Limit.json')) 
     }
 }
 $configuration['AppSettings'] = @{ InjectSpecificationDocument = $false }
+if ($StressTestService) {
+    $configuration['StressTest'] = @{
+        Enabled = $true
+        Targets = @(@{ Name = '隔离压测接收端'; RequestUri = $StressTestService.AbsoluteUri })
+        MaxTotalRequests = 60
+        MaxConcurrency = 4
+        MaxRounds = 10
+        MaxRequestsPerRound = 20
+        RequestTimeoutSeconds = 2
+    }
+}
 if ($CodeGenFixture) {
     $codeGenConfig = Get-Content -LiteralPath (Join-Path $configurationRoot 'CodeGen.json') -Encoding UTF8 -Raw | ConvertFrom-Json -AsHashtable
     $configuration['CodeGen'] = $codeGenConfig['CodeGen']
@@ -203,7 +219,7 @@ if ($PostgreSqlFixture) {
             TableSettings = @{ EnableInitTable = $false; EnableIncreTable = $false }
             SeedSettings = @{ EnableInitSeed = $false; EnableIncreSeed = $false }
         }
-        if ($LogFixture -or $MonitorFixture) {
+        if ($LogFixture -or $MonitorFixture -or $StressTestService) {
             $mainConnection = $configuration['DbConnection']['ConnectionConfigs'][0]
             $mainConnection['DbType'] = 'PostgreSQL'
             $mainConnection['ConnectionString'] = "Host=127.0.0.1;Port=$pgPort;Database=maintenance;Username=postgres;Password=$pgPassword"
@@ -261,11 +277,11 @@ $process = $null
 try {
     $process = Start-IsolatedProcess
     Wait-IsolatedApi $process
-    if ($CrudFixture -or $AuthFixture -or $OnlineFixture -or $MonitorFixture) {
+    if ($CrudFixture -or $AuthFixture -or $OnlineFixture -or $MonitorFixture -or $StressTestService) {
         Stop-Process -Id $process.Id
         $process.WaitForExit()
         $fixtureScript = if ($AuthFixture) { 'prepare-auth-db.mjs' } elseif ($OnlineFixture) { 'prepare-online-db.mjs' } else { 'prepare-crud-db.mjs' }
-        if ($LogFixture -or $MonitorFixture) {
+        if ($LogFixture -or $MonitorFixture -or $StressTestService) {
             & docker exec $containerName psql -U postgres -d maintenance -v ON_ERROR_STOP=1 -c "UPDATE sysconfig SET value = 'False' WHERE code = 'sys_captcha'" | Out-Null
             if ($LASTEXITCODE -ne 0) { throw 'Isolated PostgreSQL fixture preparation failed.' }
         }

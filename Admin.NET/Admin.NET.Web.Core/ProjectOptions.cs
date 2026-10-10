@@ -41,6 +41,7 @@ public static class ProjectOptions
         services.AddConfigurableOptions<CDConfigOptions>();
         services.AddConfigurableOptions<DeepSeekOptions>();
         services.AddConfigurableOptions<LocalizationSettingsOptions>();
+        services.AddConfigurableOptions<StressTestOptions>();
         services.Configure<IpRateLimitOptions>(App.Configuration.GetSection("IpRateLimiting"));
         services.Configure<IpRateLimitPolicies>(App.Configuration.GetSection("IpRateLimitPolicies"));
         services.Configure<ClientRateLimitOptions>(App.Configuration.GetSection("ClientRateLimiting"));

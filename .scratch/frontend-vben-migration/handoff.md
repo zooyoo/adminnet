@@ -2,6 +2,17 @@
 
 日期：2026-10-10（Asia/Shanghai）。
 
+## 最新接续：提案 29 已完成，下一项 30
+
+- 总进度 29 / 48；继续按编号、每项完成后更新进度 / 提交 / 调用上下文压缩，仅桌面和隔离 PostgreSQL。当前整体 goal active，不能在全部 48 项完成前关闭。
+- 新 `system/stressTest` 页面与旧 Component / `/platform/stressTest` / `/develop/stressTest` 兼容。仅超级管理员且获 `sysCommon:stressTest` 授权的用户执行，服务端默认关闭、空白名单；预算、数值 IP / 同源路径前缀、Path 替换前后、Header / 参数均校验，禁用重定向 / 代理 / 自动 Cookie。
+- `StressTestRunner` 单任务互斥、顺序轮次、有界并发和可取消请求，成功响应耗时按独立下标保存，失败不进入时间样本；表单保留重复键，Headers / Path / Query 拒绝不区分大小写的重复键。宿主注册 Options，新增种子按钮及显式路由权限；其余公共接口保留原匿名行为。
+- 取消 / 离页 / 身份变化释放请求且迟到结果不得污染当前状态；生产代理将取消传播至 API。FormItem 使用具名表单自动关联 ID，真实 combobox 可访问名称回归通过；结果卡片独立完整截图。
+- 后端 90 / 90、前端 54 / 54、生产桌面契约 8 / 8，ESLint / 类型 / API / Test / 生产构建通过。dotnet 构建使用 `--disable-build-servers -m:1 -p:UseSharedCompilation=false`，xUnit v3 用 MTP 测试 DLL 执行；pnpm 使用 bundled Node 和 pnpm 脚本，Playwright `--project=desktop`、已安装 Edge。
+- 最终报告：`C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-1be5382ddf56446c992b56ef5cbfb41c/evidence/stress-browser-baseline.json`，`passed=true` / `cleanupPassed=true`，11 阶段通过。四方法各 12 次（8 成功 / 4 失败，峰值 2）与参数 / 3 轮 / 统计一致；匿名 / 普通 / 已授按钮非超管拒绝，非法目标 / 预算 / Header 网络前拒绝，全失败 / 302 / 超时、生产取消 / 离页 / 停机草稿通过。已查看真实完整明暗统计卡片及停机失败卡片；API、浏览器、代理、接收端、PostgreSQL 容器与卷已清理。
+- `AGENTS.md` 与 `doc/frontend-vben-tickets-draft.md` 是用户既有修改，不提交；本地 `.pnpm-store/`、临时日志 / 原服务快照 / 测试输出路径也不提交。后端实现委派与末次只读复核尝试失败、未写入，未计入验收证据；后端由主会话完成并实际验证。
+- 下一项 30：系统更新、更新记录、恢复和清理。仅可在明确授权、可还原的隔离部署执行；先核对原服务的真实合同与风险，准备独立隔离目标，不能操作源码仓库或生产部署。第 48 项生产切换仍需独立授权。
+
 ## 最新接续：提案 28 已完成，下一项 29
 
 - 提案 27 提交 `64e971ada`；提案 28 已完成并准备提交，总进度 28 / 48。继续按编号、每项验收后提交，仅桌面和隔离 PostgreSQL。

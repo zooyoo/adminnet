@@ -37,6 +37,10 @@ export async function startProductionProxy(distRoot, apiUrl) {
 				if (!outgoing.headersSent) outgoing.writeHead(502);
 				outgoing.end('Isolated API unavailable');
 			});
+			incoming.on('aborted', () => upstream.destroy());
+			outgoing.on('close', () => {
+				if (!outgoing.writableFinished) upstream.destroy();
+			});
 			incoming.pipe(upstream);
 			return;
 		}

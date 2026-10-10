@@ -1,4 +1,4 @@
-﻿// Admin.NET 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
+// Admin.NET 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //
 // 本项目主要遵循 MIT 许可证和 Apache 许可证（版本 2.0）进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 和 LICENSE-APACHE 文件。
 //
@@ -14,7 +14,7 @@ public class StressTestInput
     /// <summary>
     /// 接口请求地址
     /// </summary>
-    /// <example>https://gitee.com/zuohuaijun/Admin.NET</example>
+    /// <example>http://127.0.0.1:8080/probe/</example>
     [Required(ErrorMessage = "接口请求地址不能为空")]
     public string RequestUri { get; set; }
 
@@ -29,7 +29,7 @@ public class StressTestInput
     /// </summary>
     /// <example>100</example>
     [Required(ErrorMessage = "每轮请求量不能为空")]
-    [Range(1, 100000, ErrorMessage = "每轮请求量必须为1-100000")]
+    [Range(1, 1000, ErrorMessage = "每轮请求量必须为1-1000")]
     public int? NumberOfRequests { get; set; }
 
     /// <summary>
@@ -37,15 +37,15 @@ public class StressTestInput
     /// </summary>
     /// <example>5</example>
     [Required(ErrorMessage = "压测轮数不能为空")]
-    [Range(1, 10000, ErrorMessage = "压测轮数必须为1-10000")]
+    [Range(1, 100, ErrorMessage = "压测轮数必须为1-100")]
     public int? NumberOfRounds { get; set; }
 
     /// <summary>
     /// 最大并行量（默认为当前主机逻辑处理器的数量）
     /// </summary>
     /// <example>500</example>
-    [Range(0, 10000, ErrorMessage = "最大并行量必须为0-10000")]
-    public int? MaxDegreeOfParallelism { get; set; } = Environment.ProcessorCount;
+    [Range(0, 64, ErrorMessage = "最大并行量必须为0-64")]
+    public int? MaxDegreeOfParallelism { get; set; } = 0;
 
     /// <summary>
     /// 请求参数
