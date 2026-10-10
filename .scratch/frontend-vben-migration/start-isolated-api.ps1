@@ -10,6 +10,7 @@ param(
     [switch]$LogFixture,
     [switch]$MonitorFixture,
     [switch]$OpenAccessFixture,
+    [switch]$RegionFixture,
     [uri]$StressTestService,
     [uri]$UpdateArchiveService,
     [switch]$FileDeduplication,
@@ -17,13 +18,14 @@ param(
     [uri]$SmsTestService,
     [ValidateRange(1, 120)]
     [int]$SmsTestExpirySeconds = 60,
-    [string]$BuildRoot
+    [string]$BuildRoot,
+    [string]$RuntimeMarkerPath
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if (([int]$CrudFixture.IsPresent + [int]$AuthFixture.IsPresent + [int]$OnlineFixture.IsPresent) -gt 1) { throw 'Select only one isolated fixture.' }
-if (($MonitorFixture -or $OpenAccessFixture -or $StressTestService -or $UpdateArchiveService) -and -not $PostgreSqlFixture) { throw 'Monitor, open-access, stress and update fixtures require PostgreSqlFixture.' }
+if (($MonitorFixture -or $OpenAccessFixture -or $RegionFixture -or $StressTestService -or $UpdateArchiveService) -and -not $PostgreSqlFixture) { throw 'Monitor, open-access, region, stress and update fixtures require PostgreSqlFixture.' }
 if ($UpdateArchiveService -and ($UpdateArchiveService.Scheme -ne 'http' -or $UpdateArchiveService.Host -ne '127.0.0.1' -or
     $UpdateArchiveService.AbsolutePath -ne '/archive.zip' -or $UpdateArchiveService.Query -or $UpdateArchiveService.UserInfo -or $UpdateArchiveService.Fragment)) {
     throw 'Update archive service must be an explicit local HTTP /archive.zip endpoint.'
@@ -43,8 +45,17 @@ if (Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyCon
     throw "Port $Port is already occupied."
 }
 
+if ($RuntimeMarkerPath) {
+    $RuntimeMarkerPath = [IO.Path]::GetFullPath($RuntimeMarkerPath)
+    if ([IO.Path]::GetDirectoryName($RuntimeMarkerPath) -ne [IO.Path]::GetFullPath($PSScriptRoot) -or
+        [IO.Path]::GetFileName($RuntimeMarkerPath) -notmatch '^region-startup-runtime-[a-f0-9]{32}\.json$' -or
+        (Test-Path -LiteralPath $RuntimeMarkerPath)) { throw 'Invalid startup runtime marker path.' }
+}
 $runtimeRoot = Join-Path ([IO.Path]::GetTempPath()) ('adminnet-vben-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $runtimeRoot | Out-Null
+if ($RuntimeMarkerPath) {
+    @{ runtimeRoot = $runtimeRoot; baseUrl = "http://127.0.0.1:$Port" } | ConvertTo-Json | Set-Content -LiteralPath $RuntimeMarkerPath -Encoding UTF8
+}
 New-Item -ItemType Directory -Path (Join-Path $runtimeRoot 'wwwroot') | Out-Null
 # 种子站点引用公开 Logo；使用仓库静态资源补齐，不复制开发环境上传目录。
 New-Item -ItemType Directory -Path (Join-Path $runtimeRoot 'wwwroot/upload') | Out-Null
@@ -249,7 +260,7 @@ if ($PostgreSqlFixture) {
             TableSettings = @{ EnableInitTable = $false; EnableIncreTable = $false }
             SeedSettings = @{ EnableInitSeed = $false; EnableIncreSeed = $false }
         }
-        if ($LogFixture -or $MonitorFixture -or $OpenAccessFixture -or $StressTestService -or $UpdateArchiveService) {
+        if ($LogFixture -or $MonitorFixture -or $OpenAccessFixture -or $RegionFixture -or $StressTestService -or $UpdateArchiveService) {
             $mainConnection = $configuration['DbConnection']['ConnectionConfigs'][0]
             $mainConnection['DbType'] = 'PostgreSQL'
             $mainConnection['ConnectionString'] = "Host=127.0.0.1;Port=$pgPort;Database=maintenance;Username=postgres;Password=$pgPassword"
@@ -307,11 +318,11 @@ $process = $null
 try {
     $process = Start-IsolatedProcess
     Wait-IsolatedApi $process
-    if ($CrudFixture -or $AuthFixture -or $OnlineFixture -or $MonitorFixture -or $OpenAccessFixture -or $StressTestService -or $UpdateArchiveService) {
+    if ($CrudFixture -or $AuthFixture -or $OnlineFixture -or $MonitorFixture -or $OpenAccessFixture -or $RegionFixture -or $StressTestService -or $UpdateArchiveService) {
         Stop-Process -Id $process.Id
         $process.WaitForExit()
         $fixtureScript = if ($AuthFixture) { 'prepare-auth-db.mjs' } elseif ($OnlineFixture) { 'prepare-online-db.mjs' } else { 'prepare-crud-db.mjs' }
-        if ($LogFixture -or $MonitorFixture -or $OpenAccessFixture -or $StressTestService -or $UpdateArchiveService) {
+        if ($LogFixture -or $MonitorFixture -or $OpenAccessFixture -or $RegionFixture -or $StressTestService -or $UpdateArchiveService) {
             & docker exec $containerName psql -U postgres -d maintenance -v ON_ERROR_STOP=1 -c "UPDATE sysconfig SET value = 'False' WHERE code = 'sys_captcha'" | Out-Null
             if ($LASTEXITCODE -ne 0) { throw 'Isolated PostgreSQL fixture preparation failed.' }
         }

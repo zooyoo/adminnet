@@ -32,11 +32,11 @@ public class SysRegionService : IDynamicApiController, ITransient
     [DisplayName("获取行政区域分页列表")]
     public async Task<SqlSugarPagedList<SysRegion>> Page(PageRegionInput input)
     {
-        return await _sysRegionRep.AsQueryable()
+        var query = _sysRegionRep.AsQueryable()
             .WhereIF(input.Pid > 0, u => u.Pid == input.Pid || u.Id == input.Pid)
             .WhereIF(!string.IsNullOrWhiteSpace(input.Name), u => u.Name.Contains(input.Name))
-            .WhereIF(!string.IsNullOrWhiteSpace(input.Code), u => u.Code.Contains(input.Code))
-            .ToPagedListAsync(input.Page, input.PageSize);
+            .WhereIF(!string.IsNullOrWhiteSpace(input.Code), u => u.Code.Contains(input.Code));
+        return await RegionContracts.OrderByPosition(query).ToPagedListAsync(input.Page, input.PageSize);
     }
 
     /// <summary>
@@ -47,7 +47,7 @@ public class SysRegionService : IDynamicApiController, ITransient
     [DisplayName("获取行政区域列表")]
     public async Task<List<SysRegion>> GetList([FromQuery] RegionInput input)
     {
-        return await _sysRegionRep.GetListAsync(u => u.Pid == input.Id);
+        return await RegionContracts.OrderByPosition(_sysRegionRep.AsQueryable().Where(u => u.Pid == input.Id)).ToListAsync();
     }
 
     /// <summary>
@@ -57,7 +57,7 @@ public class SysRegionService : IDynamicApiController, ITransient
     [DisplayName("获取行政区域树")]
     public async Task<List<SysRegion>> GetTree()
     {
-        return await _sysRegionRep.AsQueryable().ToTreeAsync(u => u.Children, u => u.Pid, null);
+        return await RegionContracts.OrderByPosition(_sysRegionRep.AsQueryable()).ToTreeAsync(u => u.Children, u => u.Pid, null);
     }
 
     /// <summary>
@@ -69,18 +69,12 @@ public class SysRegionService : IDynamicApiController, ITransient
     [DisplayName("增加行政区域")]
     public async Task<long> AddRegion(AddRegionInput input)
     {
-        input.Code = input.Code?.Trim() ?? "";
-        if (input.Code.Length != 12 && input.Code.Length != 9 && input.Code.Length != 6) throw Oops.Oh(ErrorCodeEnum.R2003);
+        input.Code = RegionContracts.NormalizeCode(input.Code);
+        input.Pid = await RegionContracts.ResolveParentIdAsync(input.Pid,
+            id => _sysRegionRep.GetFirstAsync(u => u.Id == id),
+            code => _sysRegionRep.GetFirstAsync(u => u.Code == code));
 
-        if (input.Pid != 0)
-        {
-            var pRegion = await _sysRegionRep.GetFirstAsync(u => u.Id == input.Pid);
-            pRegion ??= await _sysRegionRep.GetFirstAsync(u => u.Code == input.Pid.ToString());
-            if (pRegion == null) throw Oops.Oh(ErrorCodeEnum.D2000);
-            input.Pid = pRegion.Id;
-        }
-
-        var isExist = await _sysRegionRep.IsAnyAsync(u => u.Name == input.Name && u.Code == input.Code);
+        var isExist = await _sysRegionRep.IsAnyAsync(RegionContracts.DuplicatePredicate(input.Name, input.Code));
         if (isExist) throw Oops.Oh(ErrorCodeEnum.R2002);
 
         var sysRegion = input.Adapt<SysRegion>();
@@ -97,27 +91,18 @@ public class SysRegionService : IDynamicApiController, ITransient
     [DisplayName("更新行政区域")]
     public async Task UpdateRegion(UpdateRegionInput input)
     {
-        input.Code = input.Code?.Trim() ?? "";
-        if (input.Code.Length != 12 && input.Code.Length != 9 && input.Code.Length != 6) throw Oops.Oh(ErrorCodeEnum.R2003);
-
+        input.Code = RegionContracts.NormalizeCode(input.Code);
+        RegionContracts.EnsureValidId(input.Id);
         var sysRegion = await _sysRegionRep.GetFirstAsync(u => u.Id == input.Id);
         if (sysRegion == null) throw Oops.Oh(ErrorCodeEnum.D1002);
 
-        if (sysRegion.Pid != input.Pid && input.Pid != 0)
-        {
-            var pRegion = await _sysRegionRep.GetFirstAsync(u => u.Id == input.Pid);
-            pRegion ??= await _sysRegionRep.GetFirstAsync(u => u.Code == input.Pid.ToString());
-            if (pRegion == null) throw Oops.Oh(ErrorCodeEnum.D2000);
+        input.Pid = await RegionContracts.ResolveParentIdAsync(input.Pid,
+            id => _sysRegionRep.GetFirstAsync(u => u.Id == id),
+            code => _sysRegionRep.GetFirstAsync(u => u.Code == code));
+        await RegionContracts.EnsureValidParentAsync(input.Id, input.Pid,
+            () => _sysRegionRep.AsQueryable().ToChildListAsync(u => u.Pid, input.Id, true));
 
-            input.Pid = pRegion.Id;
-            var regionTreeList = await _sysRegionRep.AsQueryable().ToChildListAsync(u => u.Pid, input.Id, true);
-            var childIdList = regionTreeList.Select(u => u.Id).ToList();
-            if (childIdList.Contains(input.Pid)) throw Oops.Oh(ErrorCodeEnum.R2004);
-        }
-
-        if (input.Id == input.Pid) throw Oops.Oh(ErrorCodeEnum.R2001);
-
-        var isExist = await _sysRegionRep.IsAnyAsync(u => (u.Name == input.Name && u.Code == input.Code) && u.Id != sysRegion.Id);
+        var isExist = await _sysRegionRep.IsAnyAsync(RegionContracts.DuplicatePredicate(input.Name, input.Code, sysRegion.Id));
         if (isExist) throw Oops.Oh(ErrorCodeEnum.R2002);
 
         await _sysRegionRep.AsUpdateable(input.Adapt<SysRegion>()).IgnoreColumns(true).ExecuteCommandAsync();
@@ -132,6 +117,9 @@ public class SysRegionService : IDynamicApiController, ITransient
     [DisplayName("删除行政区域")]
     public async Task DeleteRegion(DeleteRegionInput input)
     {
+        RegionContracts.EnsureValidId(input.Id);
+        if (!await _sysRegionRep.IsAnyAsync(u => u.Id == input.Id)) throw Oops.Oh(ErrorCodeEnum.D1002);
+
         var regionTreeList = await _sysRegionRep.AsQueryable().ToChildListAsync(u => u.Pid, input.Id, true);
         var regionIdList = regionTreeList.Select(u => u.Id).ToList();
         await _sysRegionRep.DeleteAsync(u => regionIdList.Contains(u.Id));

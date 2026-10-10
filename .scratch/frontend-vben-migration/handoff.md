@@ -2,6 +2,16 @@
 
 日期：2026-10-10（Asia/Shanghai）。
 
+## 最新接续：提案32已完成，下一项33
+
+- 总进度32/48，goal继续active；逐项验收、更新、中文提交、调用压缩后推进。仅桌面Edge/隔离PostgreSQL，第47清旧前端前置验收与第48独立生产授权不变。
+- 6后端文件、9前端文件与限定基线/任务记录：保留page父自身+直接子、list/tree元数据、名称和编码Contains、6/9/12非数字编码、Name+Code组合重复、Id优先再code父解析、OrderNo+Id、完整字段编辑、精确子孙级联。管理显式授权，无新增999限制；Sync/helper与HEAD原文一致，未运行同步。
+- 前端canonical/system/region及alias/platform/region，signal/silentError、权限/身份/KeepAlive取消拒迟到、失败草稿、删除确认与独立页面样式。141前端回归、121后端、18 Edge生产桌面及ESLint/类型/API/Test/生产构建通过；fixture13既有强制lint和仅回显不计有效。
+- 最终真实报告C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-f22e2baf6b1d4be3963a4c6feea76c9e/evidence/region-browser-baseline.json，passed/cleanupPassed true，14阶段、context-97 exit0。非空4条API准备既有层级的全字段摘要不变，再删除准备数据恢复初始摘要；全部临时区域/租户/角色/用户/职位/组织/授权关联0，API/PID、代理/浏览器、标识PG容器/卷清理。所有5最终真实图与4 Mock明暗图已查看。
+- 前两轮失败已如实记issue32（空初始库/错误cache地址404），均独立清理通过。当前实际cache路径/platform/cache；通过同文档hash导航、文档标识、离页静止和积极重入page计数验证生命周期。
+- 用户AGENTS.md、doc/frontend-vben-tickets-draft.md及新增.gitignore忽略修改保留不提交；本地logs、组件JSON、启动交接/摘要JSON、.pnpm-store与截图不提交。提交信息feat(前端): 完成提案32区域管理迁移。
+- 下一项33模板管理：先读取提案确切范围、领域资料和现行API/DTO/权限/旧页面合同。全部48前不关闭goal。
+
 ## 最新接续：提案 31 已完成，下一项 32
 
 - 总进度 31 / 48、goal active；继续逐项更新、提交、调用压缩后推进，仅桌面 / 隔离 PostgreSQL。
