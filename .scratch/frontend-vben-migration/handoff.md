@@ -2,6 +2,16 @@
 
 日期：2026-10-10（Asia/Shanghai）。
 
+## 最新接续：提案 31 已完成，下一项 32
+
+- 总进度 31 / 48、goal active；继续逐项更新、提交、调用压缩后推进，仅桌面 / 隔离 PostgreSQL。
+- 开放身份页面兼容原平台地址 / Component，保留明文列与 22 字符密钥、九方法 HMAC 合同；四原权限，候选 / secret 为 add 或 update，签名生成 page。非999只本租户 / 不高于本账号，999跨租户；最小候选与鲜读有效绑定，当前请求共用快照，禁用 / 轮换 / 重绑定 / 删除使旧凭据失效。
+- 秒 / 毫秒、时间窗、Header / 路径 / Base64 校验、成功后消费 nonce 与完整 TTL；单进程 lock 防本实例并发重放，不宣称跨实例原子。前端取消 / 身份权限 / KeepAlive拒迟到，失败草稿与删除取消，敏感状态不入存储 / console / 通知。
+- 200 后端、112 前端、11 Edge 生产桌面、ESLint / 类型 / API / Test / 生产构建通过。默认 ignore / 仅回显不计有效验证，fixture 13 条既有强制 lint 未改。
+- 最新真实报告 C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-df55f333997141acb36d80a84984fb30/evidence/open-access-browser-baseline.json：passed / cleanupPassed true，20 阶段、exit0、26 鉴权拒绝含 8 并发仅 1 成功。35 操作 / 0 差异据实记录，CRUD不触发差异；临时记录 PG 反查0、进程与标识容器清理。所有最终真实图与 Mock 明暗完整帮助已查看。
+- 根用户 AGENTS.md 和 doc/frontend-vben-tickets-draft.md 两修改保留不提交；本地缓存 / logs / info-demo JSON / 临时路径与启动文件不提交。提案30 a21f2f215；本项提交信息 feat(前端): 完成提案31开放访问与签名迁移。
+- 下一项32区域管理：先核对原分级查询 / 编辑、父子关系、区域编码、非大陆选择和权限合同，再实际桌面 / PG验证。全部48前不关闭goal；第47清理前置验收与第48生产独立授权边界保持。
+
 ## 最新接续：提案 30 已完成，下一项 31
 
 - 总进度 30 / 48；整体 goal 继续 active。仍按编号完成后更新进度、提交并调用上下文压缩，再推进下一项；仅桌面和隔离 PostgreSQL。

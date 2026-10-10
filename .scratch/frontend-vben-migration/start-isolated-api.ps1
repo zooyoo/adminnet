@@ -9,6 +9,7 @@ param(
     [switch]$CodeGenFixture,
     [switch]$LogFixture,
     [switch]$MonitorFixture,
+    [switch]$OpenAccessFixture,
     [uri]$StressTestService,
     [uri]$UpdateArchiveService,
     [switch]$FileDeduplication,
@@ -22,7 +23,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if (([int]$CrudFixture.IsPresent + [int]$AuthFixture.IsPresent + [int]$OnlineFixture.IsPresent) -gt 1) { throw 'Select only one isolated fixture.' }
-if (($MonitorFixture -or $StressTestService -or $UpdateArchiveService) -and -not $PostgreSqlFixture) { throw 'Monitor, stress and update fixtures require PostgreSqlFixture.' }
+if (($MonitorFixture -or $OpenAccessFixture -or $StressTestService -or $UpdateArchiveService) -and -not $PostgreSqlFixture) { throw 'Monitor, open-access, stress and update fixtures require PostgreSqlFixture.' }
 if ($UpdateArchiveService -and ($UpdateArchiveService.Scheme -ne 'http' -or $UpdateArchiveService.Host -ne '127.0.0.1' -or
     $UpdateArchiveService.AbsolutePath -ne '/archive.zip' -or $UpdateArchiveService.Query -or $UpdateArchiveService.UserInfo -or $UpdateArchiveService.Fragment)) {
     throw 'Update archive service must be an explicit local HTTP /archive.zip endpoint.'
@@ -248,7 +249,7 @@ if ($PostgreSqlFixture) {
             TableSettings = @{ EnableInitTable = $false; EnableIncreTable = $false }
             SeedSettings = @{ EnableInitSeed = $false; EnableIncreSeed = $false }
         }
-        if ($LogFixture -or $MonitorFixture -or $StressTestService -or $UpdateArchiveService) {
+        if ($LogFixture -or $MonitorFixture -or $OpenAccessFixture -or $StressTestService -or $UpdateArchiveService) {
             $mainConnection = $configuration['DbConnection']['ConnectionConfigs'][0]
             $mainConnection['DbType'] = 'PostgreSQL'
             $mainConnection['ConnectionString'] = "Host=127.0.0.1;Port=$pgPort;Database=maintenance;Username=postgres;Password=$pgPassword"
@@ -306,11 +307,11 @@ $process = $null
 try {
     $process = Start-IsolatedProcess
     Wait-IsolatedApi $process
-    if ($CrudFixture -or $AuthFixture -or $OnlineFixture -or $MonitorFixture -or $StressTestService -or $UpdateArchiveService) {
+    if ($CrudFixture -or $AuthFixture -or $OnlineFixture -or $MonitorFixture -or $OpenAccessFixture -or $StressTestService -or $UpdateArchiveService) {
         Stop-Process -Id $process.Id
         $process.WaitForExit()
         $fixtureScript = if ($AuthFixture) { 'prepare-auth-db.mjs' } elseif ($OnlineFixture) { 'prepare-online-db.mjs' } else { 'prepare-crud-db.mjs' }
-        if ($LogFixture -or $MonitorFixture -or $StressTestService -or $UpdateArchiveService) {
+        if ($LogFixture -or $MonitorFixture -or $OpenAccessFixture -or $StressTestService -or $UpdateArchiveService) {
             & docker exec $containerName psql -U postgres -d maintenance -v ON_ERROR_STOP=1 -c "UPDATE sysconfig SET value = 'False' WHERE code = 'sys_captcha'" | Out-Null
             if ($LASTEXITCODE -ne 0) { throw 'Isolated PostgreSQL fixture preparation failed.' }
         }

@@ -6,7 +6,6 @@
 
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text.Encodings.Web;
 
 namespace Admin.NET.Core;
@@ -53,69 +52,56 @@ public sealed class SignatureAuthenticationHandler : AuthenticationHandler<Signa
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var accessKey = Request.Headers["accessKey"].FirstOrDefault();
-        var timestampStr = Request.Headers["timestamp"].FirstOrDefault(); // 精确到秒
-        var nonce = Request.Headers["nonce"].FirstOrDefault();
-        var sign = Request.Headers["sign"].FirstOrDefault();
-
-        if (string.IsNullOrEmpty(accessKey))
-            return await AuthenticateResultFailAsync("accessKey 不能为空");
-        if (string.IsNullOrEmpty(timestampStr))
-            return await AuthenticateResultFailAsync("timestamp 不能为空");
-        if (string.IsNullOrEmpty(nonce))
-            return await AuthenticateResultFailAsync("nonce 不能为空");
-        if (string.IsNullOrEmpty(sign))
-            return await AuthenticateResultFailAsync("sign 不能为空");
-
-        // 验证请求数据是否在可接受的时间内
-        if (!long.TryParse(timestampStr, out var timestamp))
+        if (!SignatureProtocol.TryGetSingleHeader(Request.Headers, "accessKey", out var accessKey))
+            return await AuthenticateResultFailAsync("accessKey 不能为空或重复");
+        if (!SignatureProtocol.TryGetSingleHeader(Request.Headers, "timestamp", out var timestamp))
+            return await AuthenticateResultFailAsync("timestamp 不能为空或重复");
+        if (!SignatureProtocol.TryGetSingleHeader(Request.Headers, "nonce", out var nonce))
+            return await AuthenticateResultFailAsync("nonce 不能为空或重复");
+        if (!SignatureProtocol.TryGetSingleHeader(Request.Headers, "sign", out var sign))
+            return await AuthenticateResultFailAsync("sign 不能为空或重复");
+        if (!SignatureProtocol.IsHeaderToken(accessKey, SignatureProtocol.AccessKeyMaxLength) ||
+            !SignatureProtocol.IsHeaderToken(nonce, SignatureProtocol.NonceMaxLength))
+            return await AuthenticateResultFailAsync("accessKey 或 nonce 无效");
+        if (!SignatureProtocol.TryGetTimestamp(timestamp, out var requestTime))
             return await AuthenticateResultFailAsync("timestamp 值不合法");
-
-        // 根据时间戳转成时间格式(自动判断时间戳长度是秒还是以毫秒为单位)
-        bool isMilliseconds = timestamp > 9999999999;
-        var requestDate = isMilliseconds
-            ? DateTimeOffset.FromUnixTimeMilliseconds(timestamp).ToLocalTime().DateTime
-            : DateTimeOffset.FromUnixTimeSeconds(timestamp).ToLocalTime().DateTime;
-
-#if NET6_0
-        var utcNow = Clock.UtcNow;
-#else
-        var utcNow = TimeProvider.GetUtcNow();
-#endif
-        if (requestDate > utcNow.Add(Options.AllowedDateDrift).LocalDateTime || requestDate < utcNow.Subtract(Options.AllowedDateDrift).LocalDateTime)
+        var now = DateTimeOffset.UtcNow;
+        if (!SignatureProtocol.IsWithinAllowedDrift(requestTime, now, Options.AllowedDateDrift))
             return await AuthenticateResultFailAsync("timestamp 值已超过允许的偏差范围");
 
-        // 获取 accessSecret
+        var method = Request.Method.ToUpperInvariant();
+        var path = Request.Path.Value;
+        if (!SignatureProtocol.IsHttpMethod(method) || !SignatureProtocol.IsPath(path))
+            return await AuthenticateResultFailAsync("请求方法或路径无效");
         var getAccessSecretContext = new GetAccessSecretContext(Context, Scheme, Options) { AccessKey = accessKey };
         var accessSecret = await Events.GetAccessSecret(getAccessSecretContext);
-        if (string.IsNullOrEmpty(accessSecret))
-            return await AuthenticateResultFailAsync("accessKey 无效");
-
-        // 校验签名
-        var appSecretByte = Encoding.UTF8.GetBytes(accessSecret);
-        string serverSign = SignData(appSecretByte, GetMessageForSign(Context));
-
-        if (serverSign != sign)
+        if (string.IsNullOrEmpty(accessSecret)) return await AuthenticateResultFailAsync("accessKey 无效");
+        if (!SignatureProtocol.TryValidate(method, path, accessKey, accessSecret, timestamp, nonce, out var error))
+            return await AuthenticateResultFailAsync(error);
+        if (!SignatureProtocol.VerifySignature(sign, method, path, accessKey, accessSecret, timestamp, nonce))
             return await AuthenticateResultFailAsync("sign 无效的签名");
 
-        // 重放检测
-        var cacheKey = $"{CacheConst.KeyOpenAccessNonce}{accessKey}|{nonce}";
-        if (_sysCacheService.ExistKey(cacheKey)) return await AuthenticateResultFailAsync("重复的请求");
-        _sysCacheService.Set(cacheKey, null, Options.AllowedDateDrift * 2); // 缓存过期时间为偏差范围时间的2倍
-
-        // 已验证成功
         var signatureValidatedContext = new SignatureValidatedContext(Context, Scheme, Options)
         {
-            Principal = new ClaimsPrincipal(new ClaimsIdentity(SignatureAuthenticationDefaults.AuthenticationScheme)),
-            AccessKey = accessKey
+            Principal = new ClaimsPrincipal(new ClaimsIdentity(Scheme.Name)),
+            AccessKey = accessKey,
+            AccessSecret = accessSecret
         };
         await Events.Validated(signatureValidatedContext);
-        // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-        if (signatureValidatedContext.Result != null)
+        if (signatureValidatedContext.Result != null && !signatureValidatedContext.Result.Succeeded)
+        {
+            if (signatureValidatedContext.Result.Failure != null)
+                return await AuthenticateResultFailAsync(signatureValidatedContext.Result.Failure.Message);
             return signatureValidatedContext.Result;
+        }
 
-        // ReSharper disable once HeuristicUnreachableCode
-        signatureValidatedContext.Success();
+        // 签名和绑定身份均有效后才消费随机数，失败请求不能占用合法请求的随机数。
+        var cacheKey = $"{CacheConst.KeyOpenAccessNonce}{accessKey}|{nonce}";
+        var lifetime = SignatureProtocol.GetNonceLifetime(requestTime, now, Options.AllowedDateDrift);
+        if (!SignatureReplayGuard.TryRegister(() => _sysCacheService.ExistKey(cacheKey),
+            () => _sysCacheService.Set(cacheKey, true, lifetime)))
+            return await AuthenticateResultFailAsync("重复的请求");
+        if (signatureValidatedContext.Result == null) signatureValidatedContext.Success();
         return signatureValidatedContext.Result;
     }
 
@@ -131,40 +117,6 @@ public sealed class SignatureAuthenticationHandler : AuthenticationHandler<Signa
         if (challengeContext.Handled) return;
 
         await base.HandleChallengeAsync(properties);
-    }
-
-    /// <summary>
-    /// 获取用于签名的消息
-    /// </summary>
-    /// <returns></returns>
-    private static string GetMessageForSign(HttpContext context)
-    {
-        var method = context.Request.Method; // 请求方法（大写）
-        var url = context.Request.Path; // 请求 url，去除协议、域名、参数，以 / 开头
-        var accessKey = context.Request.Headers["accessKey"].FirstOrDefault(); // 身份标识
-        var timestamp = context.Request.Headers["timestamp"].FirstOrDefault(); // 时间戳，精确到秒
-        var nonce = context.Request.Headers["nonce"].FirstOrDefault(); // 唯一随机数
-
-        return $"{method}&{url}&{accessKey}&{timestamp}&{nonce}";
-    }
-
-    /// <summary>
-    /// 对数据进行签名
-    /// </summary>
-    /// <param name="secret"></param>
-    /// <param name="data"></param>
-    /// <returns></returns>
-    private static string SignData(byte[] secret, string data)
-    {
-        if (secret == null)
-            throw new ArgumentNullException(nameof(secret));
-
-        if (data == null)
-            throw new ArgumentNullException(nameof(data));
-
-        using HMAC hmac = new HMACSHA256();
-        hmac.Key = secret;
-        return Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(data)));
     }
 
     /// <summary>

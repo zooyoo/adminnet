@@ -21,8 +21,25 @@ public class DemoOpenApi : IDynamicApiController
     }
 
     [HttpGet("helloWord")]
+    [SuppressMonitor]
     public Task<string> HelloWord()
     {
         return Task.FromResult($"Hello word. {_userManager.Account}");
+    }
+
+    /// <summary>
+    /// 获取签名请求所绑定的身份
+    /// </summary>
+    [HttpGet("identity")]
+    [SuppressMonitor]
+    public object Identity()
+    {
+        return new
+        {
+            UserId = _userManager.UserId,
+            TenantId = _userManager.TenantId,
+            Account = _userManager.Account,
+            OrgId = _userManager.OrgId
+        };
     }
 }

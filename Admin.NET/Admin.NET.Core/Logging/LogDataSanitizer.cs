@@ -14,7 +14,7 @@ public static class LogDataSanitizer
     private static readonly HashSet<string> SensitiveNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "password", "accessToken", "refreshToken", "token", "apiKey", "secretKey", "clientSecret",
-        "authorization", "cookie", "setcookie", "connectionString"
+        "authorization", "cookie", "setcookie", "connectionString", "accessKey", "accessSecret", "sign"
     };
 
     public static bool IsSensitiveName(string name) => name != null && SensitiveNames.Contains(name.Replace("_", "").Replace("-", ""));
@@ -66,8 +66,8 @@ public static class LogDataSanitizer
             catch (System.Text.Json.JsonException) { /* 非 JSON 日志继续按文本脱敏。 */ }
         }
         text = Regex.Replace(text, @"Bearer\s+[A-Za-z0-9._~+/=-]+", "Bearer [redacted]", RegexOptions.IgnoreCase);
-        text = Regex.Replace(text, "(\"(?:password|accessToken|refreshToken|apiKey|secretKey|authorization|cookie|set-cookie)\"\\s*:\\s*)\"(?:\\\\.|[^\"\\\\])*\"", "$1\"[redacted]\"", RegexOptions.IgnoreCase);
-        text = Regex.Replace(text, @"([?&](?:token|access_token|password|apiKey)=)[^&\s""']+", "$1[redacted]", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, "(\"(?:password|accessToken|refreshToken|apiKey|secretKey|access[_-]?Key|access[_-]?Secret|sign|authorization|cookie|set-cookie)\"\\s*:\\s*)\"(?:\\\\.|[^\"\\\\])*\"", "$1\"[redacted]\"", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"([?&](?:token|access_token|password|apiKey|access[_-]?Key|access[_-]?Secret|sign)=)[^&\s""']+", "$1[redacted]", RegexOptions.IgnoreCase);
         return text;
     }
 

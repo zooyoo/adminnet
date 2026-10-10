@@ -85,7 +85,7 @@ public class JwtHandler : AppAuthorizeHandler
 
         // 获取用户拥有按钮权限集合
         var ownBtnPermList = await SysMenuService.GetOwnBtnPermList();
-        if (ownBtnPermList.Exists(u => routeName.Equals(u, StringComparison.CurrentCultureIgnoreCase)))
+        if (RoutePermissionUtil.HasPermission(routeName, ownBtnPermList))
             return true;
         if (RoutePermissionUtil.RequiresExplicitGrant(routeName))
             return false;

@@ -77,4 +77,65 @@ public class LogDataSanitizerTests
         Assert.Null(difference.Sql);
         Assert.Null(difference.Parameters);
     }
+
+    [Theory]
+    [InlineData("accessKey")]
+    [InlineData("ACCESS_KEY")]
+    [InlineData("access-secret")]
+    [InlineData("AccessSecret")]
+    [InlineData("sign")]
+    public void Sanitize_OpenAccessJsonAndDifferenceColumns_RemovesCredentialValues(string field)
+    {
+        string input = JsonSerializer.Serialize(new Dictionary<string, object>
+        {
+            [field] = "credential-value",
+            ["account"] = "operator",
+            ["columns"] = new[] { new { ColumnName = field, BeforeValue = "credential-before", AfterValue = "credential-after" } },
+            ["parameters"] = new[] { new { ParameterName = "@" + field, Value = "credential-parameter" } }
+        });
+
+        string actual = LogDataSanitizer.Sanitize(input);
+
+        using JsonDocument document = JsonDocument.Parse(actual);
+        Assert.Equal("[redacted]", document.RootElement.GetProperty(field).GetString());
+        Assert.Equal("operator", document.RootElement.GetProperty("account").GetString());
+        Assert.Equal("[redacted]", document.RootElement.GetProperty("columns")[0].GetProperty("BeforeValue").GetString());
+        Assert.Equal("[redacted]", document.RootElement.GetProperty("columns")[0].GetProperty("AfterValue").GetString());
+        Assert.Equal("[redacted]", document.RootElement.GetProperty("parameters")[0].GetProperty("Value").GetString());
+        Assert.DoesNotContain("credential-", actual);
+        Assert.Equal(actual, LogDataSanitizer.Sanitize(actual));
+    }
+
+    [Fact]
+    public void Sanitize_OpenAccessUnstructuredTextAndQuery_RemovesCredentials()
+    {
+        const string input = "request {\"AccessSecret\":\"credential-secret\",\"access_key\":\"credential-key\",\"sign\":\"credential-sign\"} GET /api/demo/identity?accessKey=credential-key&access_secret=credential-secret&sign=credential-sign&account=operator";
+
+        string actual = LogDataSanitizer.Sanitize(input);
+
+        Assert.DoesNotContain("credential-", actual);
+        Assert.Contains("account=operator", actual);
+    }
+
+    [Fact]
+    public void SanitizeRecord_HistoricalOpenAccessLogs_RemovesSecretAndKeepsBinding()
+    {
+        SysLogOp operation = new()
+        {
+            RequestParam = """{"accessKey":"credential-key","accessSecret":"credential-secret","bindTenantId":42}""",
+            ReturnResult = """{"sign":"credential-sign"}"""
+        };
+        SysLogDiff difference = new()
+        {
+            BusinessData = """{"AccessSecret":"credential-secret"}""",
+            DiffData = """[{"ColumnName":"access_secret","BeforeValue":"credential-before","AfterValue":"credential-after"}]"""
+        };
+
+        LogDataSanitizer.SanitizeRecord(operation);
+        LogDataSanitizer.SanitizeRecord(difference);
+
+        Assert.DoesNotContain("credential-", operation.RequestParam + operation.ReturnResult + difference.BusinessData + difference.DiffData);
+        using JsonDocument document = JsonDocument.Parse(operation.RequestParam);
+        Assert.Equal(42, document.RootElement.GetProperty("bindTenantId").GetInt32());
+    }
 }

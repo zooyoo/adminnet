@@ -7,79 +7,83 @@
 namespace Admin.NET.Core.Service;
 
 /// <summary>
-/// 开放接口身份输入参数
+/// 开放接口分页查询
 /// </summary>
 public class OpenAccessInput : BasePageInput
 {
-    /// <summary>
-    /// 身份标识
-    /// </summary>
+    [MaxLength(SignatureProtocol.AccessKeyMaxLength)]
     public string AccessKey { get; set; }
 }
 
-public class AddOpenAccessInput : SysOpenAccess
+/// <summary>
+/// 新增开放接口凭据，仅接收凭据和绑定字段
+/// </summary>
+public class AddOpenAccessInput
 {
-    /// <summary>
-    /// 身份标识
-    /// </summary>
-    [Required(ErrorMessage = "身份标识不能为空")]
-    public override string AccessKey { get; set; }
+    public virtual long Id { get; set; }
 
-    /// <summary>
-    /// 密钥
-    /// </summary>
-    [Required(ErrorMessage = "密钥不能为空")]
-    public override string AccessSecret { get; set; }
+    [Required(ErrorMessage = "访问标识不能为空")]
+    [MaxLength(SignatureProtocol.AccessKeyMaxLength)]
+    public string AccessKey { get; set; }
 
-    /// <summary>
-    /// 绑定用户Id
-    /// </summary>
-    [Required(ErrorMessage = "绑定用户不能为空")]
-    public override long BindUserId { get; set; }
+    [Required(ErrorMessage = "访问密钥不能为空")]
+    [MaxLength(SignatureProtocol.AccessSecretMaxLength)]
+    public string AccessSecret { get; set; }
+
+    [Range(1, long.MaxValue, ErrorMessage = "请选择绑定租户")]
+    public long BindTenantId { get; set; }
+
+    [Range(1, long.MaxValue, ErrorMessage = "请选择绑定用户")]
+    public long BindUserId { get; set; }
 }
 
+/// <summary>
+/// 更新开放接口凭据
+/// </summary>
 public class UpdateOpenAccessInput : AddOpenAccessInput
 {
+    [Range(1, long.MaxValue, ErrorMessage = "凭据标识无效")]
+    public override long Id { get; set; }
 }
 
+/// <summary>
+/// 删除开放接口凭据
+/// </summary>
 public class DeleteOpenAccessInput : BaseIdInput
 {
 }
 
+/// <summary>
+/// 查询某租户下可绑定用户
+/// </summary>
+public class OpenAccessUserListInput
+{
+    [Range(1, long.MaxValue, ErrorMessage = "请选择租户")]
+    public long TenantId { get; set; }
+}
+
+/// <summary>
+/// 生成开放接口签名
+/// </summary>
 public class GenerateSignatureInput
 {
-    /// <summary>
-    /// 身份标识
-    /// </summary>
-    [Required(ErrorMessage = "身份标识不能为空")]
+    [Required(ErrorMessage = "访问标识不能为空")]
+    [MaxLength(SignatureProtocol.AccessKeyMaxLength)]
     public string AccessKey { get; set; }
 
-    /// <summary>
-    /// 密钥
-    /// </summary>
-    [Required(ErrorMessage = "密钥不能为空")]
+    [Required(ErrorMessage = "访问密钥不能为空")]
+    [MaxLength(SignatureProtocol.AccessSecretMaxLength)]
     public string AccessSecret { get; set; }
 
-    /// <summary>
-    /// 请求方法
-    /// </summary>
     public HttpMethodEnum Method { get; set; }
 
-    /// <summary>
-    /// 请求接口地址
-    /// </summary>
-    [Required(ErrorMessage = "请求接口地址不能为空")]
+    [Required(ErrorMessage = "请求路径不能为空")]
+    [MaxLength(SignatureProtocol.PathMaxLength)]
     public string Url { get; set; }
 
-    /// <summary>
-    /// 时间戳
-    /// </summary>
-    [Required(ErrorMessage = "时间戳不能为空")]
     public long Timestamp { get; set; }
 
-    /// <summary>
-    /// 随机数
-    /// </summary>
     [Required(ErrorMessage = "随机数不能为空")]
+    [MaxLength(SignatureProtocol.NonceMaxLength)]
     public string Nonce { get; set; }
 }

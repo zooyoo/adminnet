@@ -25,9 +25,25 @@ public static class RoutePermissionUtil
             permission?.StartsWith("sysExlog:", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysDifflog:", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysLog", StringComparison.OrdinalIgnoreCase) == true ||
+            permission?.StartsWith("sysOpenAccess:", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysDatabase:", StringComparison.OrdinalIgnoreCase) == true || permission?.ToLowerInvariant() is "syslangtext:export" or "syslangtext:import" or
             "syslangtext:batchdelete" or "syslangtext:batchsave" or "syslangtext:aitranslatetext" or "sysconfig:savesysinfo" or
             "sysfile:page" or "sysfile:uploadfile" or "sysfile:downloadfile" or "sysfile:update" or "sysfile:delete";
+    }
+
+    /// <summary>
+    /// 候选与密钥生成复用新增或更新按钮，仅对指定的开放接口操作生效
+    /// </summary>
+    public static bool HasPermission(string permission, IEnumerable<string> ownGrants)
+    {
+        if (string.IsNullOrWhiteSpace(permission) || ownGrants == null) return false;
+        var grants = ownGrants.ToArray();
+        if (grants.Any(grant => string.Equals(permission, grant, StringComparison.CurrentCultureIgnoreCase))) return true;
+        var needsWriteGrant = permission.ToLowerInvariant() is "sysopenaccess:secret" or
+            "sysopenaccess:tenantlist" or "sysopenaccess:userlist";
+        return needsWriteGrant && grants.Any(grant =>
+            string.Equals(grant, "sysOpenAccess:add", StringComparison.CurrentCultureIgnoreCase) ||
+            string.Equals(grant, "sysOpenAccess:update", StringComparison.CurrentCultureIgnoreCase));
     }
 
     public static string GetPermissionName(HttpContext context)
@@ -44,6 +60,7 @@ public static class RoutePermissionUtil
         // 缓存值和前缀操作复用现有查询、删除权限，不新增 API 或菜单权限。
         return permission.ToLowerInvariant() switch
         {
+            "sysopenaccess:generatesignature" => "sysOpenAccess:page",
             "syscommon:stresstest" or "syscommon:stresstesttargets" => "sysCommon:stressTest",
             "sysupdate:status" => "sysUpdate:list",
             "sysserver:hardwareinfo" or "sysserver:runtimeinfo" or "sysserver:nugetpackageinfo" => "sysServer:page",
