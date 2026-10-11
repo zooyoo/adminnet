@@ -1,0 +1,281 @@
+{
+  "version": 1,
+  "checkedAt": "2026-10-11T08:11:28.261Z",
+  "sessionId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+  "lastSequence": 7087,
+  "sourceDigest": "d9d3518b6dd8f0fdc5f664de7f3d680d6ea55363519b18984c811889d0113f1f",
+  "nextProposal": 34,
+  "status": "reviewed-clear",
+  "scope": "生命周期日志与宿主归档、运行状态快照；不替代业务验收，不是原子调度锁",
+  "hostCheckedAt": "2026-10-11T08:11:27.362Z",
+  "hostOnlyAgents": [
+    {
+      "id": "session-eda8998d-5eea-49a2-8a94-9f16614bfe3b",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "archived": true,
+      "running": false,
+      "inheritedReadOnly": true,
+      "ownToolNames": [
+        "ctx_stats"
+      ]
+    }
+  ],
+  "agents": [
+    {
+      "id": "0c832194-fc19-4e88-9f0c-fde2d4d8c2ea",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": null,
+      "mode": "continuable",
+      "phase": null,
+      "outcome": "error",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "8fa4535a-97c9-4784-8a3d-ea2c9b1e35dd",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": null,
+      "mode": "continuable",
+      "phase": null,
+      "outcome": "completed",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "ede72e9d-f1fc-468a-8794-21e2f972cf24",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": null,
+      "mode": "continuable",
+      "phase": null,
+      "outcome": "error",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "02150fc2-9d8c-4f8e-9b91-ea64b60fc3dd",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": null,
+      "mode": "one-shot",
+      "phase": null,
+      "outcome": "completed",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "56c343a0-5a9e-4ec1-9d61-6474c868e34e",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": null,
+      "mode": "continuable",
+      "phase": null,
+      "outcome": "error",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "b683fedf-754e-40e0-ab75-098ad80a3830",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": null,
+      "mode": "continuable",
+      "phase": null,
+      "outcome": "completed",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "eeddd651-47cd-4149-9519-d2f5e8e110dc",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": null,
+      "mode": "continuable",
+      "phase": null,
+      "outcome": "completed",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "673c1cc0-f13e-41e0-b813-a957b2e71298",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": null,
+      "mode": "continuable",
+      "phase": null,
+      "outcome": "error",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "ee84380b-3c03-4575-bd38-702755af516d",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": null,
+      "mode": "continuable",
+      "phase": null,
+      "outcome": "error",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "2e3acf4b-ae99-48bd-859d-0672320c3378",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": "open-access-ui",
+      "mode": "continuable",
+      "phase": "active",
+      "outcome": "completed",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "719274c4-4eb4-4610-b368-16a5fe5cefc7",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": "open-access-api",
+      "mode": "continuable",
+      "phase": "active",
+      "outcome": "completed",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "d9ccae93-45db-4e78-a633-8de359ae141d",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": "region-ui",
+      "mode": "continuable",
+      "phase": "active",
+      "outcome": "completed",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "b5bfd338-d0ff-4591-bd5b-c2a716cc2595",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": "region-api",
+      "mode": "continuable",
+      "phase": "active",
+      "outcome": "completed",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "604a79ea-b05b-490c-99f5-87d673b5e8c7",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": "region-baseline-review",
+      "mode": "continuable",
+      "phase": "active",
+      "outcome": "completed",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "37cfb8e3-ba84-474a-932e-2d026a0497bc",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": "template-api",
+      "mode": "continuable",
+      "phase": "active",
+      "outcome": "aborted",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "b45a2df4-8595-4480-af9a-cfcf5deec1ec",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": "template-ui",
+      "mode": "continuable",
+      "phase": "active",
+      "outcome": "aborted",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    },
+    {
+      "id": "ae682f86-383a-4418-ac46-9a952c8267f9",
+      "parentId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+      "name": "template-baseline-review",
+      "mode": "continuable",
+      "phase": "active",
+      "outcome": "completed",
+      "hostCloseReceipt": {
+        "archived": true,
+        "running": false
+      }
+    }
+  ],
+  "blockers": [],
+  "reviewedResults": [
+    {
+      "id": "0c832194-fc19-4e88-9f0c-fde2d4d8c2ea",
+      "originalOutcome": "error",
+      "proposal": 29,
+      "resolution": "superseded-by-delivery",
+      "reason": "实现失败由主会话最终交付 ed16649bf 接手；原委派不计成功。"
+    },
+    {
+      "id": "ede72e9d-f1fc-468a-8794-21e2f972cf24",
+      "originalOutcome": "error",
+      "proposal": 29,
+      "resolution": "superseded-by-delivery",
+      "reason": "后端接续失败由主会话最终交付 ed16649bf 接手；原委派不计成功。"
+    },
+    {
+      "id": "56c343a0-5a9e-4ec1-9d61-6474c868e34e",
+      "originalOutcome": "error",
+      "proposal": 29,
+      "resolution": "superseded-by-delivery",
+      "reason": "只读复核未完成，不计成功审查；主会话交付及真实验收已核实。"
+    },
+    {
+      "id": "673c1cc0-f13e-41e0-b813-a957b2e71298",
+      "originalOutcome": "error",
+      "proposal": 31,
+      "resolution": "superseded-by-delivery",
+      "reason": "首次前端没有工具调用；既有最终交付 ac864b422 和真实验收已核实。"
+    },
+    {
+      "id": "ee84380b-3c03-4575-bd38-702755af516d",
+      "originalOutcome": "error",
+      "proposal": 31,
+      "resolution": "superseded-by-delivery",
+      "reason": "保留首次后端模型拒绝，不唤醒重试；既有最终交付 ac864b422 的证据已核实。"
+    },
+    {
+      "id": "37cfb8e3-ba84-474a-932e-2d026a0497bc",
+      "originalOutcome": "aborted",
+      "proposal": 34,
+      "resolution": "resume-current-proposal",
+      "reason": "在提案33后被复用到34，仅完成读取与查询即中止；34保留未完成，由当前主会话恢复。"
+    },
+    {
+      "id": "b45a2df4-8595-4480-af9a-cfcf5deec1ec",
+      "originalOutcome": "aborted",
+      "proposal": 34,
+      "resolution": "resume-current-proposal",
+      "reason": "在提案33后被复用到34，读取和组件资料准备后中止；保留日志，34仍需实现验收。"
+    }
+  ]
+}

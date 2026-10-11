@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
+import { reconcileResults } from './closeout-review.mjs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { pathToFileURL } from 'node:url';
@@ -73,8 +75,9 @@ export function auditSession(sessionFile, nextProposal, hostInventory = undefine
   const logName = path.basename(sessionFile);
   function load(file) {
     const before = fs.statSync(file);
-    const rows = decodeLog(fs.readFileSync(file), file.endsWith('.zstd'));
-    snapshots.push({ file, size: before.size, mtimeMs: before.mtimeMs });
+    const bytes = fs.readFileSync(file);
+    const rows = decodeLog(bytes, file.endsWith('.zstd'));
+    snapshots.push({ file, size: before.size, mtimeMs: before.mtimeMs, digest: createHash('sha256').update(bytes).digest('hex') });
     return rows;
   }
   const rootRows = load(sessionFile);
@@ -114,8 +117,26 @@ export function auditSession(sessionFile, nextProposal, hostInventory = undefine
       if (knownIds.has(id) || !knownIds.has(normalizeId(row.parentId))) continue;
       knownIds.add(id);
       discovered = true;
-      hostOnlyAgents.push({ id: row.id, parentId: row.parentId, archived: row.archived === true, running: row.running ?? null });
-      blockers.push({ code: 'HOST_CHILD_NOT_IN_LOG', id: row.id });
+      const extra = { id: row.id, parentId: row.parentId, archived: row.archived === true, running: row.running ?? null };
+      hostOnlyAgents.push(extra);
+      // 仅自动识别直接从主会话继承、且新增操作仅为统计查询的侧会话。
+      const validId = /^(session-)?[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(row.id);
+      const extraFile = validId ? [row.id, id, `session-${id}`].map(name => path.join(sessionsRoot, name, logName)).find(file => fs.existsSync(file)) : undefined;
+      let inheritedReadOnly = false;
+      if (extraFile && normalizeId(row.parentId) === normalizeId(rootRows[0].id)) {
+        const extraRows = load(extraFile);
+        if (normalizeId(extraRows[0].id) !== id) throw new Error('侧会话头与目录 ID 不一致');
+        const rootCalls = new Map(rootRows.filter(item => item.type === 'tool/call').map(item => [item.data.callId, JSON.stringify(item.data)]));
+        const calls = extraRows.filter(item => item.type === 'tool/call');
+        const ownCalls = calls.filter(item => rootCalls.get(item.data.callId) !== JSON.stringify(item.data));
+        const rootCatalogs = new Set(rootRows.filter(item => ['subagent/catalog', 'team/member'].includes(item.type)).map(item => JSON.stringify(item.data)));
+        const newDelegations = extraRows.filter(item => ['subagent/catalog', 'team/member'].includes(item.type) && !rootCatalogs.has(JSON.stringify(item.data)));
+        const extraState = replay(extraRows);
+        inheritedReadOnly = extraRows[0].isSeeded === true && normalizeId(extraRows[0].parentSession) === normalizeId(rootRows[0].id) && extraState.outcome === 'completed' && extraState.pending.size === 0 && newDelegations.length === 0 && ownCalls.every(item => item.data.name === 'ctx_stats') && hostCloseReceipt(row.id, row.parentId);
+        extra.inheritedReadOnly = inheritedReadOnly;
+        extra.ownToolNames = ownCalls.map(item => item.data.name);
+      }
+      if (!inheritedReadOnly) blockers.push({ code: 'HOST_CHILD_NOT_IN_LOG', id: row.id });
       if (!hostCloseReceipt(row.id, row.parentId)) blockers.push({ code: 'NO_VERIFIABLE_CLOSE_RECEIPT', id: row.id });
     }
   }
@@ -132,6 +153,7 @@ export function auditSession(sessionFile, nextProposal, hostInventory = undefine
     checkedAt: new Date().toISOString(),
     sessionId: rootRows[0].id,
     lastSequence: rootRows.at(-1)?.seq ?? null,
+    sourceDigest: createHash('sha256').update(JSON.stringify(snapshots.map(item => [path.basename(path.dirname(item.file)), item.digest]).sort((a, b) => a[0].localeCompare(b[0])))).digest('hex'),
     nextProposal,
     status: blockers.length ? 'blocked' : 'snapshot-clear',
     scope: hostInventory === undefined ? '仅生命周期日志快照；仍需业务验收与宿主实时关闭确认' : '生命周期日志与宿主归档、运行状态快照；不替代业务验收，不是原子调度锁',
@@ -144,18 +166,19 @@ export function auditSession(sessionFile, nextProposal, hostInventory = undefine
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   try {
     const args = process.argv.slice(2);
-    if ((args.length !== 4 && args.length !== 6) || args[0] !== '--session-file' || args[2] !== '--next' || !/^[1-9]\d*$/.test(args[3]) || (args.length === 6 && args[4] !== '--host-url')) {
-      throw new Error('用法：node check-proposal-closeout.mjs --session-file <完整主会话日志> --next <下一编号> [--host-url <本机 DSH 地址>]');
+    if (![4, 6, 8].includes(args.length) || args[0] !== '--session-file' || args[2] !== '--next' || !/^[1-9]\d*$/.test(args[3]) || (args.length >= 6 && args[4] !== '--host-url') || (args.length === 8 && args[6] !== '--review-file')) {
+      throw new Error('用法：node check-proposal-closeout.mjs --session-file <完整主会话日志> --next <下一编号> [--host-url <本机 DSH 地址> [--review-file <业务处置 JSON>]]');
     }
     let hostInventory;
-    if (args.length === 6) {
+    if (args.length >= 6) {
       const base = new URL(args[5]);
       if (base.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(base.hostname) || base.username || base.password || base.search || base.hash || base.pathname !== '/') throw new Error('只接受本机 DSH HTTP 根地址');
       const response = await fetch(new URL('/api/dsh-session-archive/inventory', base), { redirect: 'error', signal: AbortSignal.timeout(10_000) });
       if (!response.ok) throw new Error(`宿主清单读取失败 HTTP ${response.status}`);
       hostInventory = await response.json();
     }
-    const result = auditSession(path.resolve(args[1]), Number(args[3]), hostInventory);
+    let result = auditSession(path.resolve(args[1]), Number(args[3]), hostInventory);
+    if (args.length === 8) result = reconcileResults(result, JSON.parse(fs.readFileSync(path.resolve(args[7]), 'utf8').replace(/^\uFEFF/, '')));
     console.log(JSON.stringify(result, null, 2));
     process.exitCode = result.status === 'blocked' ? 2 : 0;
   } catch (error) {

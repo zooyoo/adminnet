@@ -14,7 +14,7 @@ const catalog = (id = childId, mode = 'continuable') => event('subagent/catalog'
 const completed = [event('turn/start', { turn: 1 }), event('turn/end', { turn: 1, reason: { kind: 'completed' } })];
 const member = phase => event('team/member', { member: { id: childId, name: 'template-ui', phase } });
 
-function fixture(t, parentEvents, children = { [childId]: completed }) {
+function fixture(t, parentEvents, children = { [childId]: completed }, headers = {}) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'proposal-closeout-'));
   t.after(() => {
     // 只清理本测试明确创建的临时目录。
@@ -24,12 +24,23 @@ function fixture(t, parentEvents, children = { [childId]: completed }) {
   for (const [id, events] of Object.entries({ [rootId]: parentEvents, ...children })) {
     const childDirectory = path.join(directory, id);
     fs.mkdirSync(childDirectory);
-    const rows = [{ type: 'session', version: 4, id }, ...events];
+    const rows = [{ type: 'session', version: 4, id, ...headers[id] }, ...events];
     // 每条记录一个压缩帧，覆盖实际 DSH 多帧日志格式。
     const buffer = Buffer.concat(rows.map(row => zlib.zstdCompressSync(Buffer.from(`${JSON.stringify(row)}\n`, 'utf8'))));
     fs.writeFileSync(path.join(childDirectory, 'session.v4.jsonl.zstd'), buffer);
   }
   return path.join(directory, rootId, 'session.v4.jsonl.zstd');
+}
+
+for (const name of ['ctx_stats', 'write']) {
+  test(`继承侧会话新增 ${name} 的核验`, t => {
+    const inherited = event('tool/call', { callId: 'shared', name: 'write', arguments: { file_path: 'old.txt' } });
+    const own = event('tool/call', { callId: 'own', name, arguments: {} });
+    const file = fixture(t, [inherited], { [childId]: [inherited, ...completed, own] }, { [childId]: { parentSession: rootId, isSeeded: true } });
+    const result = auditSession(file, 34, inventory());
+    assert.equal(result.status, name === 'ctx_stats' ? 'snapshot-clear' : 'blocked');
+    assert.deepEqual(result.hostOnlyAgents[0].ownToolNames, [name]);
+  });
 }
 
 // 真实事故最小复现：回合完成、成员仍 active 时，旧流程继续派发下一提案。

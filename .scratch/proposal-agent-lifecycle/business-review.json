@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "sessionId": "session-5e731727-5ac8-44ed-8967-2f0eb754f15e",
+  "nextProposal": 34,
+  "sourceDigest": "d9d3518b6dd8f0fdc5f664de7f3d680d6ea55363519b18984c811889d0113f1f",
+  "entries": [
+    {
+      "id": "0c832194-fc19-4e88-9f0c-fde2d4d8c2ea",
+      "proposal": 29,
+      "reason": "实现失败由主会话最终交付 ed16649bf 接手；原委派不计成功。",
+      "outcome": "error",
+      "resolution": "superseded-by-delivery",
+      "evidence": [
+        {
+          "file": "E:\\pri\\Admin.NET\\.scratch\\proposal-agent-lifecycle\\closeout-reconciliation.md",
+          "kind": "review-note",
+          "sha256": "84fd072a202871593f586a3fa068d96cec543765cfd669a341ba295e920272d4"
+        },
+        {
+          "file": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-1be5382ddf56446c992b56ef5cbfb41c/evidence/stress-browser-baseline.json",
+          "kind": "acceptance-report",
+          "sha256": "f2405932d520b89936bcd65f999f2ddabe0e4f2d5bf296f34717f34f2a35fc3d"
+        }
+      ]
+    },
+    {
+      "id": "ede72e9d-f1fc-468a-8794-21e2f972cf24",
+      "proposal": 29,
+      "reason": "后端接续失败由主会话最终交付 ed16649bf 接手；原委派不计成功。",
+      "outcome": "error",
+      "resolution": "superseded-by-delivery",
+      "evidence": [
+        {
+          "file": "E:\\pri\\Admin.NET\\.scratch\\proposal-agent-lifecycle\\closeout-reconciliation.md",
+          "kind": "review-note",
+          "sha256": "84fd072a202871593f586a3fa068d96cec543765cfd669a341ba295e920272d4"
+        },
+        {
+          "file": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-1be5382ddf56446c992b56ef5cbfb41c/evidence/stress-browser-baseline.json",
+          "kind": "acceptance-report",
+          "sha256": "f2405932d520b89936bcd65f999f2ddabe0e4f2d5bf296f34717f34f2a35fc3d"
+        }
+      ]
+    },
+    {
+      "id": "56c343a0-5a9e-4ec1-9d61-6474c868e34e",
+      "proposal": 29,
+      "reason": "只读复核未完成，不计成功审查；主会话交付及真实验收已核实。",
+      "outcome": "error",
+      "resolution": "superseded-by-delivery",
+      "evidence": [
+        {
+          "file": "E:\\pri\\Admin.NET\\.scratch\\proposal-agent-lifecycle\\closeout-reconciliation.md",
+          "kind": "review-note",
+          "sha256": "84fd072a202871593f586a3fa068d96cec543765cfd669a341ba295e920272d4"
+        },
+        {
+          "file": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-1be5382ddf56446c992b56ef5cbfb41c/evidence/stress-browser-baseline.json",
+          "kind": "acceptance-report",
+          "sha256": "f2405932d520b89936bcd65f999f2ddabe0e4f2d5bf296f34717f34f2a35fc3d"
+        }
+      ]
+    },
+    {
+      "id": "673c1cc0-f13e-41e0-b813-a957b2e71298",
+      "proposal": 31,
+      "reason": "首次前端没有工具调用；既有最终交付 ac864b422 和真实验收已核实。",
+      "outcome": "error",
+      "resolution": "superseded-by-delivery",
+      "evidence": [
+        {
+          "file": "E:\\pri\\Admin.NET\\.scratch\\proposal-agent-lifecycle\\closeout-reconciliation.md",
+          "kind": "review-note",
+          "sha256": "84fd072a202871593f586a3fa068d96cec543765cfd669a341ba295e920272d4"
+        },
+        {
+          "file": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-df55f333997141acb36d80a84984fb30/evidence/open-access-browser-baseline.json",
+          "kind": "acceptance-report",
+          "sha256": "b3e73205654f8af01d129209bbf659deca5224a19e1f4599885209e1c96a252f"
+        }
+      ]
+    },
+    {
+      "id": "ee84380b-3c03-4575-bd38-702755af516d",
+      "proposal": 31,
+      "reason": "保留首次后端模型拒绝，不唤醒重试；既有最终交付 ac864b422 的证据已核实。",
+      "outcome": "error",
+      "resolution": "superseded-by-delivery",
+      "evidence": [
+        {
+          "file": "E:\\pri\\Admin.NET\\.scratch\\proposal-agent-lifecycle\\closeout-reconciliation.md",
+          "kind": "review-note",
+          "sha256": "84fd072a202871593f586a3fa068d96cec543765cfd669a341ba295e920272d4"
+        },
+        {
+          "file": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-df55f333997141acb36d80a84984fb30/evidence/open-access-browser-baseline.json",
+          "kind": "acceptance-report",
+          "sha256": "b3e73205654f8af01d129209bbf659deca5224a19e1f4599885209e1c96a252f"
+        }
+      ]
+    },
+    {
+      "id": "37cfb8e3-ba84-474a-932e-2d026a0497bc",
+      "proposal": 34,
+      "reason": "在提案33后被复用到34，仅完成读取与查询即中止；34保留未完成，由当前主会话恢复。",
+      "outcome": "aborted",
+      "resolution": "resume-current-proposal",
+      "evidence": [
+        {
+          "file": "E:\\pri\\Admin.NET\\.scratch\\proposal-agent-lifecycle\\closeout-reconciliation.md",
+          "kind": "review-note",
+          "sha256": "84fd072a202871593f586a3fa068d96cec543765cfd669a341ba295e920272d4"
+        }
+      ]
+    },
+    {
+      "id": "b45a2df4-8595-4480-af9a-cfcf5deec1ec",
+      "proposal": 34,
+      "reason": "在提案33后被复用到34，读取和组件资料准备后中止；保留日志，34仍需实现验收。",
+      "outcome": "aborted",
+      "resolution": "resume-current-proposal",
+      "evidence": [
+        {
+          "file": "E:\\pri\\Admin.NET\\.scratch\\proposal-agent-lifecycle\\closeout-reconciliation.md",
+          "kind": "review-note",
+          "sha256": "84fd072a202871593f586a3fa068d96cec543765cfd669a341ba295e920272d4"
+        }
+      ]
+    }
+  ]
+}
