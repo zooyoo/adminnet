@@ -1,6 +1,6 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [ValidateSet('apiServices', 'goView')]
+    [ValidateSet('apiServices')]
     [string]$Module = 'apiServices',
     [uri]$ApiUrl,
     [string]$JavaPath = 'java'
@@ -13,7 +13,6 @@ $appSource = Join-Path $webRoot 'apps\web-antdv-next\src'
 $cacheRoot = Join-Path $webRoot 'node_modules\.cache\api-generation'
 $modules = @{
     apiServices = @{ Path = 'api-services'; Swagger = 'Default' }
-    goView = @{ Path = 'api-plugins\goView'; Swagger = 'GoView' }
 }
 $settings = $modules[$Module]
 $destination = [System.IO.Path]::GetFullPath((Join-Path $appSource $settings.Path))

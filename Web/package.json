@@ -47,7 +47,6 @@
     "test:unit": "vitest run --dom",
     "test:e2e": "playwright test",
     "build-api-ps": "pwsh -NoProfile -File api_build/build.ps1",
-    "build-goView-api-ps": "pwsh -NoProfile -File api_build/build.ps1 goView",
     "update:deps": "npx taze -r -w",
     "version": "pnpm exec changeset version && pnpm install --no-frozen-lockfile",
     "catalog": "pnpm dlx codemod pnpm/catalog"

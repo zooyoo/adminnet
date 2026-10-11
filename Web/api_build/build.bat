@@ -7,16 +7,11 @@ set moduleName=apiServices
 set apiServicesPath=%dir%..\src\api-services\
 set apiUrl=http://localhost:5005/swagger/Default/swagger.json
 
-if not "%1"=="" if not "%1"=="apiServices" if not "%1"=="goView" (
+if not "%1"=="" if not "%1"=="apiServices" (
   echo Unsupported module: %1
   exit /b 1
 )
 
-if "%1"=="goView" (
-  set moduleName=goView
-  set apiServicesPath=%dir%..\src\api-plugins\goView\
-  set apiUrl=http://localhost:5005/swagger/GoView/swagger.json
-)
 
 if exist %apiServicesPath% (
     echo ================================ 删除目录 %moduleName% ================================

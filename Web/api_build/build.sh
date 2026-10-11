@@ -9,11 +9,6 @@ apiUrl="http://localhost:5005/swagger/Default/swagger.json"
 case "$1" in
     ''|apiServices)
         ;;
-    goView)
-        moduleName="goView"
-        apiServicesPath="$dir/../src/api-plugins/goView/"
-        apiUrl="http://localhost:5005/swagger/GoView/swagger.json"
-        ;;
     *)
         echo "Unsupported module: $1" >&2
         exit 1
