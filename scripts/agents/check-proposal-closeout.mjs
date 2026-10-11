@@ -49,9 +49,24 @@ export function replay(rows) {
   return { members, children, pending, running: start > end, outcome: start > end ? 'running' : outcome };
 }
 
-export function auditSession(sessionFile, nextProposal) {
+export function auditSession(sessionFile, nextProposal, hostInventory = undefined) {
   const snapshots = [];
   const blockers = [];
+  const normalizeId = id => String(id).replace(/^session-/, '');
+  if (hostInventory !== undefined && (!Array.isArray(hostInventory.rows) || !Array.isArray(hostInventory.archivedSessionIds) || !Number.isFinite(hostInventory.generatedAt) || Math.abs(Date.now() - hostInventory.generatedAt) > 60_000)) {
+    throw new Error('宿主清单格式无效或超过 60 秒有效期');
+  }
+  const hostRows = new Map();
+  for (const row of hostInventory?.rows ?? []) {
+    const id = normalizeId(row.id);
+    if (hostRows.has(id)) throw new Error('宿主清单存在重复会话 ID');
+    hostRows.set(id, row);
+  }
+  const archivedIds = new Set((hostInventory?.archivedSessionIds ?? []).map(normalizeId));
+  const hostCloseReceipt = (id, parentId) => {
+    const row = hostRows.get(normalizeId(id));
+    return archivedIds.has(normalizeId(id)) && row?.archived === true && row?.running === false && normalizeId(row.parentId) === normalizeId(parentId);
+  };
   const agents = [];
   const visited = new Set();
   const sessionsRoot = path.dirname(path.dirname(sessionFile));
@@ -77,16 +92,37 @@ export function auditSession(sessionFile, nextProposal) {
       const child = replay(childRows);
       const member = state.members.get(id);
       agents.push({ id, parentId, name: member?.name ?? null, mode: catalog.mode, phase: member?.phase ?? null, outcome: child.outcome });
-      if (catalog.mode === 'continuable' || member) {
+      const hostClosed = hostCloseReceipt(id, parentId);
+      if (!hostClosed && (catalog.mode === 'continuable' || member)) {
         blockers.push({ code: 'NO_VERIFIABLE_CLOSE_RECEIPT', id });
-      } else if (catalog.mode !== 'one-shot') {
+      } else if (!hostClosed && catalog.mode !== 'one-shot') {
         blockers.push({ code: 'UNKNOWN_DELEGATION_MODE', id });
       }
       if (child.running || child.outcome !== 'completed') blockers.push({ code: 'UNSETTLED_RESULT', id, outcome: child.outcome });
+      if (hostClosed) agents.at(-1).hostCloseReceipt = { archived: true, running: false };
       walk(childRows, id);
     }
   }
   walk(rootRows, rootRows[0].id);
+  // 宿主可能记录了旧主日志 catalog 没有登记的侧会话，不能遗漏其后代。
+  const knownIds = new Set([normalizeId(rootRows[0].id), ...agents.map(agent => normalizeId(agent.id))]);
+  const hostOnlyAgents = [];
+  let discovered = true;
+  while (discovered) {
+    discovered = false;
+    for (const [id, row] of hostRows) {
+      if (knownIds.has(id) || !knownIds.has(normalizeId(row.parentId))) continue;
+      knownIds.add(id);
+      discovered = true;
+      hostOnlyAgents.push({ id: row.id, parentId: row.parentId, archived: row.archived === true, running: row.running ?? null });
+      blockers.push({ code: 'HOST_CHILD_NOT_IN_LOG', id: row.id });
+      if (!hostCloseReceipt(row.id, row.parentId)) blockers.push({ code: 'NO_VERIFIABLE_CLOSE_RECEIPT', id: row.id });
+    }
+  }
+  for (const agent of agents) {
+    const row = hostRows.get(normalizeId(agent.id));
+    if (row?.running === true) blockers.push({ code: 'HOST_CHILD_RUNNING', id: agent.id });
+  }
   for (const snapshot of snapshots) {
     const after = fs.statSync(snapshot.file);
     if (after.size !== snapshot.size || after.mtimeMs !== snapshot.mtimeMs) throw new Error('核验期间会话发生变化，请重新检查');
@@ -98,7 +134,8 @@ export function auditSession(sessionFile, nextProposal) {
     lastSequence: rootRows.at(-1)?.seq ?? null,
     nextProposal,
     status: blockers.length ? 'blocked' : 'snapshot-clear',
-    scope: '仅生命周期日志快照；仍需业务验收与宿主实时关闭确认',
+    scope: hostInventory === undefined ? '仅生命周期日志快照；仍需业务验收与宿主实时关闭确认' : '生命周期日志与宿主归档、运行状态快照；不替代业务验收，不是原子调度锁',
+    ...(hostInventory === undefined ? {} : { hostCheckedAt: new Date(hostInventory.generatedAt).toISOString(), hostOnlyAgents }),
     agents,
     blockers,
   };
@@ -107,10 +144,18 @@ export function auditSession(sessionFile, nextProposal) {
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   try {
     const args = process.argv.slice(2);
-    if (args.length !== 4 || args[0] !== '--session-file' || args[2] !== '--next' || !/^[1-9]\d*$/.test(args[3])) {
-      throw new Error('用法：node check-proposal-closeout.mjs --session-file <完整主会话日志> --next <下一编号>');
+    if ((args.length !== 4 && args.length !== 6) || args[0] !== '--session-file' || args[2] !== '--next' || !/^[1-9]\d*$/.test(args[3]) || (args.length === 6 && args[4] !== '--host-url')) {
+      throw new Error('用法：node check-proposal-closeout.mjs --session-file <完整主会话日志> --next <下一编号> [--host-url <本机 DSH 地址>]');
     }
-    const result = auditSession(path.resolve(args[1]), Number(args[3]));
+    let hostInventory;
+    if (args.length === 6) {
+      const base = new URL(args[5]);
+      if (base.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(base.hostname) || base.username || base.password || base.search || base.hash || base.pathname !== '/') throw new Error('只接受本机 DSH HTTP 根地址');
+      const response = await fetch(new URL('/api/dsh-session-archive/inventory', base), { redirect: 'error', signal: AbortSignal.timeout(10_000) });
+      if (!response.ok) throw new Error(`宿主清单读取失败 HTTP ${response.status}`);
+      hostInventory = await response.json();
+    }
+    const result = auditSession(path.resolve(args[1]), Number(args[3]), hostInventory);
     console.log(JSON.stringify(result, null, 2));
     process.exitCode = result.status === 'blocked' ? 2 : 0;
   } catch (error) {

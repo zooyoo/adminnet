@@ -86,6 +86,76 @@ test('未知 closed 字段不能代替宿主正式关闭协议', t => {
   assert.equal(result.status, 'blocked');
 });
 
+test('宿主归档且非运行状态可提供正式关闭回执', t => {
+  const result = auditSession(
+    fixture(t, [catalog(), member('active')]),
+    34,
+    { generatedAt: Date.now(), archivedSessionIds: [childId], rows: [{ id: `session-${childId}`, parentId: rootId, archived: true, running: false }] },
+  );
+  assert.equal(result.status, 'snapshot-clear');
+  assert.deepEqual(result.blockers, []);
+  assert.deepEqual(result.agents[0].hostCloseReceipt, { archived: true, running: false });
+});
+
+function inventory(overrides = {}) {
+  return { generatedAt: Date.now(), archivedSessionIds: [childId], rows: [{ id: `session-${childId}`, parentId: rootId, archived: true, running: false }], ...overrides };
+}
+
+for (const [name, patch] of [
+  ['仍在运行', { running: true }],
+  ['运行状态未知', { running: undefined }],
+  ['未归档', { archived: false }],
+  ['父级不匹配', { parentId: grandchildId }],
+]) {
+  test(`宿主${name}时不能解除关闭阻塞`, t => {
+    const host = inventory();
+    Object.assign(host.rows[0], patch);
+    const result = auditSession(fixture(t, [catalog()]), 34, host);
+    assert.ok(result.blockers.some(item => item.code === 'NO_VERIFIABLE_CLOSE_RECEIPT'));
+  });
+}
+
+test('列表归档标志不能替代权威归档集合', t => {
+  const result = auditSession(fixture(t, [catalog()]), 34, inventory({ archivedSessionIds: [] }));
+  assert.equal(result.status, 'blocked');
+});
+
+test('过期、缺字段和重复宿主清单拒绝核验', t => {
+  const file = fixture(t, [catalog()]);
+  assert.throws(() => auditSession(file, 34, inventory({ generatedAt: Date.now() - 120_000 })), /有效期/);
+  assert.throws(() => auditSession(file, 34, { rows: [] }), /格式/);
+  const host = inventory();
+  host.rows.push({ ...host.rows[0], id: childId });
+  assert.throws(() => auditSession(file, 34, host), /重复/);
+});
+
+for (const outcome of ['error', 'aborted']) {
+  test(`已归档的 ${outcome} 仍需交付收尾`, t => {
+    const file = fixture(t, [catalog()], { [childId]: [event('turn/start', {}), event('turn/end', { reason: { kind: outcome } })] });
+    const result = auditSession(file, 34, inventory());
+    assert.deepEqual(result.blockers, [{ code: 'UNSETTLED_RESULT', id: childId, outcome }]);
+  });
+}
+
+test('宿主额外侧会话及其后代不会因旧日志缺 catalog 被遗漏', t => {
+  const extraId = '00000000-0000-0000-0000-000000000004';
+  const host = inventory();
+  host.rows.unshift({ id: extraId, parentId: grandchildId, archived: false, running: true });
+  host.rows.push({ id: grandchildId, parentId: rootId, archived: true, running: false });
+  host.archivedSessionIds.push(grandchildId);
+  const result = auditSession(fixture(t, [catalog()]), 34, host);
+  assert.equal(result.hostOnlyAgents.length, 2);
+  assert.deepEqual(result.blockers.filter(item => item.code === 'HOST_CHILD_NOT_IN_LOG').map(item => item.id), [grandchildId, extraId]);
+  assert.ok(result.blockers.some(item => item.code === 'NO_VERIFIABLE_CLOSE_RECEIPT' && item.id === extraId));
+});
+
+test('一次性任务日志已完成但宿主仍运行时不放行', t => {
+  const host = inventory();
+  host.rows[0].running = true;
+  const result = auditSession(fixture(t, [catalog(childId, 'one-shot')]), 34, host);
+  assert.ok(result.blockers.some(item => item.code === 'HOST_CHILD_RUNNING'));
+});
+
 test('未投递消息阻塞，已投递消息不再阻塞', t => {
   const queued = event('team/message/queued', { message: { id: 'message-1' } });
   const result = auditSession(fixture(t, [queued], {}), 34);
