@@ -16,7 +16,7 @@
 
 ## 总览
 
-业务验收完成：37 / 48。提案 33 的模板 CRUD、分组与参数、原文重开、真实富文本与 Razor 渲染、租户授权、失败恢复、同文档离页、最终生产桌面明暗与活动图标、真实停机和 PostgreSQL 清理均已通过。
+业务验收完成：38 / 48。提案 33 的模板 CRUD、分组与参数、原文重开、真实富文本与 Razor 渲染、租户授权、失败恢复、同文档离页、最终生产桌面明暗与活动图标、真实停机和 PostgreSQL 清理均已通过。
 
 2026-10-11 收尾更新：18 个历史直接子会话已由宿主确认归档且停止；项目门禁已支持实时宿主清单（提交 09ee8a771，23 项回归通过）。无需再次归档。剩余为 7 条历史失败/中止结果的业务处置和 1 个侧会话的继承历史核对，不是归档未同步。提案 29、31、33 的原始真实报告已重新读取，passed/cleanupPassed 均 true、cleanupErrors 均空；提案 29 提交 ed16649bf、31 提交 ac864b422 已核实。侧会话 439 次调用中 438 次继承，唯一新增 ctx_stats；两个成员在复用到 34 后未完成业务实现。具体证据见 `.scratch/proposal-agent-lifecycle/closeout-reconciliation.md`。第 19 轮已完成业务处置绑定：35 项回归通过，正式 CLI 加 --host-url 与 --review-file 核验退出码 0、status=reviewed-clear、blockers=[]。17 个日志成员归档回执、7 条业务处置及只新增 ctx_stats 的侧会话均已核对，允许恢复第 34 项；历史失败不改写为成功，34 仍须实现与验收。处置及报告位于 `.scratch/proposal-agent-lifecycle/business-review.json` 和 `reconciled-cli-audit.json`。
 
@@ -59,7 +59,7 @@
 | 35 | 主服务和插件 SDK 真实再生成 | 已完成：真实三组生成、幂等/恢复、类型/构建、认证桌面与停机重试通过 |
 | 36 | 删除钉钉插件及入口等相关代码 | 已完成：插件/入口/SDK/类型清理、真实29旧路由404、保留功能、桌面视觉与PG清理通过 |
 | 37 | 删除 GoView 及入口等相关代码 | 已完成：插件/SDK/入口清理、14 旧路由 404、真实桌面保留功能与 PG 清理通过 |
-| 38 | 微信用户管理 | 待开始 |
+| 38 | 微信用户管理 | 已完成：资料 CRUD、平台分页、头像、防重复、权限租户、凭据保留、真实桌面与 PG 清理通过 |
 | 39 | 删除微信支付订单与退款等相关代码 | 待开始 |
 | 40 | MQTT 连接与消息工作流 | 待开始 |
 | 41 | 直播与视频工具 | 待开始 |
@@ -160,3 +160,6 @@
 ### 第 37 项完成
 
 GoView 插件、SDK、项目引用与生成入口已删除。真实隔离报告 `C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-1ac11a98a3d94850a29fea848d304fc2/evidence/goview-removal-baseline.json` 的 5 阶段、业务与清理全部通过，14 个旧接口及文档 404，385 条主服务路径保留；生产桌面登录、模板、缓存和停机通过，三张截图已实际复核。前后端构建、类型与差异检查通过。详见 issues/37-remove-goview.md。下一项 38 须先核验收尾门禁。
+
+### 第 38 项完成
+微信用户资料管理完成；80 项后端回归、前端类型/ESLint/生产构建及真实隔离 PostgreSQL/API/Edge 桌面 9 阶段通过。头像、防重复提交、权限/租户隔离、平台分页、CRUD、凭据保留及停机草稿通过；最终报告 adminnet-vben-c0c0e79320674b0496a4c4a97fea8567/evidence/wechat-browser-baseline.json 功能与清理 true，三张真实截图已复核。详见 issues/38-wechat-user-management.md，下一项 39。

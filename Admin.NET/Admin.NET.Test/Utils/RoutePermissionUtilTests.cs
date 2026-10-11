@@ -70,6 +70,12 @@ public class RoutePermissionUtilTests
     }
 
     [Theory]
+    [InlineData("sysWechatUser:page", true)]
+    [InlineData("sysWechatUser:add", true)]
+    [InlineData("sysWechatUser:update", true)]
+    [InlineData("sysWechatUser:delete", true)]
+    [InlineData("SYSWECHATUSER:PAGE", true)]
+    [InlineData("sysWxOpen:getWxOpenId", false)]
     [InlineData("sysLangText:export", true)]
     [InlineData("sysLangText:import", true)]
     [InlineData("sysLangText:batchDelete", true)]
