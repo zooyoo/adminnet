@@ -57,6 +57,7 @@
     "axios": "catalog:",
     "dayjs": "catalog:",
     "dompurify": "3.4.16",
+    "monaco-editor": "0.55.1",
     "pinia": "catalog:",
     "print-js": "1.6.0",
     "relation-graph": "2.2.11",

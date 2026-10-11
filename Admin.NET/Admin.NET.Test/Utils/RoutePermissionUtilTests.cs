@@ -90,6 +90,13 @@ public class RoutePermissionUtilTests
     [InlineData("sysVislog:clear", true)]
     [InlineData("sysLogDiff:detail", true)]
     [InlineData("sysServer:page", true)]
+    [InlineData("sysPlugin:page", true)]
+    [InlineData("sysPlugin:add", true)]
+    [InlineData("sysPlugin:update", true)]
+    [InlineData("sysPlugin:delete", true)]
+    [InlineData("sysPlugin:compileAssembly", true)]
+    [InlineData("sysPlugin:removeAssembly", true)]
+    [InlineData("SYSPLUGIN:COMPILEASSEMBLY", true)]
     public void RequiresExplicitGrant_TranslationSensitiveAction_DoesNotDependOnMenuRegistration(string permission, bool expected)
     {
         Assert.Equal(expected, RoutePermissionUtil.RequiresExplicitGrant(permission));

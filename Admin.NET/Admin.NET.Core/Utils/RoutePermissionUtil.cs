@@ -27,6 +27,7 @@ public static class RoutePermissionUtil
             permission?.StartsWith("sysLog", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysOpenAccess:", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.StartsWith("sysTemplate:", StringComparison.OrdinalIgnoreCase) == true ||
+            permission?.StartsWith("sysPlugin:", StringComparison.OrdinalIgnoreCase) == true ||
             permission?.ToLowerInvariant() is "sysregion:page" or "sysregion:add" or "sysregion:update" or "sysregion:delete" or "sysregion:sync" ||
             permission?.StartsWith("sysDatabase:", StringComparison.OrdinalIgnoreCase) == true || permission?.ToLowerInvariant() is "syslangtext:export" or "syslangtext:import" or
             "syslangtext:batchdelete" or "syslangtext:batchsave" or "syslangtext:aitranslatetext" or "sysconfig:savesysinfo" or

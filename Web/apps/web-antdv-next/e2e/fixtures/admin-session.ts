@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 
 export const testToken = (tenant = 1) => `header.${Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 600, tenant })).toString('base64url')}.signature`;
 
-type AdminModule = 'user' | 'tenant' | 'dict' | 'config' | 'tenantConfig' | 'lang' | 'langText' | 'infoSetting' | 'cache' | 'userRegWay' | 'onlineUser' | 'notice' | 'ldap' | 'file' | 'job' | 'database' | 'openAccess' | 'region' | 'stressTest' | 'template' | 'update';
+type AdminModule = 'user' | 'tenant' | 'dict' | 'config' | 'tenantConfig' | 'lang' | 'langText' | 'infoSetting' | 'cache' | 'userRegWay' | 'onlineUser' | 'notice' | 'ldap' | 'file' | 'job' | 'database' | 'openAccess' | 'region' | 'stressTest' | 'template' | 'update' | 'plugin';
 const titles: Record<AdminModule, string> = {
 	user: '用户管理',
 	tenant: '租户管理',
@@ -26,6 +26,7 @@ const titles: Record<AdminModule, string> = {
 	openAccess: '开放接口身份',
 	template: '模板管理',
 	region: '区域管理',
+	plugin: '动态插件',
 };
 export async function mockAdminSession(page: Page, module: AdminModule, options: { readOnly?: boolean; superAdmin?: boolean; updateActions?: string[]; updateMenuPath?: '/platform/update'; openAccessActions?: ('add' | 'delete' | 'page' | 'update')[]; openAccessMenuPath?: '/platform/openAccess'; regionActions?: ('add' | 'delete' | 'page' | 'update')[]; regionMenuPath?: '/platform/region'; templateActions?: ('add' | 'delete' | 'page' | 'preview' | 'update')[]; templateMenuPath?: '/platform/template' } = {}) {
 	await page.route('**/prod-api/hubs/onlineUser/negotiate*', (route) => route.fulfill({ status: 503, json: { message: 'Contract fixture: real-time service unavailable' } }));
