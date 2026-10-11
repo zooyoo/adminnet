@@ -37,9 +37,19 @@
 - template-ui 从事件索引 1688 开始，16 次调用含读取、查询、消息、goal 创建和组件资料准备；没有 edit/write，最后的 CLI 将组件查询输出写入 plugin-frontend 本地日志。保留这些准备产物，不宣称提案 34 已交付。
 - 两次分析命令先后因尾部多余括号、侧会话目录缺少 session- 前缀失败，修正后才取得上述结果；失败命令没有执行写入。
 
+## 第 18 轮：交付证据反查
+
+直接读取并解析以下三份原始报告，文件均存在，passed=true、cleanupPassed=true、cleanupErrors=[]；这不是本轮重新运行业务测试。
+
+- 提案 29：`C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-1be5382ddf56446c992b56ef5cbfb41c/evidence/stress-browser-baseline.json`；对应任务记录 `issues/29-controlled-stress-test.md`（位于 frontend-vben-migration），提交 ed16649bf 已核实。
+- 提案 31：`C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-df55f333997141acb36d80a84984fb30/evidence/open-access-browser-baseline.json`；对应任务记录 `issues/31-open-access-signature.md`；该记录最近交付提交为 ac864b4222c5d0e8012bb4d07f0319d0f74ce3f2，Git 已核实。
+- 提案 33：`C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-1608732a23f441449be7fbb939c74583/evidence/template-browser-baseline.json`；此报告只支持 33，不支持成员随后接到的 34。
+
+处置分类：29 的两次实现失败由既有最终交付接手，失败的只读复核不计成功审查；31 的早期失败不计交付，保留模型拒绝并核对既有最终实现；33 成员后续在 34 的中止记录作为当前待恢复任务，不要求失败回合重新运行变成 completed。侧会话新增仅统计查询，继承调用不重复计算。上述均为业务处置，不能替代实时归档和停止核验。
+
 ## 后续工作
 
-1. 核对上述写入与接手证据，以及宿主额外子会话；保留历史失败，不修改会话日志。
-2. 为宿主清单额外后代补充覆盖检查；已归档且停止是生命周期证据，不是业务验收。
-3. 完成项目规则说明与进度更新，检查精确 diff 后提交本次门禁修正。
-4. 当前仍未放行第 34 项；迁移目标继续 active，不需要用户重复归档。
+1. 为业务处置增加可验证的证据绑定，关联原始日志摘要、提案提交与验收报告摘要；脚本目前仍报告 UNSETTLED_RESULT，不得声称已放行。
+2. 宿主额外后代检查及 23 项回归已随 09ee8a771 提交；将继承侧会话核对结论纳入同一证据绑定。
+3. 持续保留提案 34 已有工作，只在门禁核对通过后恢复，不把本轮核验当作 34 完成。
+4. 归档已完成，不需要用户重复操作；迁移目标保持 active。
