@@ -93,7 +93,7 @@ async function activate(env: ReturnType<typeof setup>) {
 
 describe('模板原文、类型和参数合同', () => {
 	it('保留历史类型编号与新增默认值，本地内容方式不进入 DTO', () => {
-		expect(TEMPLATE_TYPES.map(({ value }) => value)).toEqual([1, 2, 3, 4, 5, 7]);
+		expect(TEMPLATE_TYPES.map(({ value }) => value)).toEqual([1, 2, 3, 4, 7]);
 		expect(newTemplateDraft('tenant-1')).toEqual({ name: '', code: '', groupName: '', type: 1, content: '', orderNo: 100, remark: '', tenantId: 'tenant-1' });
 		expect(validateTemplateDraft(Object.assign({ ...row, remark: '' }, { type: 6 }))).toBe('请选择有效的模板类型。');
 	});

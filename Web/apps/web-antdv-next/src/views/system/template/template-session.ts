@@ -25,7 +25,6 @@ export const TEMPLATE_TYPES: { label: string; value: TemplateType }[] = [
 	{ label: '短信', value: 2 },
 	{ label: '邮件', value: 3 },
 	{ label: '微信', value: 4 },
-	{ label: '钉钉', value: 5 },
 	{ label: '企业微信', value: 7 },
 ];
 

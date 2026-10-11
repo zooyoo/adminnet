@@ -7,15 +7,16 @@ apiServicesPath="$dir/../src/api-services/"
 apiUrl="http://localhost:5005/swagger/Default/swagger.json"
 
 case "$1" in
-    dingTalk)
-        moduleName="dingTalk"
-        apiServicesPath="$dir/../src/api-plugins/dingTalk/"
-        apiUrl="http://localhost:5005/swagger/DingTalk/swagger.json"
+    ''|apiServices)
         ;;
     goView)
         moduleName="goView"
         apiServicesPath="$dir/../src/api-plugins/goView/"
         apiUrl="http://localhost:5005/swagger/GoView/swagger.json"
+        ;;
+    *)
+        echo "Unsupported module: $1" >&2
+        exit 1
         ;;
 esac
 
