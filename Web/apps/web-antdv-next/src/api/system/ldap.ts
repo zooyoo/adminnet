@@ -4,7 +4,7 @@ import { SysLdapApi } from '#/api-services/apis/sys-ldap-api';
 import { getAPI } from '#/api/sdk';
 
 export type LdapRecord = Record<string, unknown> & SysLdap;
-export type LdapDraft = SysLdap;
+export type LdapDraft = Omit<SysLdap, 'bindPass'> & { bindPass: string };
 export async function ldapPage(query: SysLdapInput, signal?: AbortSignal) {
 	const data = (await getAPI(SysLdapApi).apiSysLdapPagePost(query, { signal })).data.result;
 	return { items: (data?.items ?? []) as LdapRecord[], total: data?.total ?? 0 };

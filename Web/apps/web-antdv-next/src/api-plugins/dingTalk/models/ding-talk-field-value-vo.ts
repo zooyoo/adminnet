@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 钉钉开放平台
- * 集成钉钉开放平台<br/><u><b><font color='FF0000'> 👮不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目二次开发而产生的一切法律纠纷和责任，我们不承担任何责任！</font></b></u>
+ * DingTalk
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  * 
@@ -21,24 +21,18 @@
 export interface DingTalkFieldValueVo {
 
     /**
-     * 第几条的明细标识，下标从0开始
-     *
      * @type {number}
      * @memberof DingTalkFieldValueVo
      */
     itemIndex?: number;
 
     /**
-     * 字段展示值，选项类型字段对应选项的value
-     *
      * @type {string}
      * @memberof DingTalkFieldValueVo
      */
     label?: string | null;
 
     /**
-     * 字段取值，选项类型字段对应选项的key
-     *
      * @type {string}
      * @memberof DingTalkFieldValueVo
      */

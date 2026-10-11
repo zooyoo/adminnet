@@ -1,5 +1,5 @@
 /**
-* 树形节点
+*
 *
 * @export
 * @interface TreeNode
@@ -19,7 +19,7 @@ export interface TreeNode {
      * @type {string}
      * @memberof TreeNode
      */
-    name?: null | string;
+    name?: string | null;
     /**
      * @type {Array<TreeNode>}
      * @memberof TreeNode

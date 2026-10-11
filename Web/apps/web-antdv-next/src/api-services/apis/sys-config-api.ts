@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -36,7 +36,7 @@ export const SysConfigApiAxiosParamCreator = function (configuration?: Configura
     return {
         /**
          *
-         * @summary 增加参数配置 🔖
+         * @summary 增加参数配置
          * @param {AddConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -80,7 +80,7 @@ export const SysConfigApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          *
-         * @summary 批量删除参数配置 🔖
+         * @summary 批量删除参数配置
          * @param {Array<number>} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -168,7 +168,7 @@ export const SysConfigApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          *
-         * @summary 根据Code获取配置参数值 🔖
+         * @summary 根据Code获取配置参数值
          * @param {string} code
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -214,7 +214,7 @@ export const SysConfigApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          *
-         * @summary 删除参数配置 🔖
+         * @summary 删除参数配置
          * @param {DeleteConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -258,8 +258,8 @@ export const SysConfigApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          *
-         * @summary 获取参数配置详情 🔖
-         * @param {number} id 主键Id
+         * @summary 获取参数配置详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -306,7 +306,7 @@ export const SysConfigApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          *
-         * @summary 获取分组列表 🔖
+         * @summary 获取分组列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -346,7 +346,7 @@ export const SysConfigApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          *
-         * @summary 获取参数配置列表 🔖
+         * @summary 获取参数配置列表
          * @param {PageConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -390,7 +390,7 @@ export const SysConfigApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          *
-         * @summary 获取参数配置分页列表 🔖
+         * @summary 获取参数配置分页列表
          * @param {PageConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -434,7 +434,7 @@ export const SysConfigApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          *
-         * @summary 保存系统信息 🔖
+         * @summary 保存系统信息
          * @param {InfoSaveInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -478,12 +478,13 @@ export const SysConfigApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          *
-         * @summary 获取系统信息 🔖
+         * @summary 获取系统信息
+         * @param {number} [tenantId]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiSysConfigSysInfoGet: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            const localVarPath = `/api/sysConfig/sysInfo`;
+        apiSysConfigSysInfoTenantIdGet: async (tenantId?: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/sysConfig/sysInfo/{tenantId}`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, 'https://example.com');
             let baseOptions;
@@ -500,6 +501,9 @@ export const SysConfigApiAxiosParamCreator = function (configuration?: Configura
                     ? await configuration.accessToken()
                     : await configuration.accessToken;
                 localVarHeaderParameter["Authorization"] = "Bearer " + accessToken;
+            }
+            if (tenantId !== undefined) {
+                localVarQueryParameter['tenantId'] = tenantId;
             }
             const query = new URLSearchParams(localVarUrlObj.search);
             for (const key in localVarQueryParameter) {
@@ -518,7 +522,7 @@ export const SysConfigApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          *
-         * @summary 更新参数配置 🔖
+         * @summary 更新参数配置
          * @param {UpdateConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -570,7 +574,7 @@ export const SysConfigApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 增加参数配置 🔖
+         * @summary 增加参数配置
          * @param {AddConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -584,7 +588,7 @@ export const SysConfigApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 批量删除参数配置 🔖
+         * @summary 批量删除参数配置
          * @param {Array<number>} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -612,7 +616,7 @@ export const SysConfigApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 根据Code获取配置参数值 🔖
+         * @summary 根据Code获取配置参数值
          * @param {string} code
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -626,7 +630,7 @@ export const SysConfigApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 删除参数配置 🔖
+         * @summary 删除参数配置
          * @param {DeleteConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -640,8 +644,8 @@ export const SysConfigApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取参数配置详情 🔖
-         * @param {number} id 主键Id
+         * @summary 获取参数配置详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -654,7 +658,7 @@ export const SysConfigApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取分组列表 🔖
+         * @summary 获取分组列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -667,7 +671,7 @@ export const SysConfigApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取参数配置列表 🔖
+         * @summary 获取参数配置列表
          * @param {PageConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -681,7 +685,7 @@ export const SysConfigApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取参数配置分页列表 🔖
+         * @summary 获取参数配置分页列表
          * @param {PageConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -695,7 +699,7 @@ export const SysConfigApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 保存系统信息 🔖
+         * @summary 保存系统信息
          * @param {InfoSaveInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -709,12 +713,13 @@ export const SysConfigApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取系统信息 🔖
+         * @summary 获取系统信息
+         * @param {number} [tenantId]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiSysConfigSysInfoGet(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultObject>>> {
-            const localVarAxiosArgs = await SysConfigApiAxiosParamCreator(configuration).apiSysConfigSysInfoGet(options);
+        async apiSysConfigSysInfoTenantIdGet(tenantId?: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultObject>>> {
+            const localVarAxiosArgs = await SysConfigApiAxiosParamCreator(configuration).apiSysConfigSysInfoTenantIdGet(tenantId, options);
             return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
                 const axiosRequestArgs: AxiosRequestConfig = { ...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url };
                 return axios.request(axiosRequestArgs);
@@ -722,7 +727,7 @@ export const SysConfigApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 更新参数配置 🔖
+         * @summary 更新参数配置
          * @param {UpdateConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -744,7 +749,7 @@ export const SysConfigApiFactory = function (configuration?: Configuration, base
     return {
         /**
          *
-         * @summary 增加参数配置 🔖
+         * @summary 增加参数配置
          * @param {AddConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -754,7 +759,7 @@ export const SysConfigApiFactory = function (configuration?: Configuration, base
         },
         /**
          *
-         * @summary 批量删除参数配置 🔖
+         * @summary 批量删除参数配置
          * @param {Array<number>} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -774,7 +779,7 @@ export const SysConfigApiFactory = function (configuration?: Configuration, base
         },
         /**
          *
-         * @summary 根据Code获取配置参数值 🔖
+         * @summary 根据Code获取配置参数值
          * @param {string} code
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -784,7 +789,7 @@ export const SysConfigApiFactory = function (configuration?: Configuration, base
         },
         /**
          *
-         * @summary 删除参数配置 🔖
+         * @summary 删除参数配置
          * @param {DeleteConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -794,8 +799,8 @@ export const SysConfigApiFactory = function (configuration?: Configuration, base
         },
         /**
          *
-         * @summary 获取参数配置详情 🔖
-         * @param {number} id 主键Id
+         * @summary 获取参数配置详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -804,7 +809,7 @@ export const SysConfigApiFactory = function (configuration?: Configuration, base
         },
         /**
          *
-         * @summary 获取分组列表 🔖
+         * @summary 获取分组列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -813,7 +818,7 @@ export const SysConfigApiFactory = function (configuration?: Configuration, base
         },
         /**
          *
-         * @summary 获取参数配置列表 🔖
+         * @summary 获取参数配置列表
          * @param {PageConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -823,7 +828,7 @@ export const SysConfigApiFactory = function (configuration?: Configuration, base
         },
         /**
          *
-         * @summary 获取参数配置分页列表 🔖
+         * @summary 获取参数配置分页列表
          * @param {PageConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -833,7 +838,7 @@ export const SysConfigApiFactory = function (configuration?: Configuration, base
         },
         /**
          *
-         * @summary 保存系统信息 🔖
+         * @summary 保存系统信息
          * @param {InfoSaveInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -843,16 +848,17 @@ export const SysConfigApiFactory = function (configuration?: Configuration, base
         },
         /**
          *
-         * @summary 获取系统信息 🔖
+         * @summary 获取系统信息
+         * @param {number} [tenantId]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiSysConfigSysInfoGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultObject>> {
-            return SysConfigApiFp(configuration).apiSysConfigSysInfoGet(options).then((request) => request(axios, basePath));
+        async apiSysConfigSysInfoTenantIdGet(tenantId?: number, options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultObject>> {
+            return SysConfigApiFp(configuration).apiSysConfigSysInfoTenantIdGet(tenantId, options).then((request) => request(axios, basePath));
         },
         /**
          *
-         * @summary 更新参数配置 🔖
+         * @summary 更新参数配置
          * @param {UpdateConfigInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -871,7 +877,7 @@ export const SysConfigApiFactory = function (configuration?: Configuration, base
 export class SysConfigApi extends BaseAPI {
     /**
      *
-     * @summary 增加参数配置 🔖
+     * @summary 增加参数配置
      * @param {AddConfigInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -882,7 +888,7 @@ export class SysConfigApi extends BaseAPI {
     }
     /**
      *
-     * @summary 批量删除参数配置 🔖
+     * @summary 批量删除参数配置
      * @param {Array<number>} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -904,7 +910,7 @@ export class SysConfigApi extends BaseAPI {
     }
     /**
      *
-     * @summary 根据Code获取配置参数值 🔖
+     * @summary 根据Code获取配置参数值
      * @param {string} code
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -915,7 +921,7 @@ export class SysConfigApi extends BaseAPI {
     }
     /**
      *
-     * @summary 删除参数配置 🔖
+     * @summary 删除参数配置
      * @param {DeleteConfigInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -926,8 +932,8 @@ export class SysConfigApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取参数配置详情 🔖
-     * @param {number} id 主键Id
+     * @summary 获取参数配置详情
+     * @param {number} id
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysConfigApi
@@ -937,7 +943,7 @@ export class SysConfigApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取分组列表 🔖
+     * @summary 获取分组列表
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysConfigApi
@@ -947,7 +953,7 @@ export class SysConfigApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取参数配置列表 🔖
+     * @summary 获取参数配置列表
      * @param {PageConfigInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -958,7 +964,7 @@ export class SysConfigApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取参数配置分页列表 🔖
+     * @summary 获取参数配置分页列表
      * @param {PageConfigInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -969,7 +975,7 @@ export class SysConfigApi extends BaseAPI {
     }
     /**
      *
-     * @summary 保存系统信息 🔖
+     * @summary 保存系统信息
      * @param {InfoSaveInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -980,17 +986,18 @@ export class SysConfigApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取系统信息 🔖
+     * @summary 获取系统信息
+     * @param {number} [tenantId]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysConfigApi
      */
-    public async apiSysConfigSysInfoGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultObject>> {
-        return SysConfigApiFp(this.configuration).apiSysConfigSysInfoGet(options).then((request) => request(this.axios, this.basePath));
+    public async apiSysConfigSysInfoTenantIdGet(tenantId?: number, options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultObject>> {
+        return SysConfigApiFp(this.configuration).apiSysConfigSysInfoTenantIdGet(tenantId, options).then((request) => request(this.axios, this.basePath));
     }
     /**
      *
-     * @summary 更新参数配置 🔖
+     * @summary 更新参数配置
      * @param {UpdateConfigInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

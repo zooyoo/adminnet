@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -36,7 +36,7 @@ export const SysLangTextApiAxiosParamCreator = function (configuration?: Configu
     return {
         /**
          *
-         * @summary 增加翻译表 ➕
+         * @summary 增加翻译表
          * @param {AddSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -124,7 +124,7 @@ export const SysLangTextApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 批量删除翻译表 ❌
+         * @summary 批量删除翻译表
          * @param {Array<DeleteSysLangTextInput>} body
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -172,7 +172,7 @@ export const SysLangTextApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 批量保存翻译表 ✏️
+         * @summary 批量保存翻译表
          * @param {Array<ImportSysLangTextInput>} body
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -220,7 +220,7 @@ export const SysLangTextApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 删除翻译表 ❌
+         * @summary 删除翻译表
          * @param {DeleteSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -264,8 +264,8 @@ export const SysLangTextApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 获取翻译表详情 ℹ️
-         * @param {number} id 主键Id
+         * @summary 获取翻译表详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -312,7 +312,7 @@ export const SysLangTextApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 导出翻译表记录 🔖
+         * @summary 导出翻译表记录
          * @param {PageSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -356,7 +356,7 @@ export const SysLangTextApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 下载翻译表数据导入模板 ⬇️
+         * @summary 下载翻译表数据导入模板
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -396,7 +396,7 @@ export const SysLangTextApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 导入翻译表记录 💾
+         * @summary 导入翻译表记录
          * @param {Blob} [file]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -487,7 +487,7 @@ export const SysLangTextApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 分页查询翻译表 🔖
+         * @summary 分页查询翻译表
          * @param {PageSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -531,7 +531,7 @@ export const SysLangTextApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 更新翻译表 ✏️
+         * @summary 更新翻译表
          * @param {UpdateSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -583,7 +583,7 @@ export const SysLangTextApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 增加翻译表 ➕
+         * @summary 增加翻译表
          * @param {AddSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -611,7 +611,7 @@ export const SysLangTextApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 批量删除翻译表 ❌
+         * @summary 批量删除翻译表
          * @param {Array<DeleteSysLangTextInput>} body
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -625,7 +625,7 @@ export const SysLangTextApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 批量保存翻译表 ✏️
+         * @summary 批量保存翻译表
          * @param {Array<ImportSysLangTextInput>} body
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -639,7 +639,7 @@ export const SysLangTextApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 删除翻译表 ❌
+         * @summary 删除翻译表
          * @param {DeleteSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -653,8 +653,8 @@ export const SysLangTextApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取翻译表详情 ℹ️
-         * @param {number} id 主键Id
+         * @summary 获取翻译表详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -667,7 +667,7 @@ export const SysLangTextApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 导出翻译表记录 🔖
+         * @summary 导出翻译表记录
          * @param {PageSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -681,7 +681,7 @@ export const SysLangTextApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 下载翻译表数据导入模板 ⬇️
+         * @summary 下载翻译表数据导入模板
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -694,7 +694,7 @@ export const SysLangTextApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 导入翻译表记录 💾
+         * @summary 导入翻译表记录
          * @param {Blob} [file]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -722,7 +722,7 @@ export const SysLangTextApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 分页查询翻译表 🔖
+         * @summary 分页查询翻译表
          * @param {PageSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -736,7 +736,7 @@ export const SysLangTextApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 更新翻译表 ✏️
+         * @summary 更新翻译表
          * @param {UpdateSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -758,7 +758,7 @@ export const SysLangTextApiFactory = function (configuration?: Configuration, ba
     return {
         /**
          *
-         * @summary 增加翻译表 ➕
+         * @summary 增加翻译表
          * @param {AddSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -778,7 +778,7 @@ export const SysLangTextApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 批量删除翻译表 ❌
+         * @summary 批量删除翻译表
          * @param {Array<DeleteSysLangTextInput>} body
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -788,7 +788,7 @@ export const SysLangTextApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 批量保存翻译表 ✏️
+         * @summary 批量保存翻译表
          * @param {Array<ImportSysLangTextInput>} body
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -798,7 +798,7 @@ export const SysLangTextApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 删除翻译表 ❌
+         * @summary 删除翻译表
          * @param {DeleteSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -808,8 +808,8 @@ export const SysLangTextApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 获取翻译表详情 ℹ️
-         * @param {number} id 主键Id
+         * @summary 获取翻译表详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -818,7 +818,7 @@ export const SysLangTextApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 导出翻译表记录 🔖
+         * @summary 导出翻译表记录
          * @param {PageSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -828,7 +828,7 @@ export const SysLangTextApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 下载翻译表数据导入模板 ⬇️
+         * @summary 下载翻译表数据导入模板
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -837,7 +837,7 @@ export const SysLangTextApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 导入翻译表记录 💾
+         * @summary 导入翻译表记录
          * @param {Blob} [file]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -857,7 +857,7 @@ export const SysLangTextApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 分页查询翻译表 🔖
+         * @summary 分页查询翻译表
          * @param {PageSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -867,7 +867,7 @@ export const SysLangTextApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 更新翻译表 ✏️
+         * @summary 更新翻译表
          * @param {UpdateSysLangTextInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -886,7 +886,7 @@ export const SysLangTextApiFactory = function (configuration?: Configuration, ba
 export class SysLangTextApi extends BaseAPI {
     /**
      *
-     * @summary 增加翻译表 ➕
+     * @summary 增加翻译表
      * @param {AddSysLangTextInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -908,7 +908,7 @@ export class SysLangTextApi extends BaseAPI {
     }
     /**
      *
-     * @summary 批量删除翻译表 ❌
+     * @summary 批量删除翻译表
      * @param {Array<DeleteSysLangTextInput>} body
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -919,7 +919,7 @@ export class SysLangTextApi extends BaseAPI {
     }
     /**
      *
-     * @summary 批量保存翻译表 ✏️
+     * @summary 批量保存翻译表
      * @param {Array<ImportSysLangTextInput>} body
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -930,7 +930,7 @@ export class SysLangTextApi extends BaseAPI {
     }
     /**
      *
-     * @summary 删除翻译表 ❌
+     * @summary 删除翻译表
      * @param {DeleteSysLangTextInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -941,8 +941,8 @@ export class SysLangTextApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取翻译表详情 ℹ️
-     * @param {number} id 主键Id
+     * @summary 获取翻译表详情
+     * @param {number} id
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysLangTextApi
@@ -952,7 +952,7 @@ export class SysLangTextApi extends BaseAPI {
     }
     /**
      *
-     * @summary 导出翻译表记录 🔖
+     * @summary 导出翻译表记录
      * @param {PageSysLangTextInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -963,7 +963,7 @@ export class SysLangTextApi extends BaseAPI {
     }
     /**
      *
-     * @summary 下载翻译表数据导入模板 ⬇️
+     * @summary 下载翻译表数据导入模板
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysLangTextApi
@@ -973,7 +973,7 @@ export class SysLangTextApi extends BaseAPI {
     }
     /**
      *
-     * @summary 导入翻译表记录 💾
+     * @summary 导入翻译表记录
      * @param {Blob} [file]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -995,7 +995,7 @@ export class SysLangTextApi extends BaseAPI {
     }
     /**
      *
-     * @summary 分页查询翻译表 🔖
+     * @summary 分页查询翻译表
      * @param {PageSysLangTextInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1006,7 +1006,7 @@ export class SysLangTextApi extends BaseAPI {
     }
     /**
      *
-     * @summary 更新翻译表 ✏️
+     * @summary 更新翻译表
      * @param {UpdateSysLangTextInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -17,11 +17,14 @@ import { Configuration } from '../configuration';
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS, type RequestArgs, BaseAPI, RequiredError } from '../base';
 import { type AddOpenAccessInput } from '../models';
+import { type AdminResultListOpenAccessTenantOutput } from '../models';
+import { type AdminResultListOpenAccessUserOutput } from '../models';
 import { type AdminResultSqlSugarPagedListOpenAccessOutput } from '../models';
 import { type AdminResultString } from '../models';
 import { type DeleteOpenAccessInput } from '../models';
 import { type GenerateSignatureInput } from '../models';
 import { type OpenAccessInput } from '../models';
+import { type OpenAccessUserListInput } from '../models';
 import { type UpdateOpenAccessInput } from '../models';
 /**
  * SysOpenAccessApi - axios parameter creator
@@ -31,7 +34,7 @@ export const SysOpenAccessApiAxiosParamCreator = function (configuration?: Confi
     return {
         /**
          *
-         * @summary 增加开放接口身份 🔖
+         * @summary 增加开放接口身份
          * @param {AddOpenAccessInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -75,7 +78,7 @@ export const SysOpenAccessApiAxiosParamCreator = function (configuration?: Confi
         },
         /**
          *
-         * @summary 删除开放接口身份 🔖
+         * @summary 删除开放接口身份
          * @param {DeleteOpenAccessInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -163,7 +166,7 @@ export const SysOpenAccessApiAxiosParamCreator = function (configuration?: Confi
         },
         /**
          *
-         * @summary 获取开放接口身份分页列表 🔖
+         * @summary 获取开放接口身份分页列表
          * @param {OpenAccessInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -207,7 +210,7 @@ export const SysOpenAccessApiAxiosParamCreator = function (configuration?: Confi
         },
         /**
          *
-         * @summary 创建密钥 🔖
+         * @summary 创建密钥
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -247,13 +250,97 @@ export const SysOpenAccessApiAxiosParamCreator = function (configuration?: Confi
         },
         /**
          *
-         * @summary 更新开放接口身份 🔖
+         * @summary 获取开放接口绑定租户
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiSysOpenAccessTenantListGet: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/sysOpenAccess/tenantList`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, 'https://example.com');
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+            const localVarRequestOptions: AxiosRequestConfig = { method: 'GET', ...baseOptions, ...options };
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+            // authentication Bearer required
+            // http bearer authentication required
+            if (configuration && configuration.accessToken) {
+                const accessToken = typeof configuration.accessToken === 'function'
+                    ? await configuration.accessToken()
+                    : await configuration.accessToken;
+                localVarHeaderParameter["Authorization"] = "Bearer " + accessToken;
+            }
+            const query = new URLSearchParams(localVarUrlObj.search);
+            for (const key in localVarQueryParameter) {
+                query.set(key, localVarQueryParameter[key]);
+            }
+            for (const key in options.params) {
+                query.set(key, options.params[key]);
+            }
+            localVarUrlObj.search = (new URLSearchParams(query)).toString();
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = { ...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers };
+            return {
+                url: localVarUrlObj.pathname + localVarUrlObj.search + localVarUrlObj.hash,
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         *
+         * @summary 更新开放接口身份
          * @param {UpdateOpenAccessInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
         apiSysOpenAccessUpdatePost: async (body?: UpdateOpenAccessInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/sysOpenAccess/update`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, 'https://example.com');
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+            const localVarRequestOptions: AxiosRequestConfig = { method: 'POST', ...baseOptions, ...options };
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+            // authentication Bearer required
+            // http bearer authentication required
+            if (configuration && configuration.accessToken) {
+                const accessToken = typeof configuration.accessToken === 'function'
+                    ? await configuration.accessToken()
+                    : await configuration.accessToken;
+                localVarHeaderParameter["Authorization"] = "Bearer " + accessToken;
+            }
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            const query = new URLSearchParams(localVarUrlObj.search);
+            for (const key in localVarQueryParameter) {
+                query.set(key, localVarQueryParameter[key]);
+            }
+            for (const key in options.params) {
+                query.set(key, options.params[key]);
+            }
+            localVarUrlObj.search = (new URLSearchParams(query)).toString();
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = { ...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers };
+            const needsSerialization = (typeof body !== "string") || localVarRequestOptions.headers?.['Content-Type'] === 'application/json';
+            localVarRequestOptions.data = needsSerialization ? JSON.stringify(body !== undefined ? body : {}) : (body || "");
+            return {
+                url: localVarUrlObj.pathname + localVarUrlObj.search + localVarUrlObj.hash,
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         *
+         * @summary 获取开放接口绑定用户
+         * @param {OpenAccessUserListInput} [body]
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiSysOpenAccessUserListPost: async (body?: OpenAccessUserListInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/sysOpenAccess/userList`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, 'https://example.com');
             let baseOptions;
@@ -299,7 +386,7 @@ export const SysOpenAccessApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 增加开放接口身份 🔖
+         * @summary 增加开放接口身份
          * @param {AddOpenAccessInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -313,7 +400,7 @@ export const SysOpenAccessApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 删除开放接口身份 🔖
+         * @summary 删除开放接口身份
          * @param {DeleteOpenAccessInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -341,7 +428,7 @@ export const SysOpenAccessApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取开放接口身份分页列表 🔖
+         * @summary 获取开放接口身份分页列表
          * @param {OpenAccessInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -355,7 +442,7 @@ export const SysOpenAccessApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 创建密钥 🔖
+         * @summary 创建密钥
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -368,13 +455,40 @@ export const SysOpenAccessApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 更新开放接口身份 🔖
+         * @summary 获取开放接口绑定租户
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiSysOpenAccessTenantListGet(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultListOpenAccessTenantOutput>>> {
+            const localVarAxiosArgs = await SysOpenAccessApiAxiosParamCreator(configuration).apiSysOpenAccessTenantListGet(options);
+            return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
+                const axiosRequestArgs: AxiosRequestConfig = { ...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url };
+                return axios.request(axiosRequestArgs);
+            };
+        },
+        /**
+         *
+         * @summary 更新开放接口身份
          * @param {UpdateOpenAccessInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
         async apiSysOpenAccessUpdatePost(body?: UpdateOpenAccessInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<void>>> {
             const localVarAxiosArgs = await SysOpenAccessApiAxiosParamCreator(configuration).apiSysOpenAccessUpdatePost(body, options);
+            return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
+                const axiosRequestArgs: AxiosRequestConfig = { ...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url };
+                return axios.request(axiosRequestArgs);
+            };
+        },
+        /**
+         *
+         * @summary 获取开放接口绑定用户
+         * @param {OpenAccessUserListInput} [body]
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiSysOpenAccessUserListPost(body?: OpenAccessUserListInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultListOpenAccessUserOutput>>> {
+            const localVarAxiosArgs = await SysOpenAccessApiAxiosParamCreator(configuration).apiSysOpenAccessUserListPost(body, options);
             return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
                 const axiosRequestArgs: AxiosRequestConfig = { ...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url };
                 return axios.request(axiosRequestArgs);
@@ -390,7 +504,7 @@ export const SysOpenAccessApiFactory = function (configuration?: Configuration, 
     return {
         /**
          *
-         * @summary 增加开放接口身份 🔖
+         * @summary 增加开放接口身份
          * @param {AddOpenAccessInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -400,7 +514,7 @@ export const SysOpenAccessApiFactory = function (configuration?: Configuration, 
         },
         /**
          *
-         * @summary 删除开放接口身份 🔖
+         * @summary 删除开放接口身份
          * @param {DeleteOpenAccessInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -420,7 +534,7 @@ export const SysOpenAccessApiFactory = function (configuration?: Configuration, 
         },
         /**
          *
-         * @summary 获取开放接口身份分页列表 🔖
+         * @summary 获取开放接口身份分页列表
          * @param {OpenAccessInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -430,7 +544,7 @@ export const SysOpenAccessApiFactory = function (configuration?: Configuration, 
         },
         /**
          *
-         * @summary 创建密钥 🔖
+         * @summary 创建密钥
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -439,13 +553,32 @@ export const SysOpenAccessApiFactory = function (configuration?: Configuration, 
         },
         /**
          *
-         * @summary 更新开放接口身份 🔖
+         * @summary 获取开放接口绑定租户
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiSysOpenAccessTenantListGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultListOpenAccessTenantOutput>> {
+            return SysOpenAccessApiFp(configuration).apiSysOpenAccessTenantListGet(options).then((request) => request(axios, basePath));
+        },
+        /**
+         *
+         * @summary 更新开放接口身份
          * @param {UpdateOpenAccessInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
         async apiSysOpenAccessUpdatePost(body?: UpdateOpenAccessInput, options?: AxiosRequestConfig): Promise<AxiosResponse<void>> {
             return SysOpenAccessApiFp(configuration).apiSysOpenAccessUpdatePost(body, options).then((request) => request(axios, basePath));
+        },
+        /**
+         *
+         * @summary 获取开放接口绑定用户
+         * @param {OpenAccessUserListInput} [body]
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiSysOpenAccessUserListPost(body?: OpenAccessUserListInput, options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultListOpenAccessUserOutput>> {
+            return SysOpenAccessApiFp(configuration).apiSysOpenAccessUserListPost(body, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -458,7 +591,7 @@ export const SysOpenAccessApiFactory = function (configuration?: Configuration, 
 export class SysOpenAccessApi extends BaseAPI {
     /**
      *
-     * @summary 增加开放接口身份 🔖
+     * @summary 增加开放接口身份
      * @param {AddOpenAccessInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -469,7 +602,7 @@ export class SysOpenAccessApi extends BaseAPI {
     }
     /**
      *
-     * @summary 删除开放接口身份 🔖
+     * @summary 删除开放接口身份
      * @param {DeleteOpenAccessInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -491,7 +624,7 @@ export class SysOpenAccessApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取开放接口身份分页列表 🔖
+     * @summary 获取开放接口身份分页列表
      * @param {OpenAccessInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -502,7 +635,7 @@ export class SysOpenAccessApi extends BaseAPI {
     }
     /**
      *
-     * @summary 创建密钥 🔖
+     * @summary 创建密钥
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysOpenAccessApi
@@ -512,7 +645,17 @@ export class SysOpenAccessApi extends BaseAPI {
     }
     /**
      *
-     * @summary 更新开放接口身份 🔖
+     * @summary 获取开放接口绑定租户
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof SysOpenAccessApi
+     */
+    public async apiSysOpenAccessTenantListGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultListOpenAccessTenantOutput>> {
+        return SysOpenAccessApiFp(this.configuration).apiSysOpenAccessTenantListGet(options).then((request) => request(this.axios, this.basePath));
+    }
+    /**
+     *
+     * @summary 更新开放接口身份
      * @param {UpdateOpenAccessInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -520,5 +663,16 @@ export class SysOpenAccessApi extends BaseAPI {
      */
     public async apiSysOpenAccessUpdatePost(body?: UpdateOpenAccessInput, options?: AxiosRequestConfig): Promise<AxiosResponse<void>> {
         return SysOpenAccessApiFp(this.configuration).apiSysOpenAccessUpdatePost(body, options).then((request) => request(this.axios, this.basePath));
+    }
+    /**
+     *
+     * @summary 获取开放接口绑定用户
+     * @param {OpenAccessUserListInput} [body]
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof SysOpenAccessApi
+     */
+    public async apiSysOpenAccessUserListPost(body?: OpenAccessUserListInput, options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultListOpenAccessUserOutput>> {
+        return SysOpenAccessApiFp(this.configuration).apiSysOpenAccessUserListPost(body, options).then((request) => request(this.axios, this.basePath));
     }
 }

@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 钉钉开放平台
- * 集成钉钉开放平台<br/><u><b><font color='FF0000'> 👮不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目二次开发而产生的一切法律纠纷和责任，我们不承担任何责任！</font></b></u>
+ * DingTalk
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -24,36 +24,26 @@ import { type PrivateData } from './private-data';
 */
 export interface DingTalkCreateAndDeliverInput {
     /**
-     * 卡片创建者的userId
-     *
      * @type {string}
      * @memberof DingTalkCreateAndDeliverInput
      */
     userId?: string | null;
     /**
-     * 卡片内容模板ID
-     *
      * @type {string}
      * @memberof DingTalkCreateAndDeliverInput
      */
     cardTemplateId: string;
     /**
-     * 外部卡片实例Id
-     *
      * @type {string}
      * @memberof DingTalkCreateAndDeliverInput
      */
     outTrackId: string;
     /**
-     * 卡片回调的类型：STREAM：stream模式 HTTP：http模式
-     *
      * @type {string}
      * @memberof DingTalkCreateAndDeliverInput
      */
     callbackType?: string | null;
     /**
-     * 卡片回调HTTP模式时的路由 Key，用于查询注册的 callbackUrl。
-     *
      * @type {string}
      * @memberof DingTalkCreateAndDeliverInput
      */
@@ -99,8 +89,6 @@ export interface DingTalkCreateAndDeliverInput {
      */
     topOpenSpaceModel?: OpenSpaceModel;
     /**
-     * 表示场域及其场域id
-     *
      * @type {string}
      * @memberof DingTalkCreateAndDeliverInput
      */
@@ -136,8 +124,6 @@ export interface DingTalkCreateAndDeliverInput {
      */
     docOpenDeliverModel?: DingTalkOpenDeliverModel;
     /**
-     * 用户userId类型:1（默认）：userId模式 2：unionId模式
-     *
      * @type {number}
      * @memberof DingTalkCreateAndDeliverInput
      */

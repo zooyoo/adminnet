@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -35,7 +35,7 @@ export const SysFileProviderApiAxiosParamCreator = function (configuration?: Con
     return {
         /**
          *
-         * @summary 添加存储提供者 🔖
+         * @summary 添加存储提供者
          * @param {AddFileProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -79,7 +79,7 @@ export const SysFileProviderApiAxiosParamCreator = function (configuration?: Con
         },
         /**
          *
-         * @summary 获取所有可用的存储桶列表 🔖
+         * @summary 获取所有可用的存储桶列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -119,7 +119,7 @@ export const SysFileProviderApiAxiosParamCreator = function (configuration?: Con
         },
         /**
          *
-         * @summary 批量启用/禁用存储提供者 🔖
+         * @summary 批量启用/禁用存储提供者
          * @param {BatchEnableProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -163,7 +163,7 @@ export const SysFileProviderApiAxiosParamCreator = function (configuration?: Con
         },
         /**
          *
-         * @summary 获取存储桶和提供者的映射关系 🔖
+         * @summary 获取存储桶和提供者的映射关系
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -203,7 +203,7 @@ export const SysFileProviderApiAxiosParamCreator = function (configuration?: Con
         },
         /**
          *
-         * @summary 清除存储提供者缓存 🔖
+         * @summary 清除存储提供者缓存
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -243,7 +243,7 @@ export const SysFileProviderApiAxiosParamCreator = function (configuration?: Con
         },
         /**
          *
-         * @summary 删除存储提供者 🔖
+         * @summary 删除存储提供者
          * @param {DeleteFileProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -287,8 +287,8 @@ export const SysFileProviderApiAxiosParamCreator = function (configuration?: Con
         },
         /**
          *
-         * @summary 根据存储桶名称获取存储提供者 🔖
-         * @param {string} bucketName 存储桶名称
+         * @summary 根据存储桶名称获取存储提供者
+         * @param {string} bucketName
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -333,8 +333,8 @@ export const SysFileProviderApiAxiosParamCreator = function (configuration?: Con
         },
         /**
          *
-         * @summary 获取存储提供者详情 🔖
-         * @param {number} id 主键Id
+         * @summary 获取存储提供者详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -381,7 +381,7 @@ export const SysFileProviderApiAxiosParamCreator = function (configuration?: Con
         },
         /**
          *
-         * @summary 获取存储提供者列表 🔖
+         * @summary 获取存储提供者列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -421,7 +421,7 @@ export const SysFileProviderApiAxiosParamCreator = function (configuration?: Con
         },
         /**
          *
-         * @summary 获取存储提供者分页列表 🔖
+         * @summary 获取存储提供者分页列表
          * @param {PageFileProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -465,7 +465,7 @@ export const SysFileProviderApiAxiosParamCreator = function (configuration?: Con
         },
         /**
          *
-         * @summary 获取存储提供者统计信息 🔖
+         * @summary 获取存储提供者统计信息
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -505,7 +505,7 @@ export const SysFileProviderApiAxiosParamCreator = function (configuration?: Con
         },
         /**
          *
-         * @summary 更新存储提供者 🔖
+         * @summary 更新存储提供者
          * @param {UpdateFileProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -557,7 +557,7 @@ export const SysFileProviderApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 添加存储提供者 🔖
+         * @summary 添加存储提供者
          * @param {AddFileProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -571,7 +571,7 @@ export const SysFileProviderApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取所有可用的存储桶列表 🔖
+         * @summary 获取所有可用的存储桶列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -584,7 +584,7 @@ export const SysFileProviderApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 批量启用/禁用存储提供者 🔖
+         * @summary 批量启用/禁用存储提供者
          * @param {BatchEnableProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -598,7 +598,7 @@ export const SysFileProviderApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取存储桶和提供者的映射关系 🔖
+         * @summary 获取存储桶和提供者的映射关系
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -611,7 +611,7 @@ export const SysFileProviderApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 清除存储提供者缓存 🔖
+         * @summary 清除存储提供者缓存
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -624,7 +624,7 @@ export const SysFileProviderApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 删除存储提供者 🔖
+         * @summary 删除存储提供者
          * @param {DeleteFileProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -638,8 +638,8 @@ export const SysFileProviderApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 根据存储桶名称获取存储提供者 🔖
-         * @param {string} bucketName 存储桶名称
+         * @summary 根据存储桶名称获取存储提供者
+         * @param {string} bucketName
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -652,8 +652,8 @@ export const SysFileProviderApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取存储提供者详情 🔖
-         * @param {number} id 主键Id
+         * @summary 获取存储提供者详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -666,7 +666,7 @@ export const SysFileProviderApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取存储提供者列表 🔖
+         * @summary 获取存储提供者列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -679,7 +679,7 @@ export const SysFileProviderApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取存储提供者分页列表 🔖
+         * @summary 获取存储提供者分页列表
          * @param {PageFileProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -693,7 +693,7 @@ export const SysFileProviderApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取存储提供者统计信息 🔖
+         * @summary 获取存储提供者统计信息
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -706,7 +706,7 @@ export const SysFileProviderApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 更新存储提供者 🔖
+         * @summary 更新存储提供者
          * @param {UpdateFileProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -728,7 +728,7 @@ export const SysFileProviderApiFactory = function (configuration?: Configuration
     return {
         /**
          *
-         * @summary 添加存储提供者 🔖
+         * @summary 添加存储提供者
          * @param {AddFileProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -738,7 +738,7 @@ export const SysFileProviderApiFactory = function (configuration?: Configuration
         },
         /**
          *
-         * @summary 获取所有可用的存储桶列表 🔖
+         * @summary 获取所有可用的存储桶列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -747,7 +747,7 @@ export const SysFileProviderApiFactory = function (configuration?: Configuration
         },
         /**
          *
-         * @summary 批量启用/禁用存储提供者 🔖
+         * @summary 批量启用/禁用存储提供者
          * @param {BatchEnableProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -757,7 +757,7 @@ export const SysFileProviderApiFactory = function (configuration?: Configuration
         },
         /**
          *
-         * @summary 获取存储桶和提供者的映射关系 🔖
+         * @summary 获取存储桶和提供者的映射关系
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -766,7 +766,7 @@ export const SysFileProviderApiFactory = function (configuration?: Configuration
         },
         /**
          *
-         * @summary 清除存储提供者缓存 🔖
+         * @summary 清除存储提供者缓存
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -775,7 +775,7 @@ export const SysFileProviderApiFactory = function (configuration?: Configuration
         },
         /**
          *
-         * @summary 删除存储提供者 🔖
+         * @summary 删除存储提供者
          * @param {DeleteFileProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -785,8 +785,8 @@ export const SysFileProviderApiFactory = function (configuration?: Configuration
         },
         /**
          *
-         * @summary 根据存储桶名称获取存储提供者 🔖
-         * @param {string} bucketName 存储桶名称
+         * @summary 根据存储桶名称获取存储提供者
+         * @param {string} bucketName
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -795,8 +795,8 @@ export const SysFileProviderApiFactory = function (configuration?: Configuration
         },
         /**
          *
-         * @summary 获取存储提供者详情 🔖
-         * @param {number} id 主键Id
+         * @summary 获取存储提供者详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -805,7 +805,7 @@ export const SysFileProviderApiFactory = function (configuration?: Configuration
         },
         /**
          *
-         * @summary 获取存储提供者列表 🔖
+         * @summary 获取存储提供者列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -814,7 +814,7 @@ export const SysFileProviderApiFactory = function (configuration?: Configuration
         },
         /**
          *
-         * @summary 获取存储提供者分页列表 🔖
+         * @summary 获取存储提供者分页列表
          * @param {PageFileProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -824,7 +824,7 @@ export const SysFileProviderApiFactory = function (configuration?: Configuration
         },
         /**
          *
-         * @summary 获取存储提供者统计信息 🔖
+         * @summary 获取存储提供者统计信息
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -833,7 +833,7 @@ export const SysFileProviderApiFactory = function (configuration?: Configuration
         },
         /**
          *
-         * @summary 更新存储提供者 🔖
+         * @summary 更新存储提供者
          * @param {UpdateFileProviderInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -852,7 +852,7 @@ export const SysFileProviderApiFactory = function (configuration?: Configuration
 export class SysFileProviderApi extends BaseAPI {
     /**
      *
-     * @summary 添加存储提供者 🔖
+     * @summary 添加存储提供者
      * @param {AddFileProviderInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -863,7 +863,7 @@ export class SysFileProviderApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取所有可用的存储桶列表 🔖
+     * @summary 获取所有可用的存储桶列表
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysFileProviderApi
@@ -873,7 +873,7 @@ export class SysFileProviderApi extends BaseAPI {
     }
     /**
      *
-     * @summary 批量启用/禁用存储提供者 🔖
+     * @summary 批量启用/禁用存储提供者
      * @param {BatchEnableProviderInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -884,7 +884,7 @@ export class SysFileProviderApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取存储桶和提供者的映射关系 🔖
+     * @summary 获取存储桶和提供者的映射关系
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysFileProviderApi
@@ -894,7 +894,7 @@ export class SysFileProviderApi extends BaseAPI {
     }
     /**
      *
-     * @summary 清除存储提供者缓存 🔖
+     * @summary 清除存储提供者缓存
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysFileProviderApi
@@ -904,7 +904,7 @@ export class SysFileProviderApi extends BaseAPI {
     }
     /**
      *
-     * @summary 删除存储提供者 🔖
+     * @summary 删除存储提供者
      * @param {DeleteFileProviderInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -915,8 +915,8 @@ export class SysFileProviderApi extends BaseAPI {
     }
     /**
      *
-     * @summary 根据存储桶名称获取存储提供者 🔖
-     * @param {string} bucketName 存储桶名称
+     * @summary 根据存储桶名称获取存储提供者
+     * @param {string} bucketName
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysFileProviderApi
@@ -926,8 +926,8 @@ export class SysFileProviderApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取存储提供者详情 🔖
-     * @param {number} id 主键Id
+     * @summary 获取存储提供者详情
+     * @param {number} id
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysFileProviderApi
@@ -937,7 +937,7 @@ export class SysFileProviderApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取存储提供者列表 🔖
+     * @summary 获取存储提供者列表
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysFileProviderApi
@@ -947,7 +947,7 @@ export class SysFileProviderApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取存储提供者分页列表 🔖
+     * @summary 获取存储提供者分页列表
      * @param {PageFileProviderInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -958,7 +958,7 @@ export class SysFileProviderApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取存储提供者统计信息 🔖
+     * @summary 获取存储提供者统计信息
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysFileProviderApi
@@ -968,7 +968,7 @@ export class SysFileProviderApi extends BaseAPI {
     }
     /**
      *
-     * @summary 更新存储提供者 🔖
+     * @summary 更新存储提供者
      * @param {UpdateFileProviderInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -28,7 +28,7 @@ export const SysWechatUserApiAxiosParamCreator = function (configuration?: Confi
     return {
         /**
          *
-         * @summary 增加微信用户 🔖
+         * @summary 增加微信用户
          * @param {SysWechatUser} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -72,7 +72,7 @@ export const SysWechatUserApiAxiosParamCreator = function (configuration?: Confi
         },
         /**
          *
-         * @summary 删除微信用户 🔖
+         * @summary 删除微信用户
          * @param {DeleteWechatUserInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -116,7 +116,7 @@ export const SysWechatUserApiAxiosParamCreator = function (configuration?: Confi
         },
         /**
          *
-         * @summary 获取微信用户列表 🔖
+         * @summary 获取微信用户列表
          * @param {WechatUserInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -160,7 +160,7 @@ export const SysWechatUserApiAxiosParamCreator = function (configuration?: Confi
         },
         /**
          *
-         * @summary 更新微信用户 🔖
+         * @summary 更新微信用户
          * @param {SysWechatUser} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -212,7 +212,7 @@ export const SysWechatUserApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 增加微信用户 🔖
+         * @summary 增加微信用户
          * @param {SysWechatUser} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -226,7 +226,7 @@ export const SysWechatUserApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 删除微信用户 🔖
+         * @summary 删除微信用户
          * @param {DeleteWechatUserInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -240,7 +240,7 @@ export const SysWechatUserApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取微信用户列表 🔖
+         * @summary 获取微信用户列表
          * @param {WechatUserInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -254,7 +254,7 @@ export const SysWechatUserApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 更新微信用户 🔖
+         * @summary 更新微信用户
          * @param {SysWechatUser} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -276,7 +276,7 @@ export const SysWechatUserApiFactory = function (configuration?: Configuration, 
     return {
         /**
          *
-         * @summary 增加微信用户 🔖
+         * @summary 增加微信用户
          * @param {SysWechatUser} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -286,7 +286,7 @@ export const SysWechatUserApiFactory = function (configuration?: Configuration, 
         },
         /**
          *
-         * @summary 删除微信用户 🔖
+         * @summary 删除微信用户
          * @param {DeleteWechatUserInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -296,7 +296,7 @@ export const SysWechatUserApiFactory = function (configuration?: Configuration, 
         },
         /**
          *
-         * @summary 获取微信用户列表 🔖
+         * @summary 获取微信用户列表
          * @param {WechatUserInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -306,7 +306,7 @@ export const SysWechatUserApiFactory = function (configuration?: Configuration, 
         },
         /**
          *
-         * @summary 更新微信用户 🔖
+         * @summary 更新微信用户
          * @param {SysWechatUser} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -325,7 +325,7 @@ export const SysWechatUserApiFactory = function (configuration?: Configuration, 
 export class SysWechatUserApi extends BaseAPI {
     /**
      *
-     * @summary 增加微信用户 🔖
+     * @summary 增加微信用户
      * @param {SysWechatUser} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -336,7 +336,7 @@ export class SysWechatUserApi extends BaseAPI {
     }
     /**
      *
-     * @summary 删除微信用户 🔖
+     * @summary 删除微信用户
      * @param {DeleteWechatUserInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -347,7 +347,7 @@ export class SysWechatUserApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取微信用户列表 🔖
+     * @summary 获取微信用户列表
      * @param {WechatUserInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -358,7 +358,7 @@ export class SysWechatUserApi extends BaseAPI {
     }
     /**
      *
-     * @summary 更新微信用户 🔖
+     * @summary 更新微信用户
      * @param {SysWechatUser} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

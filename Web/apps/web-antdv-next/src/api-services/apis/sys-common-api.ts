@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -21,6 +21,7 @@ import { type AdminResultListApiOutput } from '../models';
 import { type AdminResultObject } from '../models';
 import { type AdminResultSmKeyPairOutput } from '../models';
 import { type AdminResultStressTestOutput } from '../models';
+import { type AdminResultStressTestTargetsOutput } from '../models';
 import { type StressTestInput } from '../models';
 /**
  * SysCommonApi - axios parameter creator
@@ -30,7 +31,7 @@ export const SysCommonApiAxiosParamCreator = function (configuration?: Configura
     return {
         /**
          *
-         * @summary 获取所有接口/动态API 🔖
+         * @summary 获取所有接口/动态API
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -114,7 +115,7 @@ export const SysCommonApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          *
-         * @summary 加密字符串 🔖
+         * @summary 加密字符串
          * @param {string} plainText
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -160,7 +161,7 @@ export const SysCommonApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          *
-         * @summary 获取国密公钥私钥对 🏆
+         * @summary 获取国密公钥私钥对
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -200,7 +201,7 @@ export const SysCommonApiAxiosParamCreator = function (configuration?: Configura
         },
         /**
          *
-         * @summary 接口压测 🔖
+         * @summary 接口压测
          * @param {StressTestInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -242,6 +243,46 @@ export const SysCommonApiAxiosParamCreator = function (configuration?: Configura
                 options: localVarRequestOptions,
             };
         },
+        /**
+         *
+         * @summary 获取授权压测目标
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiSysCommonStressTestTargetsGet: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/sysCommon/stressTestTargets`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, 'https://example.com');
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+            const localVarRequestOptions: AxiosRequestConfig = { method: 'GET', ...baseOptions, ...options };
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+            // authentication Bearer required
+            // http bearer authentication required
+            if (configuration && configuration.accessToken) {
+                const accessToken = typeof configuration.accessToken === 'function'
+                    ? await configuration.accessToken()
+                    : await configuration.accessToken;
+                localVarHeaderParameter["Authorization"] = "Bearer " + accessToken;
+            }
+            const query = new URLSearchParams(localVarUrlObj.search);
+            for (const key in localVarQueryParameter) {
+                query.set(key, localVarQueryParameter[key]);
+            }
+            for (const key in options.params) {
+                query.set(key, options.params[key]);
+            }
+            localVarUrlObj.search = (new URLSearchParams(query)).toString();
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = { ...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers };
+            return {
+                url: localVarUrlObj.pathname + localVarUrlObj.search + localVarUrlObj.hash,
+                options: localVarRequestOptions,
+            };
+        },
     };
 };
 /**
@@ -252,7 +293,7 @@ export const SysCommonApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 获取所有接口/动态API 🔖
+         * @summary 获取所有接口/动态API
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -279,7 +320,7 @@ export const SysCommonApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 加密字符串 🔖
+         * @summary 加密字符串
          * @param {string} plainText
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -293,7 +334,7 @@ export const SysCommonApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取国密公钥私钥对 🏆
+         * @summary 获取国密公钥私钥对
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -306,13 +347,26 @@ export const SysCommonApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 接口压测 🔖
+         * @summary 接口压测
          * @param {StressTestInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
         async apiSysCommonStressTestPost(body?: StressTestInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultStressTestOutput>>> {
             const localVarAxiosArgs = await SysCommonApiAxiosParamCreator(configuration).apiSysCommonStressTestPost(body, options);
+            return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
+                const axiosRequestArgs: AxiosRequestConfig = { ...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url };
+                return axios.request(axiosRequestArgs);
+            };
+        },
+        /**
+         *
+         * @summary 获取授权压测目标
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiSysCommonStressTestTargetsGet(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultStressTestTargetsOutput>>> {
+            const localVarAxiosArgs = await SysCommonApiAxiosParamCreator(configuration).apiSysCommonStressTestTargetsGet(options);
             return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
                 const axiosRequestArgs: AxiosRequestConfig = { ...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url };
                 return axios.request(axiosRequestArgs);
@@ -328,7 +382,7 @@ export const SysCommonApiFactory = function (configuration?: Configuration, base
     return {
         /**
          *
-         * @summary 获取所有接口/动态API 🔖
+         * @summary 获取所有接口/动态API
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -347,7 +401,7 @@ export const SysCommonApiFactory = function (configuration?: Configuration, base
         },
         /**
          *
-         * @summary 加密字符串 🔖
+         * @summary 加密字符串
          * @param {string} plainText
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -357,7 +411,7 @@ export const SysCommonApiFactory = function (configuration?: Configuration, base
         },
         /**
          *
-         * @summary 获取国密公钥私钥对 🏆
+         * @summary 获取国密公钥私钥对
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -366,13 +420,22 @@ export const SysCommonApiFactory = function (configuration?: Configuration, base
         },
         /**
          *
-         * @summary 接口压测 🔖
+         * @summary 接口压测
          * @param {StressTestInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
         async apiSysCommonStressTestPost(body?: StressTestInput, options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultStressTestOutput>> {
             return SysCommonApiFp(configuration).apiSysCommonStressTestPost(body, options).then((request) => request(axios, basePath));
+        },
+        /**
+         *
+         * @summary 获取授权压测目标
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiSysCommonStressTestTargetsGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultStressTestTargetsOutput>> {
+            return SysCommonApiFp(configuration).apiSysCommonStressTestTargetsGet(options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -385,7 +448,7 @@ export const SysCommonApiFactory = function (configuration?: Configuration, base
 export class SysCommonApi extends BaseAPI {
     /**
      *
-     * @summary 获取所有接口/动态API 🔖
+     * @summary 获取所有接口/动态API
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysCommonApi
@@ -406,7 +469,7 @@ export class SysCommonApi extends BaseAPI {
     }
     /**
      *
-     * @summary 加密字符串 🔖
+     * @summary 加密字符串
      * @param {string} plainText
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -417,7 +480,7 @@ export class SysCommonApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取国密公钥私钥对 🏆
+     * @summary 获取国密公钥私钥对
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysCommonApi
@@ -427,7 +490,7 @@ export class SysCommonApi extends BaseAPI {
     }
     /**
      *
-     * @summary 接口压测 🔖
+     * @summary 接口压测
      * @param {StressTestInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -435,5 +498,15 @@ export class SysCommonApi extends BaseAPI {
      */
     public async apiSysCommonStressTestPost(body?: StressTestInput, options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultStressTestOutput>> {
         return SysCommonApiFp(this.configuration).apiSysCommonStressTestPost(body, options).then((request) => request(this.axios, this.basePath));
+    }
+    /**
+     *
+     * @summary 获取授权压测目标
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof SysCommonApi
+     */
+    public async apiSysCommonStressTestTargetsGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultStressTestTargetsOutput>> {
+        return SysCommonApiFp(this.configuration).apiSysCommonStressTestTargetsGet(options).then((request) => request(this.axios, this.basePath));
     }
 }

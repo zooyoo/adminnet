@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -16,10 +16,12 @@ import { Configuration } from '../configuration';
 // Some imports not used depending on template conditions
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS, type RequestArgs, BaseAPI, RequiredError } from '../base';
+import { type AdminResultDatabaseCodePreview } from '../models';
 import { type AdminResultListDbColumnOutput } from '../models';
 import { type AdminResultListDbTableInfo } from '../models';
 import { type AdminResultListString } from '../models';
 import { type AdminResultListVisualDb } from '../models';
+import { type AdminResultObject } from '../models';
 import { type AdminResultVisualDbTable } from '../models';
 import { type CreateEntityInput } from '../models';
 import { type CreateSeedDataInput } from '../models';
@@ -38,7 +40,7 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
     return {
         /**
          *
-         * @summary 增加列 🔖
+         * @summary 增加列
          * @param {DbColumnInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -82,7 +84,7 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 增加表 🔖
+         * @summary 增加表
          * @param {DbTableInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -126,7 +128,7 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 备份数据库（PostgreSQL）🔖
+         * @summary 备份数据库（PostgreSQL）
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -166,9 +168,9 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 获取字段列表 🔖
-         * @param {string} tableName 表名
-         * @param {string} configId ConfigId
+         * @summary 获取字段列表
+         * @param {string} tableName
+         * @param {string} configId
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -218,7 +220,7 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 创建实体 🔖
+         * @summary 创建实体
          * @param {CreateEntityInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -262,7 +264,7 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 创建种子数据 🔖
+         * @summary 创建种子数据
          * @param {CreateSeedDataInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -306,7 +308,7 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 获取数据库数据类型列表 🔖
+         * @summary 获取数据库数据类型列表
          * @param {string} configId
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -352,7 +354,7 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 删除列 🔖
+         * @summary 删除列
          * @param {DeleteDbColumnInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -396,7 +398,7 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 删除表 🔖
+         * @summary 删除表
          * @param {DeleteDbTableInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -440,7 +442,47 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 获取库列表 🔖
+         * @summary 获取数据库代码生成选项
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiSysDatabaseGenerationOptionsGet: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/sysDatabase/generationOptions`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, 'https://example.com');
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+            const localVarRequestOptions: AxiosRequestConfig = { method: 'GET', ...baseOptions, ...options };
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+            // authentication Bearer required
+            // http bearer authentication required
+            if (configuration && configuration.accessToken) {
+                const accessToken = typeof configuration.accessToken === 'function'
+                    ? await configuration.accessToken()
+                    : await configuration.accessToken;
+                localVarHeaderParameter["Authorization"] = "Bearer " + accessToken;
+            }
+            const query = new URLSearchParams(localVarUrlObj.search);
+            for (const key in localVarQueryParameter) {
+                query.set(key, localVarQueryParameter[key]);
+            }
+            for (const key in options.params) {
+                query.set(key, options.params[key]);
+            }
+            localVarUrlObj.search = (new URLSearchParams(query)).toString();
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = { ...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers };
+            return {
+                url: localVarUrlObj.pathname + localVarUrlObj.search + localVarUrlObj.hash,
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         *
+         * @summary 获取库列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -480,7 +522,7 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 移动列位置 🔖
+         * @summary 移动列
          * @param {MoveDbColumnInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -524,8 +566,96 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 获取表列表 🔖
-         * @param {string} configId ConfigId
+         * @summary 预览实体
+         * @param {CreateEntityInput} [body]
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiSysDatabasePreviewEntityPost: async (body?: CreateEntityInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/sysDatabase/previewEntity`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, 'https://example.com');
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+            const localVarRequestOptions: AxiosRequestConfig = { method: 'POST', ...baseOptions, ...options };
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+            // authentication Bearer required
+            // http bearer authentication required
+            if (configuration && configuration.accessToken) {
+                const accessToken = typeof configuration.accessToken === 'function'
+                    ? await configuration.accessToken()
+                    : await configuration.accessToken;
+                localVarHeaderParameter["Authorization"] = "Bearer " + accessToken;
+            }
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            const query = new URLSearchParams(localVarUrlObj.search);
+            for (const key in localVarQueryParameter) {
+                query.set(key, localVarQueryParameter[key]);
+            }
+            for (const key in options.params) {
+                query.set(key, options.params[key]);
+            }
+            localVarUrlObj.search = (new URLSearchParams(query)).toString();
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = { ...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers };
+            const needsSerialization = (typeof body !== "string") || localVarRequestOptions.headers?.['Content-Type'] === 'application/json';
+            localVarRequestOptions.data = needsSerialization ? JSON.stringify(body !== undefined ? body : {}) : (body || "");
+            return {
+                url: localVarUrlObj.pathname + localVarUrlObj.search + localVarUrlObj.hash,
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         *
+         * @summary 预览种子数据
+         * @param {CreateSeedDataInput} [body]
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiSysDatabasePreviewSeedDataPost: async (body?: CreateSeedDataInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/sysDatabase/previewSeedData`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, 'https://example.com');
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+            const localVarRequestOptions: AxiosRequestConfig = { method: 'POST', ...baseOptions, ...options };
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+            // authentication Bearer required
+            // http bearer authentication required
+            if (configuration && configuration.accessToken) {
+                const accessToken = typeof configuration.accessToken === 'function'
+                    ? await configuration.accessToken()
+                    : await configuration.accessToken;
+                localVarHeaderParameter["Authorization"] = "Bearer " + accessToken;
+            }
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            const query = new URLSearchParams(localVarUrlObj.search);
+            for (const key in localVarQueryParameter) {
+                query.set(key, localVarQueryParameter[key]);
+            }
+            for (const key in options.params) {
+                query.set(key, options.params[key]);
+            }
+            localVarUrlObj.search = (new URLSearchParams(query)).toString();
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = { ...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers };
+            const needsSerialization = (typeof body !== "string") || localVarRequestOptions.headers?.['Content-Type'] === 'application/json';
+            localVarRequestOptions.data = needsSerialization ? JSON.stringify(body !== undefined ? body : {}) : (body || "");
+            return {
+                url: localVarUrlObj.pathname + localVarUrlObj.search + localVarUrlObj.hash,
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         *
+         * @summary 获取表列表
+         * @param {string} configId
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -570,7 +700,7 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 编辑列 🔖
+         * @summary 编辑列
          * @param {UpdateDbColumnInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -614,7 +744,7 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 编辑表 🔖
+         * @summary 编辑表
          * @param {UpdateDbTableInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -658,11 +788,13 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
         },
         /**
          *
-         * @summary 获取可视化库表结构 🔖
+         * @summary 获取可视化库表结构
+         * @param {string} [configId]
+         * @param {string} [tableName]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiSysDatabaseVisualDbTableGet: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        apiSysDatabaseVisualDbTableGet: async (configId?: string, tableName?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/sysDatabase/visualDbTable`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, 'https://example.com');
@@ -680,6 +812,12 @@ export const SysDatabaseApiAxiosParamCreator = function (configuration?: Configu
                     ? await configuration.accessToken()
                     : await configuration.accessToken;
                 localVarHeaderParameter["Authorization"] = "Bearer " + accessToken;
+            }
+            if (configId !== undefined) {
+                localVarQueryParameter['configId'] = configId;
+            }
+            if (tableName !== undefined) {
+                localVarQueryParameter['tableName'] = tableName;
             }
             const query = new URLSearchParams(localVarUrlObj.search);
             for (const key in localVarQueryParameter) {
@@ -706,7 +844,7 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 增加列 🔖
+         * @summary 增加列
          * @param {DbColumnInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -720,7 +858,7 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 增加表 🔖
+         * @summary 增加表
          * @param {DbTableInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -734,7 +872,7 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 备份数据库（PostgreSQL）🔖
+         * @summary 备份数据库（PostgreSQL）
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -747,9 +885,9 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取字段列表 🔖
-         * @param {string} tableName 表名
-         * @param {string} configId ConfigId
+         * @summary 获取字段列表
+         * @param {string} tableName
+         * @param {string} configId
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -762,7 +900,7 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 创建实体 🔖
+         * @summary 创建实体
          * @param {CreateEntityInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -776,7 +914,7 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 创建种子数据 🔖
+         * @summary 创建种子数据
          * @param {CreateSeedDataInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -790,7 +928,7 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取数据库数据类型列表 🔖
+         * @summary 获取数据库数据类型列表
          * @param {string} configId
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -804,7 +942,7 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 删除列 🔖
+         * @summary 删除列
          * @param {DeleteDbColumnInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -818,7 +956,7 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 删除表 🔖
+         * @summary 删除表
          * @param {DeleteDbTableInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -832,7 +970,20 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取库列表 🔖
+         * @summary 获取数据库代码生成选项
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiSysDatabaseGenerationOptionsGet(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultObject>>> {
+            const localVarAxiosArgs = await SysDatabaseApiAxiosParamCreator(configuration).apiSysDatabaseGenerationOptionsGet(options);
+            return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
+                const axiosRequestArgs: AxiosRequestConfig = { ...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url };
+                return axios.request(axiosRequestArgs);
+            };
+        },
+        /**
+         *
+         * @summary 获取库列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -845,7 +996,7 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 移动列位置 🔖
+         * @summary 移动列
          * @param {MoveDbColumnInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -859,8 +1010,36 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取表列表 🔖
-         * @param {string} configId ConfigId
+         * @summary 预览实体
+         * @param {CreateEntityInput} [body]
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiSysDatabasePreviewEntityPost(body?: CreateEntityInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultDatabaseCodePreview>>> {
+            const localVarAxiosArgs = await SysDatabaseApiAxiosParamCreator(configuration).apiSysDatabasePreviewEntityPost(body, options);
+            return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
+                const axiosRequestArgs: AxiosRequestConfig = { ...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url };
+                return axios.request(axiosRequestArgs);
+            };
+        },
+        /**
+         *
+         * @summary 预览种子数据
+         * @param {CreateSeedDataInput} [body]
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiSysDatabasePreviewSeedDataPost(body?: CreateSeedDataInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultDatabaseCodePreview>>> {
+            const localVarAxiosArgs = await SysDatabaseApiAxiosParamCreator(configuration).apiSysDatabasePreviewSeedDataPost(body, options);
+            return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
+                const axiosRequestArgs: AxiosRequestConfig = { ...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url };
+                return axios.request(axiosRequestArgs);
+            };
+        },
+        /**
+         *
+         * @summary 获取表列表
+         * @param {string} configId
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -873,7 +1052,7 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 编辑列 🔖
+         * @summary 编辑列
          * @param {UpdateDbColumnInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -887,7 +1066,7 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 编辑表 🔖
+         * @summary 编辑表
          * @param {UpdateDbTableInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -901,12 +1080,14 @@ export const SysDatabaseApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取可视化库表结构 🔖
+         * @summary 获取可视化库表结构
+         * @param {string} [configId]
+         * @param {string} [tableName]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiSysDatabaseVisualDbTableGet(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultVisualDbTable>>> {
-            const localVarAxiosArgs = await SysDatabaseApiAxiosParamCreator(configuration).apiSysDatabaseVisualDbTableGet(options);
+        async apiSysDatabaseVisualDbTableGet(configId?: string, tableName?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultVisualDbTable>>> {
+            const localVarAxiosArgs = await SysDatabaseApiAxiosParamCreator(configuration).apiSysDatabaseVisualDbTableGet(configId, tableName, options);
             return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
                 const axiosRequestArgs: AxiosRequestConfig = { ...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url };
                 return axios.request(axiosRequestArgs);
@@ -922,7 +1103,7 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
     return {
         /**
          *
-         * @summary 增加列 🔖
+         * @summary 增加列
          * @param {DbColumnInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -932,7 +1113,7 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 增加表 🔖
+         * @summary 增加表
          * @param {DbTableInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -942,7 +1123,7 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 备份数据库（PostgreSQL）🔖
+         * @summary 备份数据库（PostgreSQL）
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -951,9 +1132,9 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 获取字段列表 🔖
-         * @param {string} tableName 表名
-         * @param {string} configId ConfigId
+         * @summary 获取字段列表
+         * @param {string} tableName
+         * @param {string} configId
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -962,7 +1143,7 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 创建实体 🔖
+         * @summary 创建实体
          * @param {CreateEntityInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -972,7 +1153,7 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 创建种子数据 🔖
+         * @summary 创建种子数据
          * @param {CreateSeedDataInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -982,7 +1163,7 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 获取数据库数据类型列表 🔖
+         * @summary 获取数据库数据类型列表
          * @param {string} configId
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -992,7 +1173,7 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 删除列 🔖
+         * @summary 删除列
          * @param {DeleteDbColumnInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1002,7 +1183,7 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 删除表 🔖
+         * @summary 删除表
          * @param {DeleteDbTableInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1012,7 +1193,16 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 获取库列表 🔖
+         * @summary 获取数据库代码生成选项
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiSysDatabaseGenerationOptionsGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultObject>> {
+            return SysDatabaseApiFp(configuration).apiSysDatabaseGenerationOptionsGet(options).then((request) => request(axios, basePath));
+        },
+        /**
+         *
+         * @summary 获取库列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -1021,7 +1211,7 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 移动列位置 🔖
+         * @summary 移动列
          * @param {MoveDbColumnInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1031,8 +1221,28 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 获取表列表 🔖
-         * @param {string} configId ConfigId
+         * @summary 预览实体
+         * @param {CreateEntityInput} [body]
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiSysDatabasePreviewEntityPost(body?: CreateEntityInput, options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultDatabaseCodePreview>> {
+            return SysDatabaseApiFp(configuration).apiSysDatabasePreviewEntityPost(body, options).then((request) => request(axios, basePath));
+        },
+        /**
+         *
+         * @summary 预览种子数据
+         * @param {CreateSeedDataInput} [body]
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiSysDatabasePreviewSeedDataPost(body?: CreateSeedDataInput, options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultDatabaseCodePreview>> {
+            return SysDatabaseApiFp(configuration).apiSysDatabasePreviewSeedDataPost(body, options).then((request) => request(axios, basePath));
+        },
+        /**
+         *
+         * @summary 获取表列表
+         * @param {string} configId
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -1041,7 +1251,7 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 编辑列 🔖
+         * @summary 编辑列
          * @param {UpdateDbColumnInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1051,7 +1261,7 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 编辑表 🔖
+         * @summary 编辑表
          * @param {UpdateDbTableInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1061,12 +1271,14 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
         },
         /**
          *
-         * @summary 获取可视化库表结构 🔖
+         * @summary 获取可视化库表结构
+         * @param {string} [configId]
+         * @param {string} [tableName]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiSysDatabaseVisualDbTableGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultVisualDbTable>> {
-            return SysDatabaseApiFp(configuration).apiSysDatabaseVisualDbTableGet(options).then((request) => request(axios, basePath));
+        async apiSysDatabaseVisualDbTableGet(configId?: string, tableName?: string, options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultVisualDbTable>> {
+            return SysDatabaseApiFp(configuration).apiSysDatabaseVisualDbTableGet(configId, tableName, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -1079,7 +1291,7 @@ export const SysDatabaseApiFactory = function (configuration?: Configuration, ba
 export class SysDatabaseApi extends BaseAPI {
     /**
      *
-     * @summary 增加列 🔖
+     * @summary 增加列
      * @param {DbColumnInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1090,7 +1302,7 @@ export class SysDatabaseApi extends BaseAPI {
     }
     /**
      *
-     * @summary 增加表 🔖
+     * @summary 增加表
      * @param {DbTableInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1101,7 +1313,7 @@ export class SysDatabaseApi extends BaseAPI {
     }
     /**
      *
-     * @summary 备份数据库（PostgreSQL）🔖
+     * @summary 备份数据库（PostgreSQL）
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysDatabaseApi
@@ -1111,9 +1323,9 @@ export class SysDatabaseApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取字段列表 🔖
-     * @param {string} tableName 表名
-     * @param {string} configId ConfigId
+     * @summary 获取字段列表
+     * @param {string} tableName
+     * @param {string} configId
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysDatabaseApi
@@ -1123,7 +1335,7 @@ export class SysDatabaseApi extends BaseAPI {
     }
     /**
      *
-     * @summary 创建实体 🔖
+     * @summary 创建实体
      * @param {CreateEntityInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1134,7 +1346,7 @@ export class SysDatabaseApi extends BaseAPI {
     }
     /**
      *
-     * @summary 创建种子数据 🔖
+     * @summary 创建种子数据
      * @param {CreateSeedDataInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1145,7 +1357,7 @@ export class SysDatabaseApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取数据库数据类型列表 🔖
+     * @summary 获取数据库数据类型列表
      * @param {string} configId
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1156,7 +1368,7 @@ export class SysDatabaseApi extends BaseAPI {
     }
     /**
      *
-     * @summary 删除列 🔖
+     * @summary 删除列
      * @param {DeleteDbColumnInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1167,7 +1379,7 @@ export class SysDatabaseApi extends BaseAPI {
     }
     /**
      *
-     * @summary 删除表 🔖
+     * @summary 删除表
      * @param {DeleteDbTableInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1178,7 +1390,17 @@ export class SysDatabaseApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取库列表 🔖
+     * @summary 获取数据库代码生成选项
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof SysDatabaseApi
+     */
+    public async apiSysDatabaseGenerationOptionsGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultObject>> {
+        return SysDatabaseApiFp(this.configuration).apiSysDatabaseGenerationOptionsGet(options).then((request) => request(this.axios, this.basePath));
+    }
+    /**
+     *
+     * @summary 获取库列表
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysDatabaseApi
@@ -1188,7 +1410,7 @@ export class SysDatabaseApi extends BaseAPI {
     }
     /**
      *
-     * @summary 移动列位置 🔖
+     * @summary 移动列
      * @param {MoveDbColumnInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1199,8 +1421,30 @@ export class SysDatabaseApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取表列表 🔖
-     * @param {string} configId ConfigId
+     * @summary 预览实体
+     * @param {CreateEntityInput} [body]
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof SysDatabaseApi
+     */
+    public async apiSysDatabasePreviewEntityPost(body?: CreateEntityInput, options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultDatabaseCodePreview>> {
+        return SysDatabaseApiFp(this.configuration).apiSysDatabasePreviewEntityPost(body, options).then((request) => request(this.axios, this.basePath));
+    }
+    /**
+     *
+     * @summary 预览种子数据
+     * @param {CreateSeedDataInput} [body]
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof SysDatabaseApi
+     */
+    public async apiSysDatabasePreviewSeedDataPost(body?: CreateSeedDataInput, options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultDatabaseCodePreview>> {
+        return SysDatabaseApiFp(this.configuration).apiSysDatabasePreviewSeedDataPost(body, options).then((request) => request(this.axios, this.basePath));
+    }
+    /**
+     *
+     * @summary 获取表列表
+     * @param {string} configId
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysDatabaseApi
@@ -1210,7 +1454,7 @@ export class SysDatabaseApi extends BaseAPI {
     }
     /**
      *
-     * @summary 编辑列 🔖
+     * @summary 编辑列
      * @param {UpdateDbColumnInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1221,7 +1465,7 @@ export class SysDatabaseApi extends BaseAPI {
     }
     /**
      *
-     * @summary 编辑表 🔖
+     * @summary 编辑表
      * @param {UpdateDbTableInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1232,12 +1476,14 @@ export class SysDatabaseApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取可视化库表结构 🔖
+     * @summary 获取可视化库表结构
+     * @param {string} [configId]
+     * @param {string} [tableName]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysDatabaseApi
      */
-    public async apiSysDatabaseVisualDbTableGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultVisualDbTable>> {
-        return SysDatabaseApiFp(this.configuration).apiSysDatabaseVisualDbTableGet(options).then((request) => request(this.axios, this.basePath));
+    public async apiSysDatabaseVisualDbTableGet(configId?: string, tableName?: string, options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultVisualDbTable>> {
+        return SysDatabaseApiFp(this.configuration).apiSysDatabaseVisualDbTableGet(configId, tableName, options).then((request) => request(this.axios, this.basePath));
     }
 }

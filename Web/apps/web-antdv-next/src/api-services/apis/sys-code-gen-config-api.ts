@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -27,46 +27,46 @@ export const SysCodeGenConfigApiAxiosParamCreator = function (configuration?: Co
     return {
         /**
          *
-         * @summary 获取代码生成配置详情 🔖
-         * @param {number} [id] 主键Id
-         * @param {number} [codeGenId] 代码生成主表ID
-         * @param {string} [columnName] 数据库字段名
-         * @param {string} [columnKey] 主外键
-         * @param {string} [propertyName] 实体属性名
-         * @param {number} [columnLength] 字段数据长度
-         * @param {string} [lowerPropertyName] 数据库字段名(首字母小写)
-         * @param {string} [columnComment] 字段描述
-         * @param {string} [netType] .NET类型
-         * @param {string} [dataType] 数据库中类型（物理类型）
-         * @param {string} [defaultValue] 字段数据默认值
-         * @param {string} [nullableNetType] 可空.NET类型
-         * @param {string} [effectType] 作用类型（字典）
-         * @param {string} [fkConfigId] 外键库标识
-         * @param {string} [fkEntityName] 外键实体名称
-         * @param {string} [fkTableName] 外键表名称
-         * @param {string} [lowerFkEntityName] 外键实体名称(首字母小写)
-         * @param {string} [fkLinkColumnName] 外键链接字段
-         * @param {string} [fkDisplayColumns] 外键显示字段
-         * @param {Array<string>} [fkDisplayColumnList] 外键显示字段
-         * @param {Array<string>} [lowerFkDisplayColumnsList] 外键显示字段(首字母小写)
-         * @param {string} [fkColumnNetType] 外键显示字段.NET类型
-         * @param {string} [pidColumn] 父级字段
-         * @param {string} [dictTypeCode] 字典code
-         * @param {string} [queryType] 查询方式
-         * @param {string} [whetherQuery] 是否是查询条件
-         * @param {string} [whetherRetract] 列表是否缩进（字典）
-         * @param {string} [whetherRequired] 是否必填（字典）
-         * @param {string} [whetherSortable] 是否可排序（字典）
-         * @param {string} [whetherTable] 列表显示
-         * @param {string} [whetherAddUpdate] 增改
-         * @param {string} [whetherImport] 导入
-         * @param {string} [whetherCommon] 是否是通用字段
-         * @param {number} [orderNo] 排序
-         * @param {boolean} [isSelectorEffectType] 是否是选择器控件
-         * @param {string} [propertyNameTrimEndId] 去掉尾部Id的属性名
-         * @param {string} [lowerPropertyNameTrimEndId] 去掉尾部Id的属性名
-         * @param {string} [extendedPropertyName] 扩展属性名称
-         * @param {string} [lowerExtendedPropertyName] 首字母小写的扩展属性名称
+         * @summary 获取代码生成配置详情
+         * @param {number} [id]
+         * @param {number} [codeGenId]
+         * @param {string} [columnName]
+         * @param {string} [columnKey]
+         * @param {string} [propertyName]
+         * @param {number} [columnLength]
+         * @param {string} [lowerPropertyName]
+         * @param {string} [columnComment]
+         * @param {string} [netType]
+         * @param {string} [dataType]
+         * @param {string} [defaultValue]
+         * @param {string} [nullableNetType]
+         * @param {string} [effectType]
+         * @param {string} [fkConfigId]
+         * @param {string} [fkEntityName]
+         * @param {string} [fkTableName]
+         * @param {string} [lowerFkEntityName]
+         * @param {string} [fkLinkColumnName]
+         * @param {string} [fkDisplayColumns]
+         * @param {Array<string>} [fkDisplayColumnList]
+         * @param {Array<string>} [lowerFkDisplayColumnsList]
+         * @param {string} [fkColumnNetType]
+         * @param {string} [pidColumn]
+         * @param {string} [dictTypeCode]
+         * @param {string} [queryType]
+         * @param {string} [whetherQuery]
+         * @param {string} [whetherRetract]
+         * @param {string} [whetherRequired]
+         * @param {string} [whetherSortable]
+         * @param {string} [whetherTable]
+         * @param {string} [whetherAddUpdate]
+         * @param {string} [whetherImport]
+         * @param {string} [whetherCommon]
+         * @param {number} [orderNo]
+         * @param {boolean} [isSelectorEffectType]
+         * @param {string} [propertyNameTrimEndId]
+         * @param {string} [lowerPropertyNameTrimEndId]
+         * @param {string} [extendedPropertyName]
+         * @param {string} [lowerExtendedPropertyName]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -223,46 +223,46 @@ export const SysCodeGenConfigApiAxiosParamCreator = function (configuration?: Co
         },
         /**
          *
-         * @summary 获取代码生成配置列表 🔖
-         * @param {number} [id] 主键Id
-         * @param {number} [codeGenId] 代码生成主表ID
-         * @param {string} [columnName] 数据库字段名
-         * @param {string} [columnKey] 主外键
-         * @param {string} [propertyName] 实体属性名
-         * @param {number} [columnLength] 字段数据长度
-         * @param {string} [lowerPropertyName] 数据库字段名(首字母小写)
-         * @param {string} [columnComment] 字段描述
-         * @param {string} [netType] .NET类型
-         * @param {string} [dataType] 数据库中类型（物理类型）
-         * @param {string} [defaultValue] 字段数据默认值
-         * @param {string} [nullableNetType] 可空.NET类型
-         * @param {string} [effectType] 作用类型（字典）
-         * @param {string} [fkConfigId] 外键库标识
-         * @param {string} [fkEntityName] 外键实体名称
-         * @param {string} [fkTableName] 外键表名称
-         * @param {string} [lowerFkEntityName] 外键实体名称(首字母小写)
-         * @param {string} [fkLinkColumnName] 外键链接字段
-         * @param {string} [fkDisplayColumns] 外键显示字段
-         * @param {Array<string>} [fkDisplayColumnList] 外键显示字段
-         * @param {Array<string>} [lowerFkDisplayColumnsList] 外键显示字段(首字母小写)
-         * @param {string} [fkColumnNetType] 外键显示字段.NET类型
-         * @param {string} [pidColumn] 父级字段
-         * @param {string} [dictTypeCode] 字典code
-         * @param {string} [queryType] 查询方式
-         * @param {string} [whetherQuery] 是否是查询条件
-         * @param {string} [whetherRetract] 列表是否缩进（字典）
-         * @param {string} [whetherRequired] 是否必填（字典）
-         * @param {string} [whetherSortable] 是否可排序（字典）
-         * @param {string} [whetherTable] 列表显示
-         * @param {string} [whetherAddUpdate] 增改
-         * @param {string} [whetherImport] 导入
-         * @param {string} [whetherCommon] 是否是通用字段
-         * @param {number} [orderNo] 排序
-         * @param {boolean} [isSelectorEffectType] 是否是选择器控件
-         * @param {string} [propertyNameTrimEndId] 去掉尾部Id的属性名
-         * @param {string} [lowerPropertyNameTrimEndId] 去掉尾部Id的属性名
-         * @param {string} [extendedPropertyName] 扩展属性名称
-         * @param {string} [lowerExtendedPropertyName] 首字母小写的扩展属性名称
+         * @summary 获取代码生成配置列表
+         * @param {number} [id]
+         * @param {number} [codeGenId]
+         * @param {string} [columnName]
+         * @param {string} [columnKey]
+         * @param {string} [propertyName]
+         * @param {number} [columnLength]
+         * @param {string} [lowerPropertyName]
+         * @param {string} [columnComment]
+         * @param {string} [netType]
+         * @param {string} [dataType]
+         * @param {string} [defaultValue]
+         * @param {string} [nullableNetType]
+         * @param {string} [effectType]
+         * @param {string} [fkConfigId]
+         * @param {string} [fkEntityName]
+         * @param {string} [fkTableName]
+         * @param {string} [lowerFkEntityName]
+         * @param {string} [fkLinkColumnName]
+         * @param {string} [fkDisplayColumns]
+         * @param {Array<string>} [fkDisplayColumnList]
+         * @param {Array<string>} [lowerFkDisplayColumnsList]
+         * @param {string} [fkColumnNetType]
+         * @param {string} [pidColumn]
+         * @param {string} [dictTypeCode]
+         * @param {string} [queryType]
+         * @param {string} [whetherQuery]
+         * @param {string} [whetherRetract]
+         * @param {string} [whetherRequired]
+         * @param {string} [whetherSortable]
+         * @param {string} [whetherTable]
+         * @param {string} [whetherAddUpdate]
+         * @param {string} [whetherImport]
+         * @param {string} [whetherCommon]
+         * @param {number} [orderNo]
+         * @param {boolean} [isSelectorEffectType]
+         * @param {string} [propertyNameTrimEndId]
+         * @param {string} [lowerPropertyNameTrimEndId]
+         * @param {string} [extendedPropertyName]
+         * @param {string} [lowerExtendedPropertyName]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -419,7 +419,7 @@ export const SysCodeGenConfigApiAxiosParamCreator = function (configuration?: Co
         },
         /**
          *
-         * @summary 更新代码生成配置 🔖
+         * @summary 更新代码生成配置
          * @param {Array<CodeGenConfig>} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -471,46 +471,46 @@ export const SysCodeGenConfigApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 获取代码生成配置详情 🔖
-         * @param {number} [id] 主键Id
-         * @param {number} [codeGenId] 代码生成主表ID
-         * @param {string} [columnName] 数据库字段名
-         * @param {string} [columnKey] 主外键
-         * @param {string} [propertyName] 实体属性名
-         * @param {number} [columnLength] 字段数据长度
-         * @param {string} [lowerPropertyName] 数据库字段名(首字母小写)
-         * @param {string} [columnComment] 字段描述
-         * @param {string} [netType] .NET类型
-         * @param {string} [dataType] 数据库中类型（物理类型）
-         * @param {string} [defaultValue] 字段数据默认值
-         * @param {string} [nullableNetType] 可空.NET类型
-         * @param {string} [effectType] 作用类型（字典）
-         * @param {string} [fkConfigId] 外键库标识
-         * @param {string} [fkEntityName] 外键实体名称
-         * @param {string} [fkTableName] 外键表名称
-         * @param {string} [lowerFkEntityName] 外键实体名称(首字母小写)
-         * @param {string} [fkLinkColumnName] 外键链接字段
-         * @param {string} [fkDisplayColumns] 外键显示字段
-         * @param {Array<string>} [fkDisplayColumnList] 外键显示字段
-         * @param {Array<string>} [lowerFkDisplayColumnsList] 外键显示字段(首字母小写)
-         * @param {string} [fkColumnNetType] 外键显示字段.NET类型
-         * @param {string} [pidColumn] 父级字段
-         * @param {string} [dictTypeCode] 字典code
-         * @param {string} [queryType] 查询方式
-         * @param {string} [whetherQuery] 是否是查询条件
-         * @param {string} [whetherRetract] 列表是否缩进（字典）
-         * @param {string} [whetherRequired] 是否必填（字典）
-         * @param {string} [whetherSortable] 是否可排序（字典）
-         * @param {string} [whetherTable] 列表显示
-         * @param {string} [whetherAddUpdate] 增改
-         * @param {string} [whetherImport] 导入
-         * @param {string} [whetherCommon] 是否是通用字段
-         * @param {number} [orderNo] 排序
-         * @param {boolean} [isSelectorEffectType] 是否是选择器控件
-         * @param {string} [propertyNameTrimEndId] 去掉尾部Id的属性名
-         * @param {string} [lowerPropertyNameTrimEndId] 去掉尾部Id的属性名
-         * @param {string} [extendedPropertyName] 扩展属性名称
-         * @param {string} [lowerExtendedPropertyName] 首字母小写的扩展属性名称
+         * @summary 获取代码生成配置详情
+         * @param {number} [id]
+         * @param {number} [codeGenId]
+         * @param {string} [columnName]
+         * @param {string} [columnKey]
+         * @param {string} [propertyName]
+         * @param {number} [columnLength]
+         * @param {string} [lowerPropertyName]
+         * @param {string} [columnComment]
+         * @param {string} [netType]
+         * @param {string} [dataType]
+         * @param {string} [defaultValue]
+         * @param {string} [nullableNetType]
+         * @param {string} [effectType]
+         * @param {string} [fkConfigId]
+         * @param {string} [fkEntityName]
+         * @param {string} [fkTableName]
+         * @param {string} [lowerFkEntityName]
+         * @param {string} [fkLinkColumnName]
+         * @param {string} [fkDisplayColumns]
+         * @param {Array<string>} [fkDisplayColumnList]
+         * @param {Array<string>} [lowerFkDisplayColumnsList]
+         * @param {string} [fkColumnNetType]
+         * @param {string} [pidColumn]
+         * @param {string} [dictTypeCode]
+         * @param {string} [queryType]
+         * @param {string} [whetherQuery]
+         * @param {string} [whetherRetract]
+         * @param {string} [whetherRequired]
+         * @param {string} [whetherSortable]
+         * @param {string} [whetherTable]
+         * @param {string} [whetherAddUpdate]
+         * @param {string} [whetherImport]
+         * @param {string} [whetherCommon]
+         * @param {number} [orderNo]
+         * @param {boolean} [isSelectorEffectType]
+         * @param {string} [propertyNameTrimEndId]
+         * @param {string} [lowerPropertyNameTrimEndId]
+         * @param {string} [extendedPropertyName]
+         * @param {string} [lowerExtendedPropertyName]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -523,46 +523,46 @@ export const SysCodeGenConfigApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取代码生成配置列表 🔖
-         * @param {number} [id] 主键Id
-         * @param {number} [codeGenId] 代码生成主表ID
-         * @param {string} [columnName] 数据库字段名
-         * @param {string} [columnKey] 主外键
-         * @param {string} [propertyName] 实体属性名
-         * @param {number} [columnLength] 字段数据长度
-         * @param {string} [lowerPropertyName] 数据库字段名(首字母小写)
-         * @param {string} [columnComment] 字段描述
-         * @param {string} [netType] .NET类型
-         * @param {string} [dataType] 数据库中类型（物理类型）
-         * @param {string} [defaultValue] 字段数据默认值
-         * @param {string} [nullableNetType] 可空.NET类型
-         * @param {string} [effectType] 作用类型（字典）
-         * @param {string} [fkConfigId] 外键库标识
-         * @param {string} [fkEntityName] 外键实体名称
-         * @param {string} [fkTableName] 外键表名称
-         * @param {string} [lowerFkEntityName] 外键实体名称(首字母小写)
-         * @param {string} [fkLinkColumnName] 外键链接字段
-         * @param {string} [fkDisplayColumns] 外键显示字段
-         * @param {Array<string>} [fkDisplayColumnList] 外键显示字段
-         * @param {Array<string>} [lowerFkDisplayColumnsList] 外键显示字段(首字母小写)
-         * @param {string} [fkColumnNetType] 外键显示字段.NET类型
-         * @param {string} [pidColumn] 父级字段
-         * @param {string} [dictTypeCode] 字典code
-         * @param {string} [queryType] 查询方式
-         * @param {string} [whetherQuery] 是否是查询条件
-         * @param {string} [whetherRetract] 列表是否缩进（字典）
-         * @param {string} [whetherRequired] 是否必填（字典）
-         * @param {string} [whetherSortable] 是否可排序（字典）
-         * @param {string} [whetherTable] 列表显示
-         * @param {string} [whetherAddUpdate] 增改
-         * @param {string} [whetherImport] 导入
-         * @param {string} [whetherCommon] 是否是通用字段
-         * @param {number} [orderNo] 排序
-         * @param {boolean} [isSelectorEffectType] 是否是选择器控件
-         * @param {string} [propertyNameTrimEndId] 去掉尾部Id的属性名
-         * @param {string} [lowerPropertyNameTrimEndId] 去掉尾部Id的属性名
-         * @param {string} [extendedPropertyName] 扩展属性名称
-         * @param {string} [lowerExtendedPropertyName] 首字母小写的扩展属性名称
+         * @summary 获取代码生成配置列表
+         * @param {number} [id]
+         * @param {number} [codeGenId]
+         * @param {string} [columnName]
+         * @param {string} [columnKey]
+         * @param {string} [propertyName]
+         * @param {number} [columnLength]
+         * @param {string} [lowerPropertyName]
+         * @param {string} [columnComment]
+         * @param {string} [netType]
+         * @param {string} [dataType]
+         * @param {string} [defaultValue]
+         * @param {string} [nullableNetType]
+         * @param {string} [effectType]
+         * @param {string} [fkConfigId]
+         * @param {string} [fkEntityName]
+         * @param {string} [fkTableName]
+         * @param {string} [lowerFkEntityName]
+         * @param {string} [fkLinkColumnName]
+         * @param {string} [fkDisplayColumns]
+         * @param {Array<string>} [fkDisplayColumnList]
+         * @param {Array<string>} [lowerFkDisplayColumnsList]
+         * @param {string} [fkColumnNetType]
+         * @param {string} [pidColumn]
+         * @param {string} [dictTypeCode]
+         * @param {string} [queryType]
+         * @param {string} [whetherQuery]
+         * @param {string} [whetherRetract]
+         * @param {string} [whetherRequired]
+         * @param {string} [whetherSortable]
+         * @param {string} [whetherTable]
+         * @param {string} [whetherAddUpdate]
+         * @param {string} [whetherImport]
+         * @param {string} [whetherCommon]
+         * @param {number} [orderNo]
+         * @param {boolean} [isSelectorEffectType]
+         * @param {string} [propertyNameTrimEndId]
+         * @param {string} [lowerPropertyNameTrimEndId]
+         * @param {string} [extendedPropertyName]
+         * @param {string} [lowerExtendedPropertyName]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -575,7 +575,7 @@ export const SysCodeGenConfigApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 更新代码生成配置 🔖
+         * @summary 更新代码生成配置
          * @param {Array<CodeGenConfig>} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -597,46 +597,46 @@ export const SysCodeGenConfigApiFactory = function (configuration?: Configuratio
     return {
         /**
          *
-         * @summary 获取代码生成配置详情 🔖
-         * @param {number} [id] 主键Id
-         * @param {number} [codeGenId] 代码生成主表ID
-         * @param {string} [columnName] 数据库字段名
-         * @param {string} [columnKey] 主外键
-         * @param {string} [propertyName] 实体属性名
-         * @param {number} [columnLength] 字段数据长度
-         * @param {string} [lowerPropertyName] 数据库字段名(首字母小写)
-         * @param {string} [columnComment] 字段描述
-         * @param {string} [netType] .NET类型
-         * @param {string} [dataType] 数据库中类型（物理类型）
-         * @param {string} [defaultValue] 字段数据默认值
-         * @param {string} [nullableNetType] 可空.NET类型
-         * @param {string} [effectType] 作用类型（字典）
-         * @param {string} [fkConfigId] 外键库标识
-         * @param {string} [fkEntityName] 外键实体名称
-         * @param {string} [fkTableName] 外键表名称
-         * @param {string} [lowerFkEntityName] 外键实体名称(首字母小写)
-         * @param {string} [fkLinkColumnName] 外键链接字段
-         * @param {string} [fkDisplayColumns] 外键显示字段
-         * @param {Array<string>} [fkDisplayColumnList] 外键显示字段
-         * @param {Array<string>} [lowerFkDisplayColumnsList] 外键显示字段(首字母小写)
-         * @param {string} [fkColumnNetType] 外键显示字段.NET类型
-         * @param {string} [pidColumn] 父级字段
-         * @param {string} [dictTypeCode] 字典code
-         * @param {string} [queryType] 查询方式
-         * @param {string} [whetherQuery] 是否是查询条件
-         * @param {string} [whetherRetract] 列表是否缩进（字典）
-         * @param {string} [whetherRequired] 是否必填（字典）
-         * @param {string} [whetherSortable] 是否可排序（字典）
-         * @param {string} [whetherTable] 列表显示
-         * @param {string} [whetherAddUpdate] 增改
-         * @param {string} [whetherImport] 导入
-         * @param {string} [whetherCommon] 是否是通用字段
-         * @param {number} [orderNo] 排序
-         * @param {boolean} [isSelectorEffectType] 是否是选择器控件
-         * @param {string} [propertyNameTrimEndId] 去掉尾部Id的属性名
-         * @param {string} [lowerPropertyNameTrimEndId] 去掉尾部Id的属性名
-         * @param {string} [extendedPropertyName] 扩展属性名称
-         * @param {string} [lowerExtendedPropertyName] 首字母小写的扩展属性名称
+         * @summary 获取代码生成配置详情
+         * @param {number} [id]
+         * @param {number} [codeGenId]
+         * @param {string} [columnName]
+         * @param {string} [columnKey]
+         * @param {string} [propertyName]
+         * @param {number} [columnLength]
+         * @param {string} [lowerPropertyName]
+         * @param {string} [columnComment]
+         * @param {string} [netType]
+         * @param {string} [dataType]
+         * @param {string} [defaultValue]
+         * @param {string} [nullableNetType]
+         * @param {string} [effectType]
+         * @param {string} [fkConfigId]
+         * @param {string} [fkEntityName]
+         * @param {string} [fkTableName]
+         * @param {string} [lowerFkEntityName]
+         * @param {string} [fkLinkColumnName]
+         * @param {string} [fkDisplayColumns]
+         * @param {Array<string>} [fkDisplayColumnList]
+         * @param {Array<string>} [lowerFkDisplayColumnsList]
+         * @param {string} [fkColumnNetType]
+         * @param {string} [pidColumn]
+         * @param {string} [dictTypeCode]
+         * @param {string} [queryType]
+         * @param {string} [whetherQuery]
+         * @param {string} [whetherRetract]
+         * @param {string} [whetherRequired]
+         * @param {string} [whetherSortable]
+         * @param {string} [whetherTable]
+         * @param {string} [whetherAddUpdate]
+         * @param {string} [whetherImport]
+         * @param {string} [whetherCommon]
+         * @param {number} [orderNo]
+         * @param {boolean} [isSelectorEffectType]
+         * @param {string} [propertyNameTrimEndId]
+         * @param {string} [lowerPropertyNameTrimEndId]
+         * @param {string} [extendedPropertyName]
+         * @param {string} [lowerExtendedPropertyName]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -645,46 +645,46 @@ export const SysCodeGenConfigApiFactory = function (configuration?: Configuratio
         },
         /**
          *
-         * @summary 获取代码生成配置列表 🔖
-         * @param {number} [id] 主键Id
-         * @param {number} [codeGenId] 代码生成主表ID
-         * @param {string} [columnName] 数据库字段名
-         * @param {string} [columnKey] 主外键
-         * @param {string} [propertyName] 实体属性名
-         * @param {number} [columnLength] 字段数据长度
-         * @param {string} [lowerPropertyName] 数据库字段名(首字母小写)
-         * @param {string} [columnComment] 字段描述
-         * @param {string} [netType] .NET类型
-         * @param {string} [dataType] 数据库中类型（物理类型）
-         * @param {string} [defaultValue] 字段数据默认值
-         * @param {string} [nullableNetType] 可空.NET类型
-         * @param {string} [effectType] 作用类型（字典）
-         * @param {string} [fkConfigId] 外键库标识
-         * @param {string} [fkEntityName] 外键实体名称
-         * @param {string} [fkTableName] 外键表名称
-         * @param {string} [lowerFkEntityName] 外键实体名称(首字母小写)
-         * @param {string} [fkLinkColumnName] 外键链接字段
-         * @param {string} [fkDisplayColumns] 外键显示字段
-         * @param {Array<string>} [fkDisplayColumnList] 外键显示字段
-         * @param {Array<string>} [lowerFkDisplayColumnsList] 外键显示字段(首字母小写)
-         * @param {string} [fkColumnNetType] 外键显示字段.NET类型
-         * @param {string} [pidColumn] 父级字段
-         * @param {string} [dictTypeCode] 字典code
-         * @param {string} [queryType] 查询方式
-         * @param {string} [whetherQuery] 是否是查询条件
-         * @param {string} [whetherRetract] 列表是否缩进（字典）
-         * @param {string} [whetherRequired] 是否必填（字典）
-         * @param {string} [whetherSortable] 是否可排序（字典）
-         * @param {string} [whetherTable] 列表显示
-         * @param {string} [whetherAddUpdate] 增改
-         * @param {string} [whetherImport] 导入
-         * @param {string} [whetherCommon] 是否是通用字段
-         * @param {number} [orderNo] 排序
-         * @param {boolean} [isSelectorEffectType] 是否是选择器控件
-         * @param {string} [propertyNameTrimEndId] 去掉尾部Id的属性名
-         * @param {string} [lowerPropertyNameTrimEndId] 去掉尾部Id的属性名
-         * @param {string} [extendedPropertyName] 扩展属性名称
-         * @param {string} [lowerExtendedPropertyName] 首字母小写的扩展属性名称
+         * @summary 获取代码生成配置列表
+         * @param {number} [id]
+         * @param {number} [codeGenId]
+         * @param {string} [columnName]
+         * @param {string} [columnKey]
+         * @param {string} [propertyName]
+         * @param {number} [columnLength]
+         * @param {string} [lowerPropertyName]
+         * @param {string} [columnComment]
+         * @param {string} [netType]
+         * @param {string} [dataType]
+         * @param {string} [defaultValue]
+         * @param {string} [nullableNetType]
+         * @param {string} [effectType]
+         * @param {string} [fkConfigId]
+         * @param {string} [fkEntityName]
+         * @param {string} [fkTableName]
+         * @param {string} [lowerFkEntityName]
+         * @param {string} [fkLinkColumnName]
+         * @param {string} [fkDisplayColumns]
+         * @param {Array<string>} [fkDisplayColumnList]
+         * @param {Array<string>} [lowerFkDisplayColumnsList]
+         * @param {string} [fkColumnNetType]
+         * @param {string} [pidColumn]
+         * @param {string} [dictTypeCode]
+         * @param {string} [queryType]
+         * @param {string} [whetherQuery]
+         * @param {string} [whetherRetract]
+         * @param {string} [whetherRequired]
+         * @param {string} [whetherSortable]
+         * @param {string} [whetherTable]
+         * @param {string} [whetherAddUpdate]
+         * @param {string} [whetherImport]
+         * @param {string} [whetherCommon]
+         * @param {number} [orderNo]
+         * @param {boolean} [isSelectorEffectType]
+         * @param {string} [propertyNameTrimEndId]
+         * @param {string} [lowerPropertyNameTrimEndId]
+         * @param {string} [extendedPropertyName]
+         * @param {string} [lowerExtendedPropertyName]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -693,7 +693,7 @@ export const SysCodeGenConfigApiFactory = function (configuration?: Configuratio
         },
         /**
          *
-         * @summary 更新代码生成配置 🔖
+         * @summary 更新代码生成配置
          * @param {Array<CodeGenConfig>} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -712,46 +712,46 @@ export const SysCodeGenConfigApiFactory = function (configuration?: Configuratio
 export class SysCodeGenConfigApi extends BaseAPI {
     /**
      *
-     * @summary 获取代码生成配置详情 🔖
-     * @param {number} [id] 主键Id
-     * @param {number} [codeGenId] 代码生成主表ID
-     * @param {string} [columnName] 数据库字段名
-     * @param {string} [columnKey] 主外键
-     * @param {string} [propertyName] 实体属性名
-     * @param {number} [columnLength] 字段数据长度
-     * @param {string} [lowerPropertyName] 数据库字段名(首字母小写)
-     * @param {string} [columnComment] 字段描述
-     * @param {string} [netType] .NET类型
-     * @param {string} [dataType] 数据库中类型（物理类型）
-     * @param {string} [defaultValue] 字段数据默认值
-     * @param {string} [nullableNetType] 可空.NET类型
-     * @param {string} [effectType] 作用类型（字典）
-     * @param {string} [fkConfigId] 外键库标识
-     * @param {string} [fkEntityName] 外键实体名称
-     * @param {string} [fkTableName] 外键表名称
-     * @param {string} [lowerFkEntityName] 外键实体名称(首字母小写)
-     * @param {string} [fkLinkColumnName] 外键链接字段
-     * @param {string} [fkDisplayColumns] 外键显示字段
-     * @param {Array<string>} [fkDisplayColumnList] 外键显示字段
-     * @param {Array<string>} [lowerFkDisplayColumnsList] 外键显示字段(首字母小写)
-     * @param {string} [fkColumnNetType] 外键显示字段.NET类型
-     * @param {string} [pidColumn] 父级字段
-     * @param {string} [dictTypeCode] 字典code
-     * @param {string} [queryType] 查询方式
-     * @param {string} [whetherQuery] 是否是查询条件
-     * @param {string} [whetherRetract] 列表是否缩进（字典）
-     * @param {string} [whetherRequired] 是否必填（字典）
-     * @param {string} [whetherSortable] 是否可排序（字典）
-     * @param {string} [whetherTable] 列表显示
-     * @param {string} [whetherAddUpdate] 增改
-     * @param {string} [whetherImport] 导入
-     * @param {string} [whetherCommon] 是否是通用字段
-     * @param {number} [orderNo] 排序
-     * @param {boolean} [isSelectorEffectType] 是否是选择器控件
-     * @param {string} [propertyNameTrimEndId] 去掉尾部Id的属性名
-     * @param {string} [lowerPropertyNameTrimEndId] 去掉尾部Id的属性名
-     * @param {string} [extendedPropertyName] 扩展属性名称
-     * @param {string} [lowerExtendedPropertyName] 首字母小写的扩展属性名称
+     * @summary 获取代码生成配置详情
+     * @param {number} [id]
+     * @param {number} [codeGenId]
+     * @param {string} [columnName]
+     * @param {string} [columnKey]
+     * @param {string} [propertyName]
+     * @param {number} [columnLength]
+     * @param {string} [lowerPropertyName]
+     * @param {string} [columnComment]
+     * @param {string} [netType]
+     * @param {string} [dataType]
+     * @param {string} [defaultValue]
+     * @param {string} [nullableNetType]
+     * @param {string} [effectType]
+     * @param {string} [fkConfigId]
+     * @param {string} [fkEntityName]
+     * @param {string} [fkTableName]
+     * @param {string} [lowerFkEntityName]
+     * @param {string} [fkLinkColumnName]
+     * @param {string} [fkDisplayColumns]
+     * @param {Array<string>} [fkDisplayColumnList]
+     * @param {Array<string>} [lowerFkDisplayColumnsList]
+     * @param {string} [fkColumnNetType]
+     * @param {string} [pidColumn]
+     * @param {string} [dictTypeCode]
+     * @param {string} [queryType]
+     * @param {string} [whetherQuery]
+     * @param {string} [whetherRetract]
+     * @param {string} [whetherRequired]
+     * @param {string} [whetherSortable]
+     * @param {string} [whetherTable]
+     * @param {string} [whetherAddUpdate]
+     * @param {string} [whetherImport]
+     * @param {string} [whetherCommon]
+     * @param {number} [orderNo]
+     * @param {boolean} [isSelectorEffectType]
+     * @param {string} [propertyNameTrimEndId]
+     * @param {string} [lowerPropertyNameTrimEndId]
+     * @param {string} [extendedPropertyName]
+     * @param {string} [lowerExtendedPropertyName]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysCodeGenConfigApi
@@ -761,46 +761,46 @@ export class SysCodeGenConfigApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取代码生成配置列表 🔖
-     * @param {number} [id] 主键Id
-     * @param {number} [codeGenId] 代码生成主表ID
-     * @param {string} [columnName] 数据库字段名
-     * @param {string} [columnKey] 主外键
-     * @param {string} [propertyName] 实体属性名
-     * @param {number} [columnLength] 字段数据长度
-     * @param {string} [lowerPropertyName] 数据库字段名(首字母小写)
-     * @param {string} [columnComment] 字段描述
-     * @param {string} [netType] .NET类型
-     * @param {string} [dataType] 数据库中类型（物理类型）
-     * @param {string} [defaultValue] 字段数据默认值
-     * @param {string} [nullableNetType] 可空.NET类型
-     * @param {string} [effectType] 作用类型（字典）
-     * @param {string} [fkConfigId] 外键库标识
-     * @param {string} [fkEntityName] 外键实体名称
-     * @param {string} [fkTableName] 外键表名称
-     * @param {string} [lowerFkEntityName] 外键实体名称(首字母小写)
-     * @param {string} [fkLinkColumnName] 外键链接字段
-     * @param {string} [fkDisplayColumns] 外键显示字段
-     * @param {Array<string>} [fkDisplayColumnList] 外键显示字段
-     * @param {Array<string>} [lowerFkDisplayColumnsList] 外键显示字段(首字母小写)
-     * @param {string} [fkColumnNetType] 外键显示字段.NET类型
-     * @param {string} [pidColumn] 父级字段
-     * @param {string} [dictTypeCode] 字典code
-     * @param {string} [queryType] 查询方式
-     * @param {string} [whetherQuery] 是否是查询条件
-     * @param {string} [whetherRetract] 列表是否缩进（字典）
-     * @param {string} [whetherRequired] 是否必填（字典）
-     * @param {string} [whetherSortable] 是否可排序（字典）
-     * @param {string} [whetherTable] 列表显示
-     * @param {string} [whetherAddUpdate] 增改
-     * @param {string} [whetherImport] 导入
-     * @param {string} [whetherCommon] 是否是通用字段
-     * @param {number} [orderNo] 排序
-     * @param {boolean} [isSelectorEffectType] 是否是选择器控件
-     * @param {string} [propertyNameTrimEndId] 去掉尾部Id的属性名
-     * @param {string} [lowerPropertyNameTrimEndId] 去掉尾部Id的属性名
-     * @param {string} [extendedPropertyName] 扩展属性名称
-     * @param {string} [lowerExtendedPropertyName] 首字母小写的扩展属性名称
+     * @summary 获取代码生成配置列表
+     * @param {number} [id]
+     * @param {number} [codeGenId]
+     * @param {string} [columnName]
+     * @param {string} [columnKey]
+     * @param {string} [propertyName]
+     * @param {number} [columnLength]
+     * @param {string} [lowerPropertyName]
+     * @param {string} [columnComment]
+     * @param {string} [netType]
+     * @param {string} [dataType]
+     * @param {string} [defaultValue]
+     * @param {string} [nullableNetType]
+     * @param {string} [effectType]
+     * @param {string} [fkConfigId]
+     * @param {string} [fkEntityName]
+     * @param {string} [fkTableName]
+     * @param {string} [lowerFkEntityName]
+     * @param {string} [fkLinkColumnName]
+     * @param {string} [fkDisplayColumns]
+     * @param {Array<string>} [fkDisplayColumnList]
+     * @param {Array<string>} [lowerFkDisplayColumnsList]
+     * @param {string} [fkColumnNetType]
+     * @param {string} [pidColumn]
+     * @param {string} [dictTypeCode]
+     * @param {string} [queryType]
+     * @param {string} [whetherQuery]
+     * @param {string} [whetherRetract]
+     * @param {string} [whetherRequired]
+     * @param {string} [whetherSortable]
+     * @param {string} [whetherTable]
+     * @param {string} [whetherAddUpdate]
+     * @param {string} [whetherImport]
+     * @param {string} [whetherCommon]
+     * @param {number} [orderNo]
+     * @param {boolean} [isSelectorEffectType]
+     * @param {string} [propertyNameTrimEndId]
+     * @param {string} [lowerPropertyNameTrimEndId]
+     * @param {string} [extendedPropertyName]
+     * @param {string} [lowerExtendedPropertyName]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysCodeGenConfigApi
@@ -810,7 +810,7 @@ export class SysCodeGenConfigApi extends BaseAPI {
     }
     /**
      *
-     * @summary 更新代码生成配置 🔖
+     * @summary 更新代码生成配置
      * @param {Array<CodeGenConfig>} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

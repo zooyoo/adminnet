@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -34,7 +34,7 @@ export const SysLdapApiAxiosParamCreator = function (configuration?: Configurati
     return {
         /**
          *
-         * @summary 增加系统域登录配置 🔖
+         * @summary 增加系统域登录配置
          * @param {AddSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -78,7 +78,7 @@ export const SysLdapApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 删除系统域登录配置 🔖
+         * @summary 删除系统域登录配置
          * @param {DeleteSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -122,8 +122,8 @@ export const SysLdapApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 获取系统域登录配置详情 🔖
-         * @param {number} id 主键Id
+         * @summary 获取系统域登录配置详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -170,7 +170,7 @@ export const SysLdapApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 获取系统域登录配置列表 🔖
+         * @summary 获取系统域登录配置列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -210,7 +210,7 @@ export const SysLdapApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 获取系统域登录配置分页列表 🔖
+         * @summary 获取系统域登录配置分页列表
          * @param {SysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -254,7 +254,7 @@ export const SysLdapApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 同步域组织 🔖
+         * @summary 同步域组织
          * @param {SyncSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -298,7 +298,7 @@ export const SysLdapApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 同步域用户 🔖
+         * @summary 同步域用户
          * @param {SyncSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -342,7 +342,7 @@ export const SysLdapApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 更新系统域登录配置 🔖
+         * @summary 更新系统域登录配置
          * @param {UpdateSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -394,7 +394,7 @@ export const SysLdapApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 增加系统域登录配置 🔖
+         * @summary 增加系统域登录配置
          * @param {AddSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -408,7 +408,7 @@ export const SysLdapApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 删除系统域登录配置 🔖
+         * @summary 删除系统域登录配置
          * @param {DeleteSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -422,8 +422,8 @@ export const SysLdapApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取系统域登录配置详情 🔖
-         * @param {number} id 主键Id
+         * @summary 获取系统域登录配置详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -436,7 +436,7 @@ export const SysLdapApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取系统域登录配置列表 🔖
+         * @summary 获取系统域登录配置列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -449,7 +449,7 @@ export const SysLdapApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取系统域登录配置分页列表 🔖
+         * @summary 获取系统域登录配置分页列表
          * @param {SysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -463,7 +463,7 @@ export const SysLdapApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 同步域组织 🔖
+         * @summary 同步域组织
          * @param {SyncSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -477,7 +477,7 @@ export const SysLdapApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 同步域用户 🔖
+         * @summary 同步域用户
          * @param {SyncSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -491,7 +491,7 @@ export const SysLdapApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 更新系统域登录配置 🔖
+         * @summary 更新系统域登录配置
          * @param {UpdateSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -513,7 +513,7 @@ export const SysLdapApiFactory = function (configuration?: Configuration, basePa
     return {
         /**
          *
-         * @summary 增加系统域登录配置 🔖
+         * @summary 增加系统域登录配置
          * @param {AddSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -523,7 +523,7 @@ export const SysLdapApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 删除系统域登录配置 🔖
+         * @summary 删除系统域登录配置
          * @param {DeleteSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -533,8 +533,8 @@ export const SysLdapApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 获取系统域登录配置详情 🔖
-         * @param {number} id 主键Id
+         * @summary 获取系统域登录配置详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -543,7 +543,7 @@ export const SysLdapApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 获取系统域登录配置列表 🔖
+         * @summary 获取系统域登录配置列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -552,7 +552,7 @@ export const SysLdapApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 获取系统域登录配置分页列表 🔖
+         * @summary 获取系统域登录配置分页列表
          * @param {SysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -562,7 +562,7 @@ export const SysLdapApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 同步域组织 🔖
+         * @summary 同步域组织
          * @param {SyncSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -572,7 +572,7 @@ export const SysLdapApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 同步域用户 🔖
+         * @summary 同步域用户
          * @param {SyncSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -582,7 +582,7 @@ export const SysLdapApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 更新系统域登录配置 🔖
+         * @summary 更新系统域登录配置
          * @param {UpdateSysLdapInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -601,7 +601,7 @@ export const SysLdapApiFactory = function (configuration?: Configuration, basePa
 export class SysLdapApi extends BaseAPI {
     /**
      *
-     * @summary 增加系统域登录配置 🔖
+     * @summary 增加系统域登录配置
      * @param {AddSysLdapInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -612,7 +612,7 @@ export class SysLdapApi extends BaseAPI {
     }
     /**
      *
-     * @summary 删除系统域登录配置 🔖
+     * @summary 删除系统域登录配置
      * @param {DeleteSysLdapInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -623,8 +623,8 @@ export class SysLdapApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取系统域登录配置详情 🔖
-     * @param {number} id 主键Id
+     * @summary 获取系统域登录配置详情
+     * @param {number} id
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysLdapApi
@@ -634,7 +634,7 @@ export class SysLdapApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取系统域登录配置列表 🔖
+     * @summary 获取系统域登录配置列表
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysLdapApi
@@ -644,7 +644,7 @@ export class SysLdapApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取系统域登录配置分页列表 🔖
+     * @summary 获取系统域登录配置分页列表
      * @param {SysLdapInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -655,7 +655,7 @@ export class SysLdapApi extends BaseAPI {
     }
     /**
      *
-     * @summary 同步域组织 🔖
+     * @summary 同步域组织
      * @param {SyncSysLdapInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -666,7 +666,7 @@ export class SysLdapApi extends BaseAPI {
     }
     /**
      *
-     * @summary 同步域用户 🔖
+     * @summary 同步域用户
      * @param {SyncSysLdapInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -677,7 +677,7 @@ export class SysLdapApi extends BaseAPI {
     }
     /**
      *
-     * @summary 更新系统域登录配置 🔖
+     * @summary 更新系统域登录配置
      * @param {UpdateSysLdapInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

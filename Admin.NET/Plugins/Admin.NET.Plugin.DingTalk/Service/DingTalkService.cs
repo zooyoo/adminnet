@@ -530,7 +530,7 @@ public class DingTalkService : IDynamicApiController, IScoped
     /// </summary>
     /// <remarks>WorkflowName 为主键，不能重复。</remarks>
     /// <param name="input"></param>
-    [HttpPost, DisplayName("新增审批配置")]
+    [HttpPost("/api/dingTalk/addWorkflowConfig"), DisplayName("新增审批配置")]
     public async Task AddWorkflowConfig([Required] DingTalkWokerflowConfig input)
     {
         if (string.IsNullOrWhiteSpace(input.WorkflowName))
@@ -548,7 +548,7 @@ public class DingTalkService : IDynamicApiController, IScoped
     /// </summary>
     /// <remarks>按主键 WorkflowName 更新 ProcessCode。</remarks>
     /// <param name="input"></param>
-    [HttpPost, DisplayName("更新审批配置")]
+    [HttpPost("/api/dingTalk/updateWorkflowConfig"), DisplayName("更新审批配置")]
     public async Task UpdateWorkflowConfig([Required] DingTalkWokerflowConfig input)
     {
         if (string.IsNullOrWhiteSpace(input.WorkflowName))
@@ -565,7 +565,7 @@ public class DingTalkService : IDynamicApiController, IScoped
     /// 删除审批配置 🔖
     /// </summary>
     /// <param name="input"></param>
-    [HttpPost, DisplayName("删除审批配置")]
+    [HttpPost("/api/dingTalk/deleteWorkflowConfig"), DisplayName("删除审批配置")]
     public async Task DeleteWorkflowConfig([Required] DingTalkWokerflowConfig input)
     {
         if (string.IsNullOrWhiteSpace(input.WorkflowName))

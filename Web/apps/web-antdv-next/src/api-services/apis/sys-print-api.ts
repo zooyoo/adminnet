@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -30,7 +30,7 @@ export const SysPrintApiAxiosParamCreator = function (configuration?: Configurat
     return {
         /**
          *
-         * @summary 增加打印模板 🖨️
+         * @summary 增加打印模板
          * @param {AddPrintInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -74,7 +74,7 @@ export const SysPrintApiAxiosParamCreator = function (configuration?: Configurat
         },
         /**
          *
-         * @summary 删除打印模板 🖨️
+         * @summary 删除打印模板
          * @param {DeletePrintInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -118,7 +118,7 @@ export const SysPrintApiAxiosParamCreator = function (configuration?: Configurat
         },
         /**
          *
-         * @summary 获取打印模板列表 🖨️
+         * @summary 获取打印模板列表
          * @param {PagePrintInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -162,7 +162,7 @@ export const SysPrintApiAxiosParamCreator = function (configuration?: Configurat
         },
         /**
          *
-         * @summary 获取打印模板 🖨️
+         * @summary 获取打印模板
          * @param {string} name
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -208,7 +208,7 @@ export const SysPrintApiAxiosParamCreator = function (configuration?: Configurat
         },
         /**
          *
-         * @summary 更新打印模板 🖨️
+         * @summary 更新打印模板
          * @param {UpdatePrintInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -260,7 +260,7 @@ export const SysPrintApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 增加打印模板 🖨️
+         * @summary 增加打印模板
          * @param {AddPrintInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -274,7 +274,7 @@ export const SysPrintApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 删除打印模板 🖨️
+         * @summary 删除打印模板
          * @param {DeletePrintInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -288,7 +288,7 @@ export const SysPrintApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取打印模板列表 🖨️
+         * @summary 获取打印模板列表
          * @param {PagePrintInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -302,7 +302,7 @@ export const SysPrintApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取打印模板 🖨️
+         * @summary 获取打印模板
          * @param {string} name
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -316,7 +316,7 @@ export const SysPrintApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 更新打印模板 🖨️
+         * @summary 更新打印模板
          * @param {UpdatePrintInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -338,7 +338,7 @@ export const SysPrintApiFactory = function (configuration?: Configuration, baseP
     return {
         /**
          *
-         * @summary 增加打印模板 🖨️
+         * @summary 增加打印模板
          * @param {AddPrintInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -348,7 +348,7 @@ export const SysPrintApiFactory = function (configuration?: Configuration, baseP
         },
         /**
          *
-         * @summary 删除打印模板 🖨️
+         * @summary 删除打印模板
          * @param {DeletePrintInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -358,7 +358,7 @@ export const SysPrintApiFactory = function (configuration?: Configuration, baseP
         },
         /**
          *
-         * @summary 获取打印模板列表 🖨️
+         * @summary 获取打印模板列表
          * @param {PagePrintInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -368,7 +368,7 @@ export const SysPrintApiFactory = function (configuration?: Configuration, baseP
         },
         /**
          *
-         * @summary 获取打印模板 🖨️
+         * @summary 获取打印模板
          * @param {string} name
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -378,7 +378,7 @@ export const SysPrintApiFactory = function (configuration?: Configuration, baseP
         },
         /**
          *
-         * @summary 更新打印模板 🖨️
+         * @summary 更新打印模板
          * @param {UpdatePrintInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -397,7 +397,7 @@ export const SysPrintApiFactory = function (configuration?: Configuration, baseP
 export class SysPrintApi extends BaseAPI {
     /**
      *
-     * @summary 增加打印模板 🖨️
+     * @summary 增加打印模板
      * @param {AddPrintInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -408,7 +408,7 @@ export class SysPrintApi extends BaseAPI {
     }
     /**
      *
-     * @summary 删除打印模板 🖨️
+     * @summary 删除打印模板
      * @param {DeletePrintInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -419,7 +419,7 @@ export class SysPrintApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取打印模板列表 🖨️
+     * @summary 获取打印模板列表
      * @param {PagePrintInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -430,7 +430,7 @@ export class SysPrintApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取打印模板 🖨️
+     * @summary 获取打印模板
      * @param {string} name
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -441,7 +441,7 @@ export class SysPrintApi extends BaseAPI {
     }
     /**
      *
-     * @summary 更新打印模板 🖨️
+     * @summary 更新打印模板
      * @param {UpdatePrintInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

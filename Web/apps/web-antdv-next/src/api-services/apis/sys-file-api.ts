@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -34,7 +34,7 @@ export const SysFileApiAxiosParamCreator = function (configuration?: Configurati
     return {
         /**
          *
-         * @summary 删除文件 🔖
+         * @summary 删除文件
          * @param {BaseIdInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -78,7 +78,7 @@ export const SysFileApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 下载指定文件Base64格式 🔖
+         * @summary 下载指定文件Base64格式
          * @param {string} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -122,7 +122,7 @@ export const SysFileApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 根据文件Id或Url下载 🔖
+         * @summary 根据文件Id或Url下载
          * @param {SysFile} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -166,7 +166,7 @@ export const SysFileApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 根据文件Id集合获取文件 🔖
+         * @summary 根据文件Id集合获取文件
          * @param {Array<number>} [ids]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -210,7 +210,7 @@ export const SysFileApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 获取文件 🔖
+         * @summary 获取文件
          * @param {number} [id]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -254,7 +254,7 @@ export const SysFileApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 获取文件路径 🔖
+         * @summary 获取文件路径
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -294,7 +294,46 @@ export const SysFileApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 获取文件分页列表 🔖
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiSysFileOwnSignatureGet: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/sysFile/ownSignature`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, 'https://example.com');
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+            const localVarRequestOptions: AxiosRequestConfig = { method: 'GET', ...baseOptions, ...options };
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+            // authentication Bearer required
+            // http bearer authentication required
+            if (configuration && configuration.accessToken) {
+                const accessToken = typeof configuration.accessToken === 'function'
+                    ? await configuration.accessToken()
+                    : await configuration.accessToken;
+                localVarHeaderParameter["Authorization"] = "Bearer " + accessToken;
+            }
+            const query = new URLSearchParams(localVarUrlObj.search);
+            for (const key in localVarQueryParameter) {
+                query.set(key, localVarQueryParameter[key]);
+            }
+            for (const key in options.params) {
+                query.set(key, options.params[key]);
+            }
+            localVarUrlObj.search = (new URLSearchParams(query)).toString();
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = { ...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers };
+            return {
+                url: localVarUrlObj.pathname + localVarUrlObj.search + localVarUrlObj.hash,
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         *
+         * @summary 获取文件分页列表
          * @param {PageFileInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -338,7 +377,7 @@ export const SysFileApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 文件预览 🔖
+         * @summary 文件预览
          * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -384,7 +423,7 @@ export const SysFileApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 更新文件 🔖
+         * @summary 更新文件
          * @param {SysFile} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -428,7 +467,7 @@ export const SysFileApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 上传头像 🔖
+         * @summary 上传头像
          * @param {Blob} [file]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -475,7 +514,7 @@ export const SysFileApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 上传文件Base64 🔖
+         * @summary 上传文件Base64
          * @param {UploadFileFromBase64Input} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -519,7 +558,7 @@ export const SysFileApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 上传文件 🔖
+         * @summary 上传文件
          * @param {Blob} [file]
          * @param {string} [fileType]
          * @param {boolean} [isPublic]
@@ -590,7 +629,7 @@ export const SysFileApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 上传多文件 🔖
+         * @summary 上传多文件
          * @param {Array<Blob>} [files]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -639,7 +678,7 @@ export const SysFileApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 上传电子签名 🔖
+         * @summary 上传电子签名
          * @param {Blob} [file]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -694,7 +733,7 @@ export const SysFileApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 删除文件 🔖
+         * @summary 删除文件
          * @param {BaseIdInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -708,7 +747,7 @@ export const SysFileApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 下载指定文件Base64格式 🔖
+         * @summary 下载指定文件Base64格式
          * @param {string} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -722,7 +761,7 @@ export const SysFileApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 根据文件Id或Url下载 🔖
+         * @summary 根据文件Id或Url下载
          * @param {SysFile} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -736,7 +775,7 @@ export const SysFileApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 根据文件Id集合获取文件 🔖
+         * @summary 根据文件Id集合获取文件
          * @param {Array<number>} [ids]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -750,7 +789,7 @@ export const SysFileApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取文件 🔖
+         * @summary 获取文件
          * @param {number} [id]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -764,7 +803,7 @@ export const SysFileApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取文件路径 🔖
+         * @summary 获取文件路径
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -777,7 +816,19 @@ export const SysFileApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取文件分页列表 🔖
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiSysFileOwnSignatureGet(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => Promise<AxiosResponse<AdminResultIActionResult>>> {
+            const localVarAxiosArgs = await SysFileApiAxiosParamCreator(configuration).apiSysFileOwnSignatureGet(options);
+            return (axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
+                const axiosRequestArgs: AxiosRequestConfig = { ...localVarAxiosArgs.options, url: basePath + localVarAxiosArgs.url };
+                return axios.request(axiosRequestArgs);
+            };
+        },
+        /**
+         *
+         * @summary 获取文件分页列表
          * @param {PageFileInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -791,7 +842,7 @@ export const SysFileApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 文件预览 🔖
+         * @summary 文件预览
          * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -805,7 +856,7 @@ export const SysFileApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 更新文件 🔖
+         * @summary 更新文件
          * @param {SysFile} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -819,7 +870,7 @@ export const SysFileApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 上传头像 🔖
+         * @summary 上传头像
          * @param {Blob} [file]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -833,7 +884,7 @@ export const SysFileApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 上传文件Base64 🔖
+         * @summary 上传文件Base64
          * @param {UploadFileFromBase64Input} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -847,7 +898,7 @@ export const SysFileApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 上传文件 🔖
+         * @summary 上传文件
          * @param {Blob} [file]
          * @param {string} [fileType]
          * @param {boolean} [isPublic]
@@ -867,7 +918,7 @@ export const SysFileApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 上传多文件 🔖
+         * @summary 上传多文件
          * @param {Array<Blob>} [files]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -881,7 +932,7 @@ export const SysFileApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 上传电子签名 🔖
+         * @summary 上传电子签名
          * @param {Blob} [file]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -903,7 +954,7 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
     return {
         /**
          *
-         * @summary 删除文件 🔖
+         * @summary 删除文件
          * @param {BaseIdInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -913,7 +964,7 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 下载指定文件Base64格式 🔖
+         * @summary 下载指定文件Base64格式
          * @param {string} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -923,7 +974,7 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 根据文件Id或Url下载 🔖
+         * @summary 根据文件Id或Url下载
          * @param {SysFile} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -933,7 +984,7 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 根据文件Id集合获取文件 🔖
+         * @summary 根据文件Id集合获取文件
          * @param {Array<number>} [ids]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -943,7 +994,7 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 获取文件 🔖
+         * @summary 获取文件
          * @param {number} [id]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -953,7 +1004,7 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 获取文件路径 🔖
+         * @summary 获取文件路径
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -962,7 +1013,15 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 获取文件分页列表 🔖
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiSysFileOwnSignatureGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultIActionResult>> {
+            return SysFileApiFp(configuration).apiSysFileOwnSignatureGet(options).then((request) => request(axios, basePath));
+        },
+        /**
+         *
+         * @summary 获取文件分页列表
          * @param {PageFileInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -972,7 +1031,7 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 文件预览 🔖
+         * @summary 文件预览
          * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -982,7 +1041,7 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 更新文件 🔖
+         * @summary 更新文件
          * @param {SysFile} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -992,7 +1051,7 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 上传头像 🔖
+         * @summary 上传头像
          * @param {Blob} [file]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1002,7 +1061,7 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 上传文件Base64 🔖
+         * @summary 上传文件Base64
          * @param {UploadFileFromBase64Input} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1012,7 +1071,7 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 上传文件 🔖
+         * @summary 上传文件
          * @param {Blob} [file]
          * @param {string} [fileType]
          * @param {boolean} [isPublic]
@@ -1028,7 +1087,7 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 上传多文件 🔖
+         * @summary 上传多文件
          * @param {Array<Blob>} [files]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1038,7 +1097,7 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 上传电子签名 🔖
+         * @summary 上传电子签名
          * @param {Blob} [file]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1057,7 +1116,7 @@ export const SysFileApiFactory = function (configuration?: Configuration, basePa
 export class SysFileApi extends BaseAPI {
     /**
      *
-     * @summary 删除文件 🔖
+     * @summary 删除文件
      * @param {BaseIdInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1068,7 +1127,7 @@ export class SysFileApi extends BaseAPI {
     }
     /**
      *
-     * @summary 下载指定文件Base64格式 🔖
+     * @summary 下载指定文件Base64格式
      * @param {string} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1079,7 +1138,7 @@ export class SysFileApi extends BaseAPI {
     }
     /**
      *
-     * @summary 根据文件Id或Url下载 🔖
+     * @summary 根据文件Id或Url下载
      * @param {SysFile} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1090,7 +1149,7 @@ export class SysFileApi extends BaseAPI {
     }
     /**
      *
-     * @summary 根据文件Id集合获取文件 🔖
+     * @summary 根据文件Id集合获取文件
      * @param {Array<number>} [ids]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1101,7 +1160,7 @@ export class SysFileApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取文件 🔖
+     * @summary 获取文件
      * @param {number} [id]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1112,7 +1171,7 @@ export class SysFileApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取文件路径 🔖
+     * @summary 获取文件路径
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysFileApi
@@ -1122,7 +1181,16 @@ export class SysFileApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取文件分页列表 🔖
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof SysFileApi
+     */
+    public async apiSysFileOwnSignatureGet(options?: AxiosRequestConfig): Promise<AxiosResponse<AdminResultIActionResult>> {
+        return SysFileApiFp(this.configuration).apiSysFileOwnSignatureGet(options).then((request) => request(this.axios, this.basePath));
+    }
+    /**
+     *
+     * @summary 获取文件分页列表
      * @param {PageFileInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1133,7 +1201,7 @@ export class SysFileApi extends BaseAPI {
     }
     /**
      *
-     * @summary 文件预览 🔖
+     * @summary 文件预览
      * @param {number} id
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1144,7 +1212,7 @@ export class SysFileApi extends BaseAPI {
     }
     /**
      *
-     * @summary 更新文件 🔖
+     * @summary 更新文件
      * @param {SysFile} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1155,7 +1223,7 @@ export class SysFileApi extends BaseAPI {
     }
     /**
      *
-     * @summary 上传头像 🔖
+     * @summary 上传头像
      * @param {Blob} [file]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1166,7 +1234,7 @@ export class SysFileApi extends BaseAPI {
     }
     /**
      *
-     * @summary 上传文件Base64 🔖
+     * @summary 上传文件Base64
      * @param {UploadFileFromBase64Input} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1177,7 +1245,7 @@ export class SysFileApi extends BaseAPI {
     }
     /**
      *
-     * @summary 上传文件 🔖
+     * @summary 上传文件
      * @param {Blob} [file]
      * @param {string} [fileType]
      * @param {boolean} [isPublic]
@@ -1194,7 +1262,7 @@ export class SysFileApi extends BaseAPI {
     }
     /**
      *
-     * @summary 上传多文件 🔖
+     * @summary 上传多文件
      * @param {Array<Blob>} [files]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1205,7 +1273,7 @@ export class SysFileApi extends BaseAPI {
     }
     /**
      *
-     * @summary 上传电子签名 🔖
+     * @summary 上传电子签名
      * @param {Blob} [file]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

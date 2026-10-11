@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -28,12 +28,12 @@ export const SysCacheApiAxiosParamCreator = function (configuration?: Configurat
     return {
         /**
          *
-         * @summary 申请分布式缓存锁 🔖
-         * @param {string} key 要锁定的key
-         * @param {number} msTimeout 申请锁等待的时间，单位毫秒
-         * @param {number} msExpire 锁过期时间，超过该时间没有主动释放则自动释放，必须整数秒，单位毫秒
-         * @param {boolean} throwOnFailure 失败时是否抛出异常,如不抛出异常，可通过判断返回null得知申请锁失败
-         * @param {string} throwMessage 抛出异常的文本
+         * @summary 申请分布式缓存锁
+         * @param {string} key
+         * @param {number} msTimeout
+         * @param {number} msExpire
+         * @param {boolean} throwOnFailure
+         * @param {string} throwMessage
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -98,7 +98,7 @@ export const SysCacheApiAxiosParamCreator = function (configuration?: Configurat
         },
         /**
          *
-         * @summary 清空所有缓存 🔖
+         * @summary 清空所有缓存
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -138,8 +138,8 @@ export const SysCacheApiAxiosParamCreator = function (configuration?: Configurat
         },
         /**
          *
-         * @summary 根据键名前缀删除缓存 🔖
-         * @param {string} prefixKey 键名前缀
+         * @summary 根据键名前缀删除缓存
+         * @param {string} prefixKey
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -184,7 +184,7 @@ export const SysCacheApiAxiosParamCreator = function (configuration?: Configurat
         },
         /**
          *
-         * @summary 删除缓存 🔖
+         * @summary 删除缓存
          * @param {string} key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -230,7 +230,7 @@ export const SysCacheApiAxiosParamCreator = function (configuration?: Configurat
         },
         /**
          *
-         * @summary 获取缓存键名集合 🔖
+         * @summary 获取缓存键名集合
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -270,8 +270,8 @@ export const SysCacheApiAxiosParamCreator = function (configuration?: Configurat
         },
         /**
          *
-         * @summary 根据键名前缀获取缓存键名集合 🔖
-         * @param {string} prefixKey 键名前缀
+         * @summary 根据键名前缀获取缓存键名集合
+         * @param {string} prefixKey
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -316,7 +316,7 @@ export const SysCacheApiAxiosParamCreator = function (configuration?: Configurat
         },
         /**
          *
-         * @summary 获取缓存值 🔖
+         * @summary 获取缓存值
          * @param {string} key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -370,12 +370,12 @@ export const SysCacheApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 申请分布式缓存锁 🔖
-         * @param {string} key 要锁定的key
-         * @param {number} msTimeout 申请锁等待的时间，单位毫秒
-         * @param {number} msExpire 锁过期时间，超过该时间没有主动释放则自动释放，必须整数秒，单位毫秒
-         * @param {boolean} throwOnFailure 失败时是否抛出异常,如不抛出异常，可通过判断返回null得知申请锁失败
-         * @param {string} throwMessage 抛出异常的文本
+         * @summary 申请分布式缓存锁
+         * @param {string} key
+         * @param {number} msTimeout
+         * @param {number} msExpire
+         * @param {boolean} throwOnFailure
+         * @param {string} throwMessage
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -388,7 +388,7 @@ export const SysCacheApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 清空所有缓存 🔖
+         * @summary 清空所有缓存
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -401,8 +401,8 @@ export const SysCacheApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 根据键名前缀删除缓存 🔖
-         * @param {string} prefixKey 键名前缀
+         * @summary 根据键名前缀删除缓存
+         * @param {string} prefixKey
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -415,7 +415,7 @@ export const SysCacheApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 删除缓存 🔖
+         * @summary 删除缓存
          * @param {string} key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -429,7 +429,7 @@ export const SysCacheApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取缓存键名集合 🔖
+         * @summary 获取缓存键名集合
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -442,8 +442,8 @@ export const SysCacheApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 根据键名前缀获取缓存键名集合 🔖
-         * @param {string} prefixKey 键名前缀
+         * @summary 根据键名前缀获取缓存键名集合
+         * @param {string} prefixKey
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -456,7 +456,7 @@ export const SysCacheApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取缓存值 🔖
+         * @summary 获取缓存值
          * @param {string} key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -478,12 +478,12 @@ export const SysCacheApiFactory = function (configuration?: Configuration, baseP
     return {
         /**
          *
-         * @summary 申请分布式缓存锁 🔖
-         * @param {string} key 要锁定的key
-         * @param {number} msTimeout 申请锁等待的时间，单位毫秒
-         * @param {number} msExpire 锁过期时间，超过该时间没有主动释放则自动释放，必须整数秒，单位毫秒
-         * @param {boolean} throwOnFailure 失败时是否抛出异常,如不抛出异常，可通过判断返回null得知申请锁失败
-         * @param {string} throwMessage 抛出异常的文本
+         * @summary 申请分布式缓存锁
+         * @param {string} key
+         * @param {number} msTimeout
+         * @param {number} msExpire
+         * @param {boolean} throwOnFailure
+         * @param {string} throwMessage
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -492,7 +492,7 @@ export const SysCacheApiFactory = function (configuration?: Configuration, baseP
         },
         /**
          *
-         * @summary 清空所有缓存 🔖
+         * @summary 清空所有缓存
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -501,8 +501,8 @@ export const SysCacheApiFactory = function (configuration?: Configuration, baseP
         },
         /**
          *
-         * @summary 根据键名前缀删除缓存 🔖
-         * @param {string} prefixKey 键名前缀
+         * @summary 根据键名前缀删除缓存
+         * @param {string} prefixKey
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -511,7 +511,7 @@ export const SysCacheApiFactory = function (configuration?: Configuration, baseP
         },
         /**
          *
-         * @summary 删除缓存 🔖
+         * @summary 删除缓存
          * @param {string} key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -521,7 +521,7 @@ export const SysCacheApiFactory = function (configuration?: Configuration, baseP
         },
         /**
          *
-         * @summary 获取缓存键名集合 🔖
+         * @summary 获取缓存键名集合
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -530,8 +530,8 @@ export const SysCacheApiFactory = function (configuration?: Configuration, baseP
         },
         /**
          *
-         * @summary 根据键名前缀获取缓存键名集合 🔖
-         * @param {string} prefixKey 键名前缀
+         * @summary 根据键名前缀获取缓存键名集合
+         * @param {string} prefixKey
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -540,7 +540,7 @@ export const SysCacheApiFactory = function (configuration?: Configuration, baseP
         },
         /**
          *
-         * @summary 获取缓存值 🔖
+         * @summary 获取缓存值
          * @param {string} key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -559,12 +559,12 @@ export const SysCacheApiFactory = function (configuration?: Configuration, baseP
 export class SysCacheApi extends BaseAPI {
     /**
      *
-     * @summary 申请分布式缓存锁 🔖
-     * @param {string} key 要锁定的key
-     * @param {number} msTimeout 申请锁等待的时间，单位毫秒
-     * @param {number} msExpire 锁过期时间，超过该时间没有主动释放则自动释放，必须整数秒，单位毫秒
-     * @param {boolean} throwOnFailure 失败时是否抛出异常,如不抛出异常，可通过判断返回null得知申请锁失败
-     * @param {string} throwMessage 抛出异常的文本
+     * @summary 申请分布式缓存锁
+     * @param {string} key
+     * @param {number} msTimeout
+     * @param {number} msExpire
+     * @param {boolean} throwOnFailure
+     * @param {string} throwMessage
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysCacheApi
@@ -574,7 +574,7 @@ export class SysCacheApi extends BaseAPI {
     }
     /**
      *
-     * @summary 清空所有缓存 🔖
+     * @summary 清空所有缓存
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysCacheApi
@@ -584,8 +584,8 @@ export class SysCacheApi extends BaseAPI {
     }
     /**
      *
-     * @summary 根据键名前缀删除缓存 🔖
-     * @param {string} prefixKey 键名前缀
+     * @summary 根据键名前缀删除缓存
+     * @param {string} prefixKey
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysCacheApi
@@ -595,7 +595,7 @@ export class SysCacheApi extends BaseAPI {
     }
     /**
      *
-     * @summary 删除缓存 🔖
+     * @summary 删除缓存
      * @param {string} key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -606,7 +606,7 @@ export class SysCacheApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取缓存键名集合 🔖
+     * @summary 获取缓存键名集合
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysCacheApi
@@ -616,8 +616,8 @@ export class SysCacheApi extends BaseAPI {
     }
     /**
      *
-     * @summary 根据键名前缀获取缓存键名集合 🔖
-     * @param {string} prefixKey 键名前缀
+     * @summary 根据键名前缀获取缓存键名集合
+     * @param {string} prefixKey
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysCacheApi
@@ -627,7 +627,7 @@ export class SysCacheApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取缓存值 🔖
+     * @summary 获取缓存值
      * @param {string} key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

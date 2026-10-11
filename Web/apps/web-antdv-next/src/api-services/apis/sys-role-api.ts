@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -36,7 +36,7 @@ export const SysRoleApiAxiosParamCreator = function (configuration?: Configurati
     return {
         /**
          *
-         * @summary 增加角色 🔖
+         * @summary 增加角色
          * @param {AddRoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -80,7 +80,7 @@ export const SysRoleApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 删除角色 🔖
+         * @summary 删除角色
          * @param {DeleteRoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -124,7 +124,7 @@ export const SysRoleApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 授权角色数据范围 🔖
+         * @summary 授权角色数据范围
          * @param {RoleOrgInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -168,7 +168,7 @@ export const SysRoleApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 授权角色菜单 🔖
+         * @summary 授权角色菜单
          * @param {RoleMenuInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -212,7 +212,7 @@ export const SysRoleApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 获取角色列表 🔖
+         * @summary 获取角色列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -252,9 +252,9 @@ export const SysRoleApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 根据角色Id获取菜单Id集合 🔖
-         * @param {number} id 主键Id
-         * @param {StatusEnum} [status] 状态
+         * @summary 根据角色Id获取菜单Id集合
+         * @param {number} id
+         * @param {StatusEnum} [status] &lt;br /&gt;&amp;nbsp;启用 Enable &#x3D; 1&lt;br /&gt;&amp;nbsp;停用 Disable &#x3D; 2&lt;br /&gt;
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -304,9 +304,9 @@ export const SysRoleApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 根据角色Id获取机构Id集合 🔖
-         * @param {number} id 主键Id
-         * @param {StatusEnum} [status] 状态
+         * @summary 根据角色Id获取机构Id集合
+         * @param {number} id
+         * @param {StatusEnum} [status] &lt;br /&gt;&amp;nbsp;启用 Enable &#x3D; 1&lt;br /&gt;&amp;nbsp;停用 Disable &#x3D; 2&lt;br /&gt;
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -356,7 +356,7 @@ export const SysRoleApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 获取角色分页列表 🔖
+         * @summary 获取角色分页列表
          * @param {PageRoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -400,7 +400,7 @@ export const SysRoleApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 设置角色状态 🔖
+         * @summary 设置角色状态
          * @param {RoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -444,7 +444,7 @@ export const SysRoleApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          *
-         * @summary 更新角色 🔖
+         * @summary 更新角色
          * @param {UpdateRoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -496,7 +496,7 @@ export const SysRoleApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 增加角色 🔖
+         * @summary 增加角色
          * @param {AddRoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -510,7 +510,7 @@ export const SysRoleApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 删除角色 🔖
+         * @summary 删除角色
          * @param {DeleteRoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -524,7 +524,7 @@ export const SysRoleApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 授权角色数据范围 🔖
+         * @summary 授权角色数据范围
          * @param {RoleOrgInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -538,7 +538,7 @@ export const SysRoleApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 授权角色菜单 🔖
+         * @summary 授权角色菜单
          * @param {RoleMenuInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -552,7 +552,7 @@ export const SysRoleApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取角色列表 🔖
+         * @summary 获取角色列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -565,9 +565,9 @@ export const SysRoleApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 根据角色Id获取菜单Id集合 🔖
-         * @param {number} id 主键Id
-         * @param {StatusEnum} [status] 状态
+         * @summary 根据角色Id获取菜单Id集合
+         * @param {number} id
+         * @param {StatusEnum} [status] &lt;br /&gt;&amp;nbsp;启用 Enable &#x3D; 1&lt;br /&gt;&amp;nbsp;停用 Disable &#x3D; 2&lt;br /&gt;
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -580,9 +580,9 @@ export const SysRoleApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 根据角色Id获取机构Id集合 🔖
-         * @param {number} id 主键Id
-         * @param {StatusEnum} [status] 状态
+         * @summary 根据角色Id获取机构Id集合
+         * @param {number} id
+         * @param {StatusEnum} [status] &lt;br /&gt;&amp;nbsp;启用 Enable &#x3D; 1&lt;br /&gt;&amp;nbsp;停用 Disable &#x3D; 2&lt;br /&gt;
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -595,7 +595,7 @@ export const SysRoleApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取角色分页列表 🔖
+         * @summary 获取角色分页列表
          * @param {PageRoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -609,7 +609,7 @@ export const SysRoleApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 设置角色状态 🔖
+         * @summary 设置角色状态
          * @param {RoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -623,7 +623,7 @@ export const SysRoleApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 更新角色 🔖
+         * @summary 更新角色
          * @param {UpdateRoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -645,7 +645,7 @@ export const SysRoleApiFactory = function (configuration?: Configuration, basePa
     return {
         /**
          *
-         * @summary 增加角色 🔖
+         * @summary 增加角色
          * @param {AddRoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -655,7 +655,7 @@ export const SysRoleApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 删除角色 🔖
+         * @summary 删除角色
          * @param {DeleteRoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -665,7 +665,7 @@ export const SysRoleApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 授权角色数据范围 🔖
+         * @summary 授权角色数据范围
          * @param {RoleOrgInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -675,7 +675,7 @@ export const SysRoleApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 授权角色菜单 🔖
+         * @summary 授权角色菜单
          * @param {RoleMenuInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -685,7 +685,7 @@ export const SysRoleApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 获取角色列表 🔖
+         * @summary 获取角色列表
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -694,9 +694,9 @@ export const SysRoleApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 根据角色Id获取菜单Id集合 🔖
-         * @param {number} id 主键Id
-         * @param {StatusEnum} [status] 状态
+         * @summary 根据角色Id获取菜单Id集合
+         * @param {number} id
+         * @param {StatusEnum} [status] &lt;br /&gt;&amp;nbsp;启用 Enable &#x3D; 1&lt;br /&gt;&amp;nbsp;停用 Disable &#x3D; 2&lt;br /&gt;
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -705,9 +705,9 @@ export const SysRoleApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 根据角色Id获取机构Id集合 🔖
-         * @param {number} id 主键Id
-         * @param {StatusEnum} [status] 状态
+         * @summary 根据角色Id获取机构Id集合
+         * @param {number} id
+         * @param {StatusEnum} [status] &lt;br /&gt;&amp;nbsp;启用 Enable &#x3D; 1&lt;br /&gt;&amp;nbsp;停用 Disable &#x3D; 2&lt;br /&gt;
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -716,7 +716,7 @@ export const SysRoleApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 获取角色分页列表 🔖
+         * @summary 获取角色分页列表
          * @param {PageRoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -726,7 +726,7 @@ export const SysRoleApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 设置角色状态 🔖
+         * @summary 设置角色状态
          * @param {RoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -736,7 +736,7 @@ export const SysRoleApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          *
-         * @summary 更新角色 🔖
+         * @summary 更新角色
          * @param {UpdateRoleInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -755,7 +755,7 @@ export const SysRoleApiFactory = function (configuration?: Configuration, basePa
 export class SysRoleApi extends BaseAPI {
     /**
      *
-     * @summary 增加角色 🔖
+     * @summary 增加角色
      * @param {AddRoleInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -766,7 +766,7 @@ export class SysRoleApi extends BaseAPI {
     }
     /**
      *
-     * @summary 删除角色 🔖
+     * @summary 删除角色
      * @param {DeleteRoleInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -777,7 +777,7 @@ export class SysRoleApi extends BaseAPI {
     }
     /**
      *
-     * @summary 授权角色数据范围 🔖
+     * @summary 授权角色数据范围
      * @param {RoleOrgInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -788,7 +788,7 @@ export class SysRoleApi extends BaseAPI {
     }
     /**
      *
-     * @summary 授权角色菜单 🔖
+     * @summary 授权角色菜单
      * @param {RoleMenuInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -799,7 +799,7 @@ export class SysRoleApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取角色列表 🔖
+     * @summary 获取角色列表
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysRoleApi
@@ -809,9 +809,9 @@ export class SysRoleApi extends BaseAPI {
     }
     /**
      *
-     * @summary 根据角色Id获取菜单Id集合 🔖
-     * @param {number} id 主键Id
-     * @param {StatusEnum} [status] 状态
+     * @summary 根据角色Id获取菜单Id集合
+     * @param {number} id
+     * @param {StatusEnum} [status] &lt;br /&gt;&amp;nbsp;启用 Enable &#x3D; 1&lt;br /&gt;&amp;nbsp;停用 Disable &#x3D; 2&lt;br /&gt;
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysRoleApi
@@ -821,9 +821,9 @@ export class SysRoleApi extends BaseAPI {
     }
     /**
      *
-     * @summary 根据角色Id获取机构Id集合 🔖
-     * @param {number} id 主键Id
-     * @param {StatusEnum} [status] 状态
+     * @summary 根据角色Id获取机构Id集合
+     * @param {number} id
+     * @param {StatusEnum} [status] &lt;br /&gt;&amp;nbsp;启用 Enable &#x3D; 1&lt;br /&gt;&amp;nbsp;停用 Disable &#x3D; 2&lt;br /&gt;
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysRoleApi
@@ -833,7 +833,7 @@ export class SysRoleApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取角色分页列表 🔖
+     * @summary 获取角色分页列表
      * @param {PageRoleInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -844,7 +844,7 @@ export class SysRoleApi extends BaseAPI {
     }
     /**
      *
-     * @summary 设置角色状态 🔖
+     * @summary 设置角色状态
      * @param {RoleInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -855,7 +855,7 @@ export class SysRoleApi extends BaseAPI {
     }
     /**
      *
-     * @summary 更新角色 🔖
+     * @summary 更新角色
      * @param {UpdateRoleInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

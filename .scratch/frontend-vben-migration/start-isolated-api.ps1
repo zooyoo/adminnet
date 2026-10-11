@@ -13,6 +13,7 @@ param(
     [switch]$RegionFixture,
     [switch]$TemplateFixture,
     [switch]$PluginFixture,
+    [switch]$SdkFixture,
     [uri]$StressTestService,
     [uri]$UpdateArchiveService,
     [switch]$FileDeduplication,
@@ -27,7 +28,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if (([int]$CrudFixture.IsPresent + [int]$AuthFixture.IsPresent + [int]$OnlineFixture.IsPresent) -gt 1) { throw 'Select only one isolated fixture.' }
-if (($MonitorFixture -or $OpenAccessFixture -or $RegionFixture -or $TemplateFixture -or $PluginFixture -or $StressTestService -or $UpdateArchiveService) -and -not $PostgreSqlFixture) { throw 'Monitor, open-access, region, template, plugin, stress and update fixtures require PostgreSqlFixture.' }
+if (($MonitorFixture -or $OpenAccessFixture -or $RegionFixture -or $TemplateFixture -or $PluginFixture -or $SdkFixture -or $StressTestService -or $UpdateArchiveService) -and -not $PostgreSqlFixture) { throw 'Monitor, open-access, region, template, plugin, SDK, stress and update fixtures require PostgreSqlFixture.' }
 if ($UpdateArchiveService -and ($UpdateArchiveService.Scheme -ne 'http' -or $UpdateArchiveService.Host -ne '127.0.0.1' -or
     $UpdateArchiveService.AbsolutePath -ne '/archive.zip' -or $UpdateArchiveService.Query -or $UpdateArchiveService.UserInfo -or $UpdateArchiveService.Fragment)) {
     throw 'Update archive service must be an explicit local HTTP /archive.zip endpoint.'
@@ -88,7 +89,12 @@ foreach ($fileName in @('App.json', 'Enum.json', 'Captcha.json', 'Limit.json')) 
         }
     }
 }
-$configuration['AppSettings'] = @{ InjectSpecificationDocument = $false }
+$configuration['AppSettings'] = @{ InjectSpecificationDocument = [bool]$SdkFixture }
+if ($SdkFixture) {
+    # SDK 文档沿用应用的枚举表示，避免隔离环境默认字符串枚举偏离真实数字合同。
+    $sdkSwagger = Get-Content -LiteralPath (Join-Path $configurationRoot 'Swagger.json') -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+    $configuration['SpecificationDocumentSettings'] = @{ EnumToNumber = $sdkSwagger['SpecificationDocumentSettings']['EnumToNumber'] }
+}
 if ($StressTestService) {
     $configuration['StressTest'] = @{
         Enabled = $true

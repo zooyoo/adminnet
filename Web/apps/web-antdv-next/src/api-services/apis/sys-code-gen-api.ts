@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -37,7 +37,7 @@ export const SysCodeGenApiAxiosParamCreator = function (configuration?: Configur
     return {
         /**
          *
-         * @summary 增加代码生成 🔖
+         * @summary 增加代码生成
          * @param {AddCodeGenInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -81,7 +81,7 @@ export const SysCodeGenApiAxiosParamCreator = function (configuration?: Configur
         },
         /**
          *
-         * @summary 获取程序保存位置 🔖
+         * @summary 获取程序保存位置
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -121,7 +121,7 @@ export const SysCodeGenApiAxiosParamCreator = function (configuration?: Configur
         },
         /**
          *
-         * @summary 根据表名获取列集合 🔖
+         * @summary 根据表名获取列集合
          * @param {string} tableName
          * @param {string} configId
          * @param {*} [options] Override http request option.
@@ -173,7 +173,7 @@ export const SysCodeGenApiAxiosParamCreator = function (configuration?: Configur
         },
         /**
          *
-         * @summary 获取数据库库集合 🔖
+         * @summary 获取数据库库集合
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -213,7 +213,7 @@ export const SysCodeGenApiAxiosParamCreator = function (configuration?: Configur
         },
         /**
          *
-         * @summary 删除代码生成 🔖
+         * @summary 删除代码生成
          * @param {Array<DeleteCodeGenInput>} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -257,8 +257,8 @@ export const SysCodeGenApiAxiosParamCreator = function (configuration?: Configur
         },
         /**
          *
-         * @summary 获取代码生成详情 🔖
-         * @param {number} id 代码生成器Id
+         * @summary 获取代码生成详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -305,7 +305,7 @@ export const SysCodeGenApiAxiosParamCreator = function (configuration?: Configur
         },
         /**
          *
-         * @summary 获取代码生成分页列表 🔖
+         * @summary 获取代码生成分页列表
          * @param {CodeGenInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -349,7 +349,7 @@ export const SysCodeGenApiAxiosParamCreator = function (configuration?: Configur
         },
         /**
          *
-         * @summary 获取代码生成预览 🔖
+         * @summary 获取代码生成预览
          * @param {SysCodeGen} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -393,7 +393,7 @@ export const SysCodeGenApiAxiosParamCreator = function (configuration?: Configur
         },
         /**
          *
-         * @summary 代码生成到本地 🔖
+         * @summary 代码生成到本地
          * @param {SysCodeGen} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -437,7 +437,7 @@ export const SysCodeGenApiAxiosParamCreator = function (configuration?: Configur
         },
         /**
          *
-         * @summary 同步代码字段(保留历史作用类型) 🔖
+         * @summary 同步代码字段
          * @param {UpdateCodeGenInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -481,7 +481,7 @@ export const SysCodeGenApiAxiosParamCreator = function (configuration?: Configur
         },
         /**
          *
-         * @summary 获取数据库表(实体)集合 🔖
+         * @summary 获取数据库表(实体)集合
          * @param {string} configId
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -527,7 +527,7 @@ export const SysCodeGenApiAxiosParamCreator = function (configuration?: Configur
         },
         /**
          *
-         * @summary 更新代码生成 🔖
+         * @summary 更新代码生成
          * @param {UpdateCodeGenInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -579,7 +579,7 @@ export const SysCodeGenApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 增加代码生成 🔖
+         * @summary 增加代码生成
          * @param {AddCodeGenInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -593,7 +593,7 @@ export const SysCodeGenApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取程序保存位置 🔖
+         * @summary 获取程序保存位置
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -606,7 +606,7 @@ export const SysCodeGenApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 根据表名获取列集合 🔖
+         * @summary 根据表名获取列集合
          * @param {string} tableName
          * @param {string} configId
          * @param {*} [options] Override http request option.
@@ -621,7 +621,7 @@ export const SysCodeGenApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取数据库库集合 🔖
+         * @summary 获取数据库库集合
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -634,7 +634,7 @@ export const SysCodeGenApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 删除代码生成 🔖
+         * @summary 删除代码生成
          * @param {Array<DeleteCodeGenInput>} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -648,8 +648,8 @@ export const SysCodeGenApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取代码生成详情 🔖
-         * @param {number} id 代码生成器Id
+         * @summary 获取代码生成详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -662,7 +662,7 @@ export const SysCodeGenApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取代码生成分页列表 🔖
+         * @summary 获取代码生成分页列表
          * @param {CodeGenInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -676,7 +676,7 @@ export const SysCodeGenApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取代码生成预览 🔖
+         * @summary 获取代码生成预览
          * @param {SysCodeGen} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -690,7 +690,7 @@ export const SysCodeGenApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 代码生成到本地 🔖
+         * @summary 代码生成到本地
          * @param {SysCodeGen} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -704,7 +704,7 @@ export const SysCodeGenApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 同步代码字段(保留历史作用类型) 🔖
+         * @summary 同步代码字段
          * @param {UpdateCodeGenInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -718,7 +718,7 @@ export const SysCodeGenApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 获取数据库表(实体)集合 🔖
+         * @summary 获取数据库表(实体)集合
          * @param {string} configId
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -732,7 +732,7 @@ export const SysCodeGenApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 更新代码生成 🔖
+         * @summary 更新代码生成
          * @param {UpdateCodeGenInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -754,7 +754,7 @@ export const SysCodeGenApiFactory = function (configuration?: Configuration, bas
     return {
         /**
          *
-         * @summary 增加代码生成 🔖
+         * @summary 增加代码生成
          * @param {AddCodeGenInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -764,7 +764,7 @@ export const SysCodeGenApiFactory = function (configuration?: Configuration, bas
         },
         /**
          *
-         * @summary 获取程序保存位置 🔖
+         * @summary 获取程序保存位置
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -773,7 +773,7 @@ export const SysCodeGenApiFactory = function (configuration?: Configuration, bas
         },
         /**
          *
-         * @summary 根据表名获取列集合 🔖
+         * @summary 根据表名获取列集合
          * @param {string} tableName
          * @param {string} configId
          * @param {*} [options] Override http request option.
@@ -784,7 +784,7 @@ export const SysCodeGenApiFactory = function (configuration?: Configuration, bas
         },
         /**
          *
-         * @summary 获取数据库库集合 🔖
+         * @summary 获取数据库库集合
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -793,7 +793,7 @@ export const SysCodeGenApiFactory = function (configuration?: Configuration, bas
         },
         /**
          *
-         * @summary 删除代码生成 🔖
+         * @summary 删除代码生成
          * @param {Array<DeleteCodeGenInput>} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -803,8 +803,8 @@ export const SysCodeGenApiFactory = function (configuration?: Configuration, bas
         },
         /**
          *
-         * @summary 获取代码生成详情 🔖
-         * @param {number} id 代码生成器Id
+         * @summary 获取代码生成详情
+         * @param {number} id
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -813,7 +813,7 @@ export const SysCodeGenApiFactory = function (configuration?: Configuration, bas
         },
         /**
          *
-         * @summary 获取代码生成分页列表 🔖
+         * @summary 获取代码生成分页列表
          * @param {CodeGenInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -823,7 +823,7 @@ export const SysCodeGenApiFactory = function (configuration?: Configuration, bas
         },
         /**
          *
-         * @summary 获取代码生成预览 🔖
+         * @summary 获取代码生成预览
          * @param {SysCodeGen} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -833,7 +833,7 @@ export const SysCodeGenApiFactory = function (configuration?: Configuration, bas
         },
         /**
          *
-         * @summary 代码生成到本地 🔖
+         * @summary 代码生成到本地
          * @param {SysCodeGen} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -843,7 +843,7 @@ export const SysCodeGenApiFactory = function (configuration?: Configuration, bas
         },
         /**
          *
-         * @summary 同步代码字段(保留历史作用类型) 🔖
+         * @summary 同步代码字段
          * @param {UpdateCodeGenInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -853,7 +853,7 @@ export const SysCodeGenApiFactory = function (configuration?: Configuration, bas
         },
         /**
          *
-         * @summary 获取数据库表(实体)集合 🔖
+         * @summary 获取数据库表(实体)集合
          * @param {string} configId
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -863,7 +863,7 @@ export const SysCodeGenApiFactory = function (configuration?: Configuration, bas
         },
         /**
          *
-         * @summary 更新代码生成 🔖
+         * @summary 更新代码生成
          * @param {UpdateCodeGenInput} [body]
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -882,7 +882,7 @@ export const SysCodeGenApiFactory = function (configuration?: Configuration, bas
 export class SysCodeGenApi extends BaseAPI {
     /**
      *
-     * @summary 增加代码生成 🔖
+     * @summary 增加代码生成
      * @param {AddCodeGenInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -893,7 +893,7 @@ export class SysCodeGenApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取程序保存位置 🔖
+     * @summary 获取程序保存位置
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysCodeGenApi
@@ -903,7 +903,7 @@ export class SysCodeGenApi extends BaseAPI {
     }
     /**
      *
-     * @summary 根据表名获取列集合 🔖
+     * @summary 根据表名获取列集合
      * @param {string} tableName
      * @param {string} configId
      * @param {*} [options] Override http request option.
@@ -915,7 +915,7 @@ export class SysCodeGenApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取数据库库集合 🔖
+     * @summary 获取数据库库集合
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysCodeGenApi
@@ -925,7 +925,7 @@ export class SysCodeGenApi extends BaseAPI {
     }
     /**
      *
-     * @summary 删除代码生成 🔖
+     * @summary 删除代码生成
      * @param {Array<DeleteCodeGenInput>} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -936,8 +936,8 @@ export class SysCodeGenApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取代码生成详情 🔖
-     * @param {number} id 代码生成器Id
+     * @summary 获取代码生成详情
+     * @param {number} id
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SysCodeGenApi
@@ -947,7 +947,7 @@ export class SysCodeGenApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取代码生成分页列表 🔖
+     * @summary 获取代码生成分页列表
      * @param {CodeGenInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -958,7 +958,7 @@ export class SysCodeGenApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取代码生成预览 🔖
+     * @summary 获取代码生成预览
      * @param {SysCodeGen} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -969,7 +969,7 @@ export class SysCodeGenApi extends BaseAPI {
     }
     /**
      *
-     * @summary 代码生成到本地 🔖
+     * @summary 代码生成到本地
      * @param {SysCodeGen} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -980,7 +980,7 @@ export class SysCodeGenApi extends BaseAPI {
     }
     /**
      *
-     * @summary 同步代码字段(保留历史作用类型) 🔖
+     * @summary 同步代码字段
      * @param {UpdateCodeGenInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -991,7 +991,7 @@ export class SysCodeGenApi extends BaseAPI {
     }
     /**
      *
-     * @summary 获取数据库表(实体)集合 🔖
+     * @summary 获取数据库表(实体)集合
      * @param {string} configId
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1002,7 +1002,7 @@ export class SysCodeGenApi extends BaseAPI {
     }
     /**
      *
-     * @summary 更新代码生成 🔖
+     * @summary 更新代码生成
      * @param {UpdateCodeGenInput} [body]
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

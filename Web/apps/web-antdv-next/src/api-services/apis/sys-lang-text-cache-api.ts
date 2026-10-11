@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Admin.NET 通用权限开发平台
- * 让 .NET 开发更简单、更通用、更流行。整合最新技术，模块插件式开发，前后端分离，开箱即用。<br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
+ * Default
+ * <br/><u><b><font color='FF0000'> 👮本项目遵循技术中立原则，使用者须严格遵守国家相关法律法规，严禁用于任何危害国家安全、破坏社会稳定或侵犯他人合法权益的行为。任何基于本项目的二次开发、修改、分发或实际部署所引发的法律纠纷、行政处罚及侵权赔偿，均由相关行为人自行承担全部法律责任，本团队不承担任何形式的连带责任。</font></b></u>
  *
  * OpenAPI spec version: 1.0.0
  *
@@ -24,7 +24,6 @@ export const SysLangTextCacheApiAxiosParamCreator = function (configuration?: Co
     return {
         /**
          *
-         * @summary 删除缓存
          * @param {string} entityName
          * @param {string} fieldName
          * @param {number} entityId
@@ -88,7 +87,6 @@ export const SysLangTextCacheApiAxiosParamCreator = function (configuration?: Co
         },
         /**
          *
-         * @summary 更新缓存
          * @param {string} entityName
          * @param {string} fieldName
          * @param {number} entityId
@@ -166,7 +164,6 @@ export const SysLangTextCacheApiFp = function (configuration?: Configuration) {
     return {
         /**
          *
-         * @summary 删除缓存
          * @param {string} entityName
          * @param {string} fieldName
          * @param {number} entityId
@@ -183,7 +180,6 @@ export const SysLangTextCacheApiFp = function (configuration?: Configuration) {
         },
         /**
          *
-         * @summary 更新缓存
          * @param {string} entityName
          * @param {string} fieldName
          * @param {number} entityId
@@ -209,7 +205,6 @@ export const SysLangTextCacheApiFactory = function (configuration?: Configuratio
     return {
         /**
          *
-         * @summary 删除缓存
          * @param {string} entityName
          * @param {string} fieldName
          * @param {number} entityId
@@ -222,7 +217,6 @@ export const SysLangTextCacheApiFactory = function (configuration?: Configuratio
         },
         /**
          *
-         * @summary 更新缓存
          * @param {string} entityName
          * @param {string} fieldName
          * @param {number} entityId
@@ -245,7 +239,6 @@ export const SysLangTextCacheApiFactory = function (configuration?: Configuratio
 export class SysLangTextCacheApi extends BaseAPI {
     /**
      *
-     * @summary 删除缓存
      * @param {string} entityName
      * @param {string} fieldName
      * @param {number} entityId
@@ -259,7 +252,6 @@ export class SysLangTextCacheApi extends BaseAPI {
     }
     /**
      *
-     * @summary 更新缓存
      * @param {string} entityName
      * @param {string} fieldName
      * @param {number} entityId
