@@ -1,0 +1,91 @@
+{
+  "proposal": 41,
+  "execution": "deferred-by-user",
+  "complete": false,
+  "realPlaybackConfirmed": false,
+  "deferredReason": "用户明确表示暂时没有授权测试配置，先跳过；真实首帧和标准播放控制待补。",
+  "verified": [
+    "9 项会话边界单测",
+    "ESLint 与应用类型检查",
+    "生产构建及真实 SDK 资源 HTTP 200",
+    "真实 SDK 错误处理、停止、同文档离页与凭据清除",
+    "明暗桌面截图实际查看与无横向溢出",
+    "动态菜单四关联表、API 与隔离 PostgreSQL 清理"
+  ],
+  "sourceSha256": {
+    "Web/apps/web-antdv-next/src/views/elive/index.vue": "03528e081e5a3bfe015e60a37f3e1fc50ceb1b481e91cb0e0c46bb4e8a636704",
+    "Web/apps/web-antdv-next/src/views/elive/live-player.ts": "23da2194f846f625a7694c9d112dcbe54e80418949f78bc8b0cf93f28edd0a99",
+    "Web/apps/web-antdv-next/src/views/elive/live-session.ts": "8eeba9753092740421298d6ae59b24a2045d98b18406a6f5cc2e33c4c4328d33",
+    "Web/apps/web-antdv-next/src/views/elive/live-session.test.ts": "8d129d72c9bfbe333b001f40f286342914594434a4b110850126729af48942a5"
+  },
+  "originalReport": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8034bd3905dc4045b9b098e18435a2af/evidence/live-browser-baseline.json",
+  "originalReportSha256": "c5e96d62ecd70dc44c9c4ad821e91ed5ac0d10d0a0e8fbff29a6ed834c08cd5a",
+  "screenshotSha256": {
+    "light": "b95f6250fed0c5bb075935bcd0ceaa4ea6b7cd0130f31542d137a37f8965135c",
+    "dark": "43570d7447b1b346a4a15d4ff532064c50c5002834311341599def9d8f86d032"
+  },
+  "authorizationPreflight": [
+    {
+      "source": "https://open.ys7.com/jssdk/ezopen/demo/token",
+      "device": "BD3957004",
+      "businessCode": "10031",
+      "meaning": "子账户或萤石用户没有权限"
+    },
+    {
+      "source": "官方 master base-demo/index.html 与 with-docker-nginx/html/index.html",
+      "device": "BC7799091",
+      "businessCode": "10002",
+      "meaning": "accessToken 过期或参数异常"
+    }
+  ],
+  "errorCleanupReport": {
+    "passed": true,
+    "cleanupPassed": true,
+    "boundary": "production-desktop-real-api-postgresql-ezuikit-8.0.5-no-mock",
+    "steps": [
+      {
+        "name": "production-real-login-dynamic-live-menu",
+        "menuId": "858622120321093"
+      },
+      {
+        "name": "invalid-protocol-has-safe-error-without-player"
+      },
+      {
+        "name": "invalid-token-real-sdk-safe-error-cleanup-and-retry-draft"
+      },
+      {
+        "name": "desktop-live-light-dark-no-horizontal-overflow"
+      },
+      {
+        "name": "stop-during-loading-removes-real-sdk-context-and-retains-draft"
+      },
+      {
+        "name": "same-document-leave-clears-credentials-and-player-context"
+      },
+      {
+        "name": "explicit-clear-removes-credentials-and-player-context"
+      }
+    ],
+    "cleanupErrors": [],
+    "scope": "production-error-and-resource-cleanup",
+    "realPlaybackConfirmed": false,
+    "menuIds": [
+      "858622120321093"
+    ],
+    "sdkResources": [
+      {
+        "path": "/js/ezuikit-D2xhrbKC.js",
+        "status": 200
+      },
+      {
+        "path": "/js/ezuikit-D2xhrbKC.js",
+        "status": 200
+      }
+    ],
+    "externalMediaSocketsClosed": true,
+    "browserErrors": [],
+    "fixtureRecordsRemoved": true,
+    "containerRemoved": true,
+    "apiStopped": true
+  }
+}

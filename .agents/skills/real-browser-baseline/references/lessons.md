@@ -260,3 +260,9 @@
 - 后台 API 继承启动器输出管道时，execFile 的进程退出等待可能迟迟不完成。以启动脚本明确的 Ready 信号完成启动交接，仍使用运行标识恢复所有权并在 finally 独立清理 API、菜单和 PostgreSQL。
 - 若 MQTT 强制结束后原生 socket 长时间停在 CLOSING，先用实际 MqttSession 源码、已安装 MQTT.js 和自有 broker 建立快速浏览器回归。在线且没有应用 / 协议待确认操作时验证正常 DISCONNECT；离线、连接中或仍有 outgoing 消息时保留强制结束，认证信息在等待关闭回执前清除。不能只放宽断言截止时间。
 - ACL 的 SUBACK 与消息投递检查可能有不同语义。用两个权限范围独立的夹具身份证明越权主题确有消息，再等待允许主题的后续消息到达作为处理屏障，检查页面未收到越权消息；拒绝回执另外按真实协议或单测验证。
+
+## 2026-10-12：EZUIKit 8.0.5 标准模板与授权验收边界
+
+- 条件：复用旧 ezuikit-js 8.0.5 standard 模板。按安装源码确认实际返回对象；该 iframe 播放器没有 destroy，可在可移除的独立执行 iframe 内加载真实 SDK，停止时先尽力 stop，再移除整个执行环境，验收事件、外部 frame 和 WebSocket 的关闭。
+- 正向播放必须核对真实首帧或解码帧及标准控制；SDK 脚本 HTTP 200、初始化回调和 Token 接口 code 200 不能替代设备播放权限。演示 Token 成功后，严格按官方明确配对做授权预检；10031 或 10002 时保留真实失败结果，不枚举设备或升级 SDK 寻找绕行。
+- 分别记录 production-error-and-resource-cleanup 与完整播放范围。错误范围 passed=true 仍应保存 realPlaybackConfirmed=false；缺授权配置且用户决定暂缓时，不把该提案计入完成数。截图遮罩 Token 及可能含设备密码的视频地址，报告不记录原始认证 URL。

@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const source = fs.readFileSync(new URL('./run-sdk-browser-baseline.mjs', import.meta.url), 'utf8');
+const start = source.indexOf('// 生产桌面页面');
+const tail = source.indexOf('try {\n  const port =');
+assert.ok(start > 0 && tail > start);
+let result = "import { startMqttApi } from './mqtt-api-startup.mjs';\n" + source.slice(0, start) + fs.readFileSync(new URL('./live-browser-flow.mjs', import.meta.url), 'utf8') + '\n' + source.slice(tail);
+result = result.replaceAll('sdk-browser-baseline.json', 'live-browser-baseline.json').replaceAll('plugin-startup-report.json', 'live-startup-report.json').replaceAll('frontend-vben-migration/plugin-api-build', 'frontend-vben-migration/payment-api-build').replace('process.argv[2] ?? 5035', 'process.argv[2] ?? 5151').replace('await runSdkBrowser();', 'await runLiveBrowser();').replace('production-desktop-real-api-postgresql-generated-sdk-no-mock', 'production-desktop-real-api-postgresql-ezuikit-8.0.5-no-mock');
+result = result.replace("[page.locator('input[type=\"password\"]'), ...secrets.map(value => page.getByText(value, { exact: true }))]", "[page.locator('input[type=\"password\"], #live-url'), ...secrets.map(value => page.getByText(value, { exact: false }))]");
+result = result.replace(/await execute\('pwsh', (\[[^\n]+\]), \{ windowsHide: true, timeout: 330000 \}\);/u, 'await startMqttApi($1, 330000);');
+assert.ok(result.includes('await startMqttApi('));
+fs.writeFileSync(new URL('./run-live-browser-baseline.mjs', import.meta.url), result, 'utf8');
+console.log('Live production browser runner generated');

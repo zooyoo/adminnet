@@ -57,6 +57,7 @@
     "axios": "catalog:",
     "dayjs": "catalog:",
     "dompurify": "3.4.16",
+    "ezuikit-js": "8.0.5",
     "monaco-editor": "0.55.1",
     "mqtt": "5.16.0",
     "pinia": "catalog:",

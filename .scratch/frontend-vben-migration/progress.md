@@ -62,7 +62,7 @@
 | 38 | 微信用户管理 | 已完成：资料 CRUD、平台分页、头像、防重复、权限租户、凭据保留、真实桌面与 PG 清理通过 |
 | 39 | 删除微信支付订单与退款等相关代码 | 已完成 |
 | 40 | MQTT 连接与消息工作流 | 已完成 |
-| 41 | 直播与视频工具 | 待开始 |
+| 41 | 直播与视频工具 | 用户暂缓：真实播放待授权配置 |
 | 42 | 代码生成配置与可编辑字段表 | 待开始 |
 | 43 | 生成预览、ZIP 与页面 CRUD | 待开始 |
 | 44 | 代码直接生成与失败恢复 | 待开始 |
@@ -172,3 +172,7 @@ GoView 插件、SDK、项目引用与生成入口已删除。真实隔离报告 
 ## 第 40 项完成（2026-10-12）
 
 MQTT.js 5.16.0 与原连接配置、注册包主题、QoS / Retain、设备封装及状态已接入新页面；断开按在线空闲 / 未确认状态选择 DISCONNECT 或强制结束，并在关闭回执前移除活动认证信息。18 项单测、ESLint、应用类型检查与生产构建通过。真实隔离 PostgreSQL / API / Edge 桌面 11 阶段全部通过，涵盖设备协议、明暗截图、消息脱敏、固定端口重连、取消与物理断开、双身份 ACL 消息隔离、错误认证、第二 broker 和同文档离页；6 条 MQTT WebSocket 的原生 CLOSED 与 Playwright close 回执均通过。最终报告 adminnet-vben-1ae917126a3447d9ac24e465023d34fd/evidence/mqtt-browser-baseline.json 的 passed / cleanupPassed=true，cleanupErrors=[]，菜单四关联表、broker 与匿名卷、API 及 PostgreSQL 均已清理。已实际复核明暗桌面截图；摘要、源码及截图 SHA256 见 mqtt-acceptance.json，任务见 issues/40-mqtt-workflow.md。下一项 41。
+
+## 第 41 项暂缓（2026-10-12）
+
+直播页面已迁移至 ezuikit-js 8.0.5，原 Token / ezopen 输入及 standard 控制栏保留，可移除 iframe 释放 SDK 执行上下文。9 项会话回归、ESLint、类型检查及生产构建通过；生产真实错误处理与资源清理 7 阶段 passed / cleanupPassed=true，明暗桌面截图已实际复核。真实首帧和播放控制未通过：当前官方演示设备无权限或 Token 过期。用户明确表示暂时没有授权测试配置，先跳过；第 41 项保留待补，不增加完成数，继续第 42 项。证据见 live-error-cleanup-acceptance.json，任务见 issues/41-live-video.md。
