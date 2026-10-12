@@ -260,12 +260,6 @@ public class SysMenuSeedData : ISqlSugarEntitySeedData<SysMenu>
             new SysMenu{ Id=1300300140201, Pid=1300300140101, Title="保存", Permission="sysConfig:saveSysInfo", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=100 },
 
             // 微信支付
-            new SysMenu{ Id=1300300150101, Pid=1300300000101, Title="微信支付", Path="/platform/wechatpay", Name="sysWechatPay", Component="/system/weChatPay/index", Icon="ele-Coin", Type=MenuTypeEnum.Menu, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=230 },
-            new SysMenu{ Id=1300300150201, Pid=1300300150101, Title="微信支付下单Native", Permission="sysWechatPay:payTransactionNative", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=100 },
-            new SysMenu{ Id=1300300150301, Pid=1300300150101, Title="查询退款信息", Permission="sysWechatPay:listRefund", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=100 },
-            new SysMenu{ Id=1300300150401, Pid=1300300150101, Title="获取支付订单详情(本地库)", Permission="sysWechatPay:payInfo", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=100 },
-            new SysMenu{ Id=1300300150501, Pid=1300300150101, Title="获取支付订单详情(微信接口)", Permission="sysWechatPay:payInfoFromWechat", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=100 },
-            new SysMenu{ Id=1300300150601, Pid=1300300150101, Title="退款申请", Permission="sysWechatPay:refundDomestic", Type=MenuTypeEnum.Btn, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=100 },
 
             // 系统更新
             new SysMenu{ Id=1300300160101, Pid=1300300000101, Title="系统更新", Path="/platform/update", Name="sysUpdate", Component="/system/update/index", Icon="ele-Upload", Type=MenuTypeEnum.Menu, CreateTime=DateTime.Parse("2022-02-10 00:00:00"), OrderNo=240 },

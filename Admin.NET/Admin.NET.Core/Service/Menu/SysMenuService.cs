@@ -69,6 +69,21 @@ public class SysMenuService : IDynamicApiController, ITransient
             .OrderBy(u => new { u.OrderNo, u.Id })
             .ToListAsync();
 
+        // 旧数据库可能保留已下线的支付菜单；仅过滤登录入口，不删除历史数据。
+        var retiredMenuIds = menuList.Where(menu =>
+                string.Equals(menu.Name, "sysWechatPay", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(menu.Path?.TrimEnd('/'), "/platform/wechatpay", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(menu.Component?.Trim('/'), "system/weChatPay/index", StringComparison.OrdinalIgnoreCase))
+            .Select(menu => menu.Id).ToHashSet();
+        bool removedDescendants;
+        do
+        {
+            removedDescendants = false;
+            foreach (var menu in menuList.Where(menu => retiredMenuIds.Contains(menu.Pid)))
+                removedDescendants |= retiredMenuIds.Add(menu.Id);
+        } while (removedDescendants);
+        menuList.RemoveAll(menu => retiredMenuIds.Contains(menu.Id));
+
         // 仅当用户语言和系统默认语言不同时，才进行翻译，避免不必要的性能开销
         if (langCode != sysDefaultLang)
         {
