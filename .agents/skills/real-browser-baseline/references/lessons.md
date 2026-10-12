@@ -250,3 +250,13 @@
 - SqlSugar对象update追加自定义Where可能没有自动主键谓词；contains(id)也会被tenantid满足。派生实际ToSql核独立Id+Tenant参数，真实成功更新同时比较同租户peer/他租户/既有全字段快照。旧GET模板路由以生成SDK的/template/{code}为准，不猜query后改生产接口。
 - 截图先动态选择可见无交互点移走鼠标，再自然等notice，否则hover暂停通知；分别诊断通知/有限动画/Modal终态/实际scroll与字体，复核同一指针坐标，不first、不隐藏通知、不增sleep。字段按实际role，AutoComplete为combobox；失败对象DOM先JSON序列化再脱敏。
 - 证据：提案33最终113后端/53前端/15生产桌面，16完整真实阶段与独立清理；3条非空既有摘要不变、准备数据恢复初始，完整明暗/编辑器/渲染/错误/停机及4对比度图已实际查看，原Razor两helper正文及refs保持。
+
+### 2026-10-12：MQTT 隔离 broker、重连与敏感消息取证
+
+- broker 断线恢复测试必须保持原连接地址。Docker 的随机映射端口在 stop/start 后可能改变；先用端口回归脚本复现，再显式绑定分配的本机端口，并复查重启前后映射一致。
+- 重连断言截止时间覆盖实际 reconnectPeriod、broker 启动和连接尝试。关闭验收分别记录原生 WebSocket.readyState 与 Playwright 的 close / isClosed；CLOSING 仍需有界等待真实 CLOSED，不能只以界面“未连接”认定资源已释放。
+- Antdv 自动在两个汉字按钮之间插入空格，连接 / 订阅使用允许空白的名称表达式；按注册包生成主题受连接态约束，应先断开再生成，按真实用户操作序列验收。
+- 密钥可能被消息原文回显到 payload 和常用指令选择器。先证明日志脱敏，再清除回显草稿；失败截图同时遮罩凭据控件、payload、选择器和包含密钥的文本。保存报告前统一脱敏对象序列化结果。
+- 后台 API 继承启动器输出管道时，execFile 的进程退出等待可能迟迟不完成。以启动脚本明确的 Ready 信号完成启动交接，仍使用运行标识恢复所有权并在 finally 独立清理 API、菜单和 PostgreSQL。
+- 若 MQTT 强制结束后原生 socket 长时间停在 CLOSING，先用实际 MqttSession 源码、已安装 MQTT.js 和自有 broker 建立快速浏览器回归。在线且没有应用 / 协议待确认操作时验证正常 DISCONNECT；离线、连接中或仍有 outgoing 消息时保留强制结束，认证信息在等待关闭回执前清除。不能只放宽断言截止时间。
+- ACL 的 SUBACK 与消息投递检查可能有不同语义。用两个权限范围独立的夹具身份证明越权主题确有消息，再等待允许主题的后续消息到达作为处理屏障，检查页面未收到越权消息；拒绝回执另外按真实协议或单测验证。

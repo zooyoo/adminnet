@@ -1,6 +1,6 @@
 # Vben 编号提案执行进度
 
-更新时间：2026-10-10（Asia/Shanghai）。
+更新时间：2026-10-12（Asia/Shanghai）。
 
 来源：`doc/frontend-vben-tickets-draft.md`。用户已要求按编号逐项实施，原提案中的“本轮不实施”不再作为执行限制；来源文档保持不变。
 
@@ -16,7 +16,7 @@
 
 ## 总览
 
-业务验收完成：39 / 48。提案 33 的模板 CRUD、分组与参数、原文重开、真实富文本与 Razor 渲染、租户授权、失败恢复、同文档离页、最终生产桌面明暗与活动图标、真实停机和 PostgreSQL 清理均已通过。
+业务验收完成：40 / 48。提案 33 的模板 CRUD、分组与参数、原文重开、真实富文本与 Razor 渲染、租户授权、失败恢复、同文档离页、最终生产桌面明暗与活动图标、真实停机和 PostgreSQL 清理均已通过。
 
 2026-10-11 收尾更新：18 个历史直接子会话已由宿主确认归档且停止；项目门禁已支持实时宿主清单（提交 09ee8a771，23 项回归通过）。无需再次归档。剩余为 7 条历史失败/中止结果的业务处置和 1 个侧会话的继承历史核对，不是归档未同步。提案 29、31、33 的原始真实报告已重新读取，passed/cleanupPassed 均 true、cleanupErrors 均空；提案 29 提交 ed16649bf、31 提交 ac864b422 已核实。侧会话 439 次调用中 438 次继承，唯一新增 ctx_stats；两个成员在复用到 34 后未完成业务实现。具体证据见 `.scratch/proposal-agent-lifecycle/closeout-reconciliation.md`。第 19 轮已完成业务处置绑定：35 项回归通过，正式 CLI 加 --host-url 与 --review-file 核验退出码 0、status=reviewed-clear、blockers=[]。17 个日志成员归档回执、7 条业务处置及只新增 ctx_stats 的侧会话均已核对，允许恢复第 34 项；历史失败不改写为成功，34 仍须实现与验收。处置及报告位于 `.scratch/proposal-agent-lifecycle/business-review.json` 和 `reconciled-cli-audit.json`。
 
@@ -61,7 +61,7 @@
 | 37 | 删除 GoView 及入口等相关代码 | 已完成：插件/SDK/入口清理、14 旧路由 404、真实桌面保留功能与 PG 清理通过 |
 | 38 | 微信用户管理 | 已完成：资料 CRUD、平台分页、头像、防重复、权限租户、凭据保留、真实桌面与 PG 清理通过 |
 | 39 | 删除微信支付订单与退款等相关代码 | 已完成 |
-| 40 | MQTT 连接与消息工作流 | 待开始 |
+| 40 | MQTT 连接与消息工作流 | 已完成 |
 | 41 | 直播与视频工具 | 待开始 |
 | 42 | 代码生成配置与可编辑字段表 | 待开始 |
 | 43 | 生成预览、ZIP 与页面 CRUD | 待开始 |
@@ -168,3 +168,7 @@ GoView 插件、SDK、项目引用与生成入口已删除。真实隔离报告 
 ## 第 39 项完成（2026-10-12）
 
 微信支付订单、退款后端及客户端、TenpayV3依赖、配置、种子和API示例已删除，保留微信用户管理及历史数据库数据。最终真实隔离 PostgreSQL/API/Edge 生产桌面报告：C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-f4a8881d9cd8497ab4c0bef89e689202/evidence/payment-removal-baseline.json，12阶段 passed/cleanupPassed=true，12旧路径24请求404，旧菜单过滤及保留普通入口、库记录不变、微信用户权限/CRUD/头像/防重复/停机回归通过。菜单及租户/资料夹具、API和容器清理通过。已实际查看列表与停机草稿截图；editor命名图片实际为列表，不作为编辑弹窗视觉证据。最终前后端构建、类型、引用扫描、差异检查通过。详见 payment-removal-scope.md。下一项40须先核验收尾门禁。
+
+## 第 40 项完成（2026-10-12）
+
+MQTT.js 5.16.0 与原连接配置、注册包主题、QoS / Retain、设备封装及状态已接入新页面；断开按在线空闲 / 未确认状态选择 DISCONNECT 或强制结束，并在关闭回执前移除活动认证信息。18 项单测、ESLint、应用类型检查与生产构建通过。真实隔离 PostgreSQL / API / Edge 桌面 11 阶段全部通过，涵盖设备协议、明暗截图、消息脱敏、固定端口重连、取消与物理断开、双身份 ACL 消息隔离、错误认证、第二 broker 和同文档离页；6 条 MQTT WebSocket 的原生 CLOSED 与 Playwright close 回执均通过。最终报告 adminnet-vben-1ae917126a3447d9ac24e465023d34fd/evidence/mqtt-browser-baseline.json 的 passed / cleanupPassed=true，cleanupErrors=[]，菜单四关联表、broker 与匿名卷、API 及 PostgreSQL 均已清理。已实际复核明暗桌面截图；摘要、源码及截图 SHA256 见 mqtt-acceptance.json，任务见 issues/40-mqtt-workflow.md。下一项 41。
