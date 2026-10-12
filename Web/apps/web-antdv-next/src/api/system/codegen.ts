@@ -21,6 +21,8 @@ export interface CodeGenOption { label: string; value: string; }
 export interface CodeGenConstant { code?: string; name?: string; }
 
 export const codegenApi = {
+	preview: (id: CodeGenId, signal: AbortSignal) => requestClient.post<Record<string, string>>('/api/sysCodeGen/preview', { id }, { signal, silentError: true }),
+	zip: (id: CodeGenId, signal: AbortSignal) => requestClient.post<{ url: string }>('/api/sysCodeGen/runLocal', { id }, { signal, silentError: true }),
 	page: (query: CodeGenQuery, signal: AbortSignal) => requestClient.post<CodeGenPage>('/api/sysCodeGen/page', query, { signal, silentError: true }),
 	detail: (id: CodeGenId, signal: AbortSignal) => requestClient.get<CodeGenRow>('/api/sysCodeGen/detail', { params: { id }, signal, silentError: true }),
 	add: (draft: CodeGenDraft, signal: AbortSignal) => requestClient.post('/api/sysCodeGen/add', draft, { signal, silentError: true }),

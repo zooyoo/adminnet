@@ -4,8 +4,6 @@
 //
 // 不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目二次开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 
-using System.IO.Compression;
-
 namespace Admin.NET.Core.Service;
 
 /// <summary>
@@ -410,122 +408,153 @@ public class SysCodeGenService : IDynamicApiController, ITransient
     [DisplayName("代码生成到本地")]
     public async Task<dynamic> RunLocal(SysCodeGen input)
     {
-        if (string.IsNullOrEmpty(input.GenerateType))
-            input.GenerateType = "200";
-
-        // 先删除该表已生成的菜单列表
-        List<string> targetPathList;
-        var zipPath = Path.Combine(App.WebHostEnvironment.WebRootPath, "CodeGen", input.TableName!);
-        if (input.GenerateType.StartsWith('1'))
+        var (saved, tableFieldList, plans, result) = await RenderTemplateAsync(input);
+        var cancellationToken = App.HttpContext?.RequestAborted ?? CancellationToken.None;
+        Task GenerateMenu() => saved.GenerateMenu
+            ? AddOrUpdateMenu(saved.TableName!, saved.BusName!, saved.MenuPid ?? 0, saved.MenuIcon, saved.PagePath!, tableFieldList)
+            : Task.CompletedTask;
+        if (saved.GenerateType!.StartsWith('1'))
         {
-            targetPathList = GetZipPathList(input);
-            if (Directory.Exists(zipPath)) Directory.Delete(zipPath, true);
-        }
-        else
-            targetPathList = GetTargetPathList(input);
-
-        var (tableFieldList, result) = await RenderTemplateAsync(input);
-        var templatePathList = GetTemplatePathList(input);
-        for (var i = 0; i < templatePathList.Count; i++)
-        {
-            var content = result.GetValueOrDefault(templatePathList[i]?.TrimEnd(".vm"));
-            if (string.IsNullOrWhiteSpace(content)) continue;
-            var dirPath = new DirectoryInfo(targetPathList[i]).Parent!.FullName;
-            if (!Directory.Exists(dirPath)) Directory.CreateDirectory(dirPath);
-            _ = File.WriteAllTextAsync(targetPathList[i], content, Encoding.UTF8);
+            var archive = await CodeGenArtifacts.CreateArchiveAsync(App.WebHostEnvironment.WebRootPath, saved.TableName!, plans, result,
+                GenerateMenu, cancellationToken);
+            var request = App.HttpContext.Request;
+            return new
+            {
+                url = $"{request.PathBase}/CodeGen/{archive.FileName}",
+                manifest = archive.Manifest,
+                sha256 = archive.Sha256
+            };
         }
 
-        if (input.GenerateMenu) await AddOrUpdateMenu(input.TableName, input.BusName, input.MenuPid ?? 0, input.MenuIcon, input.PagePath, tableFieldList);
-
-        // 非ZIP压缩返回空
-        if (!input.GenerateType.StartsWith('1')) return null;
-
-        // 判断是否存在同名称文件
-        string downloadPath = zipPath + ".zip";
-        if (File.Exists(downloadPath)) File.Delete(downloadPath);
-
-        // 创建zip文件并返回下载地址
-        ZipFile.CreateFromDirectory(zipPath, downloadPath);
-        return new { url = $"{App.HttpContext.Request.Scheme}://{App.HttpContext.Request.Host.Value}/codeGen/{input.TableName}.zip" };
+        // 直接生成沿用保存配置的目标目录，全部文件写入完成后才更新菜单。
+        var solutionRoot = Directory.GetParent(App.WebHostEnvironment.ContentRootPath)!.FullName;
+        var repositoryRoot = Directory.GetParent(solutionRoot)!.FullName;
+        var backendRoot = string.IsNullOrWhiteSpace(_codeGenOptions.BackendRootPath)
+            ? solutionRoot : Path.GetFullPath(_codeGenOptions.BackendRootPath, solutionRoot);
+        foreach (var plan in plans)
+        {
+            var root = plan.Template.EndsWith(".cs", StringComparison.Ordinal) ? backendRoot : repositoryRoot;
+            await CodeGenArtifacts.WriteFilesAsync(root, new[] { plan }, new Dictionary<string, string> { [plan.Template] = result[plan.Template] },
+                overwrite: true, cancellationToken: cancellationToken);
+        }
+        await GenerateMenu();
+        return null;
     }
 
-    /// <summary>
-    /// 获取代码生成预览 🔖
-    /// </summary>
-    /// <returns></returns>
+    /// <summary>获取代码生成预览，模板与下载清单保持一致。</summary>
     [DisplayName("获取代码生成预览")]
     public async Task<Dictionary<string, string>> Preview(SysCodeGen input)
     {
-        var (_, result) = await RenderTemplateAsync(input);
+        var (_, _, _, result) = await RenderTemplateAsync(input);
         return result;
     }
 
-    /// <summary>
-    /// 渲染模板
-    /// </summary>
-    /// <param name="input"></param>
-    /// <returns></returns>
-    private async Task<(List<CodeGenConfig> tableFieldList, Dictionary<string, string> result)> RenderTemplateAsync(SysCodeGen input)
+    /// <summary>只从已保存配置读取生成参数，不能借预览或下载请求替换目标。</summary>
+    private async Task<(SysCodeGen saved, List<CodeGenConfig> fields)> LoadGenerationSourceAsync(SysCodeGen input)
     {
-        var tableFieldList = await _codeGenConfigService.GetList(new CodeGenConfig { CodeGenId = input.Id }); // 字段集合
-        var joinTableList = tableFieldList.Where(u => u.EffectType is "Upload" or "ForeignKey" or "ApiTreeSelector").ToList(); // 需要连表查询的字段
-
-        var data = new CustomViewEngine
+        if (input == null || input.Id <= 0) throw Oops.Oh("代码生成配置标识无效");
+        var provider = _db.AsTenant().GetConnectionScope(SqlSugarConst.MainConfigId);
+        var ownsTransaction = provider.Ado.Transaction == null;
+        if (ownsTransaction) await provider.Ado.BeginTranAsync();
+        try
         {
-            ConfigId = input.ConfigId,
-            BusName = input.BusName,
-            PagePath = input.PagePath,
-            NameSpace = input.NameSpace,
-            ClassName = input.TableName,
-            PrintType = input.PrintType,
-            PrintName = input.PrintName,
-            AuthorName = input.AuthorName,
-            ProjectLastName = input.NameSpace!.Split('.').Last(),
-            LowerClassName = input.TableName!.ToFirstLetterLowerCase(),
-            TableUniqueConfigList = input.TableUniqueList ?? new(),
-
-            TableField = tableFieldList,
-            QueryWhetherList = tableFieldList.Where(u => u.WhetherQuery == "Y").ToList(),
-            ImportFieldList = tableFieldList.Where(u => u.WhetherImport == "Y").ToList(),
-            UploadFieldList = tableFieldList.Where(u => u.EffectType == "Upload" || u.EffectType == "Upload_SingleFile").ToList(),
-            PrimaryKeyFieldList = tableFieldList.Where(c => c.ColumnKey == "True").ToList(),
-            AddUpdateFieldList = tableFieldList.Where(u => u.WhetherAddUpdate == "Y").ToList(),
-            ApiTreeFieldList = tableFieldList.Where(u => u.EffectType == "ApiTreeSelector").ToList(),
-            DropdownFieldList = tableFieldList.Where(u => u.EffectType is "ForeignKey" or "ApiTreeSelector").ToList(),
-            DefaultValueList = tableFieldList.Where(u => u.DefaultValue != null && u.DefaultValue.Length > 0).ToList(),
-
-            HasJoinTable = joinTableList.Count > 0,
-            HasDictField = tableFieldList.Any(u => u.EffectType == "DictSelector"),
-            HasEnumField = tableFieldList.Any(u => u.EffectType == "EnumSelector"),
-            HasConstField = tableFieldList.Any(u => u.EffectType == "ConstSelector"),
-            HasLikeQuery = tableFieldList.Any(c => c.WhetherQuery == "Y" && c.QueryType == "like")
-        };
-
-        // 获取模板文件并替换
-        var templatePathList = GetTemplatePathList();
-        var templatePath = Path.Combine(App.WebHostEnvironment.WebRootPath, "template");
-
-        var result = new Dictionary<string, string>();
-        foreach (var path in templatePathList)
-        {
-            var templateFilePath = Path.Combine(templatePath, path);
-            if (!File.Exists(templateFilePath)) continue;
-            var tContent = await File.ReadAllTextAsync(templateFilePath);
-            var tResult = await _viewEngine.RunCompileFromCachedAsync(tContent, data, builderAction: builder =>
-            {
-                builder.AddAssemblyReferenceByName("System.Text.RegularExpressions");
-                builder.AddAssemblyReferenceByName("System.Collections");
-                builder.AddAssemblyReferenceByName("System.Linq");
-
-                builder.AddUsing("System.Text.RegularExpressions");
-                builder.AddUsing("System.Collections.Generic");
-                builder.AddUsing("System.Linq");
-            });
-            result.Add(path?.TrimEnd(".vm"), tResult);
+            var saved = await provider.Queryable<SysCodeGen>().TranLock(DbLockType.Wait).FirstAsync(row => row.Id == input.Id)
+                ?? throw Oops.Oh("代码生成配置不存在，请刷新后重试");
+            var fields = await _codeGenConfigService.GetList(new CodeGenConfig { CodeGenId = saved.Id });
+            if (ownsTransaction) await provider.Ado.CommitTranAsync();
+            return (saved, fields);
         }
-        return (tableFieldList, result);
+        catch
+        {
+            if (ownsTransaction) await provider.Ado.RollbackTranAsync();
+            throw;
+        }
     }
 
+    /// <summary>预览和生成共用已保存配置、选择的模板和输出键。</summary>
+    private async Task<(SysCodeGen saved, List<CodeGenConfig> fields, IReadOnlyList<CodeGenArtifactPlan> plans, Dictionary<string, string> result)> RenderTemplateAsync(SysCodeGen input)
+    {
+        var (saved, tableFieldList) = await LoadGenerationSourceAsync(input);
+        var plans = CodeGenArtifacts.CreatePlan(saved, _codeGenOptions.FrontRootPath);
+        if (_codeGenOptions.BackendApplicationNamespaces?.Contains(saved.NameSpace!) != true)
+            throw Oops.Oh("生成命名空间不在配置的应用列表中");
+        if (tableFieldList.Count == 0 || tableFieldList.All(field => field.ColumnKey != "True"))
+            throw Oops.Oh("代码生成字段或主键配置为空，请同步字段后重试");
+        var entities = (await GetEntityInfos(saved.ConfigId!)).ToList();
+        var matchingEntities = entities.Where(entity => entity.EntityName == saved.TableName).ToList();
+        if (matchingEntities.Count != 1) throw Oops.Oh("代码生成实体不存在或名称重复，请重新选择实体");
+        var entityType = matchingEntities[0].Type;
+        var relatedNamespaces = new HashSet<string>(StringComparer.Ordinal) { entityType.Namespace! };
+        foreach (var field in tableFieldList)
+        {
+            var property = entityType.GetProperty(field.PropertyName) ?? throw Oops.Oh("字段配置与当前实体不匹配，请同步字段后重试");
+            field.NetType = CodeGenTemplateSupport.TypeName(property.PropertyType);
+            var fieldType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+            if (fieldType.Namespace != null && fieldType.Namespace != "System") relatedNamespaces.Add(fieldType.Namespace);
+            if (field.EffectType is not ("ForeignKey" or "ApiTreeSelector")) continue;
+            var foreignEntities = entities;
+            if (!string.IsNullOrWhiteSpace(field.FkConfigId) && field.FkConfigId != saved.ConfigId)
+                foreignEntities = (await GetEntityInfos(field.FkConfigId)).ToList();
+            var foreignEntity = foreignEntities.FirstOrDefault(entity => entity.EntityName == field.FkEntityName)
+                ?? throw Oops.Oh($"字段 {field.PropertyName} 的关联实体不存在");
+            if (foreignEntity.Type.GetProperty(field.FkLinkColumnName ?? "") == null || field.FkDisplayColumnList?.Count == 0 ||
+                field.FkDisplayColumnList == null || field.FkDisplayColumnList.Any(name => foreignEntity.Type.GetProperty(name) == null) ||
+                field.EffectType == "ApiTreeSelector" && foreignEntity.Type.GetProperty(field.PidColumn ?? "") == null)
+                throw Oops.Oh($"字段 {field.PropertyName} 的关联字段配置无效");
+            field.FkEntityName = "global::" + foreignEntity.Type.FullName!.Replace('+', '.');
+            relatedNamespaces.Add(foreignEntity.Type.Namespace!);
+        }
+        var uniqueConfigs = saved.TableUniqueList ?? new();
+        if (uniqueConfigs.Any(config => config.Columns == null || config.Columns.Count == 0 || config.Columns.Any(name => entityType.GetProperty(name) == null)))
+            throw Oops.Oh("唯一约束字段配置与当前实体不匹配");
+        var data = new CodeGenRenderModel
+        {
+            ConfigId = saved.ConfigId,
+            BusName = saved.BusName,
+            PagePath = saved.PagePath,
+            NameSpace = saved.NameSpace,
+            EntityNamespace = entityType.Namespace,
+            EntityNamespaces = relatedNamespaces.Where(name => !string.IsNullOrWhiteSpace(name)).OrderBy(name => name).ToArray(),
+            ClassName = saved.TableName,
+            PrintType = saved.PrintType,
+            PrintName = saved.PrintName,
+            AuthorName = saved.AuthorName,
+            ProjectLastName = saved.NameSpace!.Split('.').Last(),
+            LowerClassName = saved.TableName!.ToFirstLetterLowerCase(),
+            TableUniqueConfigList = uniqueConfigs,
+            TableField = tableFieldList,
+            QueryWhetherList = tableFieldList.Where(field => field.WhetherQuery == "Y").ToList(),
+            ImportFieldList = tableFieldList.Where(field => field.WhetherImport == "Y").ToList(),
+            UploadFieldList = tableFieldList.Where(field => field.EffectType is "Upload" or "Upload_SingleFile").ToList(),
+            PrimaryKeyFieldList = tableFieldList.Where(field => field.ColumnKey == "True").ToList(),
+            AddUpdateFieldList = tableFieldList.Where(field => field.WhetherAddUpdate == "Y").ToList(),
+            ApiTreeFieldList = tableFieldList.Where(field => field.EffectType == "ApiTreeSelector").ToList(),
+            DropdownFieldList = tableFieldList.Where(field => field.EffectType is "ForeignKey" or "ApiTreeSelector").ToList(),
+            DefaultValueList = tableFieldList.Where(field => !string.IsNullOrEmpty(field.DefaultValue)).ToList(),
+            HasJoinTable = tableFieldList.Any(field => field.EffectType is "ForeignKey" or "ApiTreeSelector"),
+            HasDictField = tableFieldList.Any(field => field.EffectType == "DictSelector"),
+            HasEnumField = tableFieldList.Any(field => field.EffectType == "EnumSelector"),
+            HasConstField = tableFieldList.Any(field => field.EffectType == "ConstSelector"),
+            HasLikeQuery = tableFieldList.Any(field => field.WhetherQuery == "Y" && field.QueryType == "like")
+        };
+        var templateRoot = Path.Combine(App.WebHostEnvironment.WebRootPath, "template");
+        // 缺模板先整体失败，不能静默下载不完整结果。
+        var sources = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var plan in plans)
+        {
+            var path = CodeGenArtifacts.ResolveUnderRoot(templateRoot, plan.Template + ".vm");
+            if (!File.Exists(path)) throw Oops.Oh($"代码生成模板缺失：{plan.Template}.vm");
+            sources[plan.Template] = await File.ReadAllTextAsync(path, Encoding.UTF8, App.HttpContext?.RequestAborted ?? CancellationToken.None);
+        }
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var plan in plans)
+        {
+            var content = await CodeGenTemplateSupport.RenderAsync(_viewEngine, sources[plan.Template], data);
+            if (string.IsNullOrWhiteSpace(content)) throw Oops.Oh($"代码生成模板结果为空：{plan.Template}");
+            result.Add(plan.Template, content);
+        }
+        return (saved, tableFieldList, plans, result);
+    }
     /// <summary>
     /// 添加或更新菜单
     /// </summary>
@@ -716,126 +745,4 @@ public class SysCodeGenService : IDynamicApiController, ITransient
         foreach (var menu in menuList) await _sysMenuService.DeleteMenu(new DeleteMenuInput { Id = menu.Id });
     }
 
-    /// <summary>
-    /// 获取模板文件路径集合
-    /// </summary>
-    /// <returns></returns>
-    private static List<string> GetTemplatePathList(SysCodeGen input)
-    {
-        if (input.GenerateType!.Substring(1, 1).Contains('1')) return new() { "index.vue.vm", "editDialog.vue.vm", "api.ts.vm" };
-        if (input.GenerateType.Substring(1, 1).Contains('2')) return new() { "Service.cs.vm", "Input.cs.vm", "Output.cs.vm", "Dto.cs.vm" };
-        return new() { "Service.cs.vm", "Input.cs.vm", "Output.cs.vm", "Dto.cs.vm", "index.vue.vm", "editDialog.vue.vm", "api.ts.vm" };
-    }
-
-    /// <summary>
-    /// 获取模板文件路径集合
-    /// </summary>
-    /// <returns></returns>
-    private static List<string> GetTemplatePathList() => new() { "Service.cs.vm", "Input.cs.vm", "Output.cs.vm", "Dto.cs.vm", "index.vue.vm", "editDialog.vue.vm", "api.ts.vm" };
-
-    /// <summary>
-    /// 设置生成文件路径
-    /// </summary>
-    /// <param name="input"></param>
-    /// <returns></returns>
-    private List<string> GetTargetPathList(SysCodeGen input)
-    {
-        //var backendPath = Path.Combine(new DirectoryInfo(App.WebHostEnvironment.ContentRootPath).Parent.FullName, _codeGenOptions.BackendApplicationNamespace, "Service", input.TableName);
-        var backendPath = Path.Combine(new DirectoryInfo(App.WebHostEnvironment.ContentRootPath).Parent!.FullName, input.NameSpace!, "Service", input.TableName!);
-        var servicePath = Path.Combine(backendPath, input.TableName + "Service.cs");
-        var inputPath = Path.Combine(backendPath, "Dto", input.TableName + "Input.cs");
-        var outputPath = Path.Combine(backendPath, "Dto", input.TableName + "Output.cs");
-        var viewPath = Path.Combine(backendPath, "Dto", input.TableName + "Dto.cs");
-        var frontendPath = Path.Combine(new DirectoryInfo(App.WebHostEnvironment.ContentRootPath).Parent!.Parent!.FullName, _codeGenOptions.FrontRootPath, "src", "views", input.PagePath!);
-        var indexPath = Path.Combine(frontendPath, input.TableName[..1].ToLower() + input.TableName[1..], "index.vue");//
-        var formModalPath = Path.Combine(frontendPath, input.TableName[..1].ToLower() + input.TableName[1..], "component", "editDialog.vue");
-        var apiJsPath = Path.Combine(new DirectoryInfo(App.WebHostEnvironment.ContentRootPath).Parent!.Parent!.FullName, _codeGenOptions.FrontRootPath, "src", "api", input.PagePath, input.TableName[..1].ToLower() + input.TableName[1..] + ".ts");
-
-        if (input.GenerateType!.Substring(1, 1).Contains('1'))
-        {
-            // 生成到本项目(前端)
-            return new List<string>
-            {
-                indexPath,
-                formModalPath,
-                apiJsPath
-            };
-        }
-
-        if (input.GenerateType.Substring(1, 1).Contains('2'))
-        {
-            // 生成到本项目(后端)
-            return new List<string>
-            {
-                servicePath,
-                inputPath,
-                outputPath,
-                viewPath,
-            };
-        }
-        // 前后端同时生成到本项目
-        return new List<string>
-        {
-            servicePath,
-            inputPath,
-            outputPath,
-            viewPath,
-            indexPath,
-            formModalPath,
-            apiJsPath
-        };
-    }
-
-    /// <summary>
-    /// 设置生成文件路径
-    /// </summary>
-    /// <param name="input"></param>
-    /// <returns></returns>
-    private List<string> GetZipPathList(SysCodeGen input)
-    {
-        var zipPath = Path.Combine(App.WebHostEnvironment.WebRootPath, "CodeGen", input.TableName!);
-
-        var firstLowerTableName = input.TableName!.ToFirstLetterLowerCase();
-        //var backendPath = Path.Combine(zipPath, _codeGenOptions.BackendApplicationNamespace, "Service", input.TableName);
-        var backendPath = Path.Combine(zipPath, input.NameSpace!, "Service", input.TableName);
-        var servicePath = Path.Combine(backendPath, input.TableName + "Service.cs");
-        var inputPath = Path.Combine(backendPath, "Dto", input.TableName + "Input.cs");
-        var outputPath = Path.Combine(backendPath, "Dto", input.TableName + "Output.cs");
-        var viewPath = Path.Combine(backendPath, "Dto", input.TableName + "Dto.cs");
-        var frontendPath = Path.Combine(zipPath, _codeGenOptions.FrontRootPath, "src", "views", input.PagePath!);
-        var indexPath = Path.Combine(frontendPath, firstLowerTableName, "index.vue");
-        var formModalPath = Path.Combine(frontendPath, firstLowerTableName, "component", "editDialog.vue");
-        var apiJsPath = Path.Combine(zipPath, _codeGenOptions.FrontRootPath, "src", "api", input.PagePath, firstLowerTableName + ".ts");
-        if (input.GenerateType!.StartsWith("11"))
-        {
-            return new List<string>
-            {
-                indexPath,
-                formModalPath,
-                apiJsPath
-            };
-        }
-
-        if (input.GenerateType.StartsWith("12"))
-        {
-            return new List<string>
-            {
-                servicePath,
-                inputPath,
-                outputPath,
-                viewPath
-            };
-        }
-
-        return new List<string>
-        {
-            servicePath,
-            inputPath,
-            outputPath,
-            viewPath,
-            indexPath,
-            formModalPath,
-            apiJsPath
-        };
-    }
 }

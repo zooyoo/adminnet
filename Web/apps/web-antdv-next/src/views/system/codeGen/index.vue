@@ -21,6 +21,7 @@ import AdminTable from '#/components/admin-table/index.vue';
 import { useAdminTable } from '#/components/admin-table/use-admin-table';
 
 import { copyCodeGenDraft, createCodeGenDraft, FIELD_FLAGS, FOREIGN_TYPES, isFieldFlag, protectedField, redactedConnection, SELECTOR_TYPES, validateCodeGenDraft, validateCodeGenFields } from './codegen-model';
+import CodeGenPreview from './codegen-preview.vue';
 import { createFieldSession, createFieldState } from './field-session';
 
 defineOptions({ name: 'SysCodeGen' });
@@ -36,8 +37,9 @@ const columns: NonNullable<TableProps<CodeGenRow>['columns']> = [
 	{ title: '业务名称', key: 'busName', dataIndex: 'busName', width: 180 }, { title: '实体', key: 'tableName', dataIndex: 'tableName', width: 200 },
 	{ title: '数据库', key: 'dbNickName', dataIndex: 'dbNickName', width: 140 }, { title: '命名空间', key: 'nameSpace', dataIndex: 'nameSpace', width: 240 },
 	{ title: '作者', key: 'authorName', dataIndex: 'authorName', width: 130 }, { title: '生成方式', key: 'generateType', dataIndex: 'generateType', width: 130 },
-	{ title: '操作', key: 'actions', fixed: 'end', width: 430 },
+	{ title: '操作', key: 'actions', fixed: 'end', width: 500 },
 ];
+const preview = shallowRef<InstanceType<typeof CodeGenPreview>>();
 const fieldState = reactive(createFieldState());
 const fields = createFieldSession(fieldState, { load: codegenApi.fields, save: codegenApi.saveFields }, sessionBoundary);
 const fieldDialog = shallowRef(false);
@@ -290,7 +292,7 @@ function closeEditor() { editorGeneration += 1; editorOpen.value = false; draft.
 function deactivate() {
 	active = false; context += 1; tableGeneration += 1; foreignGeneration += 1;
 	for (const controller of controllers) controller.abort();
-	controllers.clear(); fields.close();
+	controllers.clear(); fields.close(); preview.value?.close();
 	editorOpen.value = false; fieldDialog.value = false; foreignOpen.value = false;
 	Object.assign(draft, createCodeGenDraft(), { id: undefined, connectionString: '', dbName: '', dbType: '', tableComment: '' });
 	databases.value = []; tables.value = []; entityColumns.value = []; menus.value = []; dictionaryTypes.value = []; namespaces.value = []; constantOptions.value = [];
@@ -327,7 +329,8 @@ onMounted(activate); onActivated(activate); onDeactivated(deactivate); onScopeDi
 				<template #bodyCell="{ column, record, text }">
 					<span v-if="column.key === 'generateType'">{{ generateOptions.find((item) => item.value === record.generateType)?.label ?? text }}</span>
 					<div v-else-if="column.key === 'actions'" class="codegen-actions">
-						<Button v-if="permissions.fields" type="link" size="small" :auto-insert-space="false" :disabled="operationBusy || metadataBusy" @click="openFields(record)">字段配置</Button>
+						<Button type="link" size="small" :auto-insert-space="false" :disabled="operationBusy" @click="preview?.show(record)">预览代码</Button>
+					<Button v-if="permissions.fields" type="link" size="small" :auto-insert-space="false" :disabled="operationBusy || metadataBusy" @click="openFields(record)">字段配置</Button>
 						<Button v-if="permissions.sync" type="link" size="small" :auto-insert-space="false" :disabled="operationBusy" @click="syncFields(record)">同步字段</Button>
 						<Button v-if="permissions.update" type="link" size="small" :auto-insert-space="false" :disabled="operationBusy || metadataBusy" @click="openEditor(record)">编辑并重建</Button>
 						<Button v-if="permissions.add" type="link" size="small" :auto-insert-space="false" :disabled="operationBusy || metadataBusy" @click="openEditor(record, true)">复制配置</Button>
@@ -337,6 +340,7 @@ onMounted(activate); onActivated(activate); onDeactivated(deactivate); onScopeDi
 				</template>
 			</AdminTable>
 		</template>
+		<CodeGenPreview ref="preview" />
 		<Modal :open="editorOpen" :title="draft.id ? '编辑生成配置并重建字段' : editorCopy ? '复制生成配置' : '新增生成配置'" :width="1000" :footer="null" destroy-on-hidden :mask-closable="false" :closable="!operationBusy" :keyboard="!operationBusy" @cancel="closeEditor">
 			<Form :model="draft" layout="vertical" :colon="false" :required-mark="false" class="codegen-editor" @finish="saveEditor">
 				<Alert v-if="editorError" type="error" role="alert" show-icon :title="editorError" class="codegen-wide" />

@@ -16,7 +16,7 @@
 
 ## 总览
 
-业务验收完成：41 / 48。提案 33 的模板 CRUD、分组与参数、原文重开、真实富文本与 Razor 渲染、租户授权、失败恢复、同文档离页、最终生产桌面明暗与活动图标、真实停机和 PostgreSQL 清理均已通过。
+业务验收完成：42 / 48。提案 33 的模板 CRUD、分组与参数、原文重开、真实富文本与 Razor 渲染、租户授权、失败恢复、同文档离页、最终生产桌面明暗与活动图标、真实停机和 PostgreSQL 清理均已通过。
 
 2026-10-11 收尾更新：18 个历史直接子会话已由宿主确认归档且停止；项目门禁已支持实时宿主清单（提交 09ee8a771，23 项回归通过）。无需再次归档。剩余为 7 条历史失败/中止结果的业务处置和 1 个侧会话的继承历史核对，不是归档未同步。提案 29、31、33 的原始真实报告已重新读取，passed/cleanupPassed 均 true、cleanupErrors 均空；提案 29 提交 ed16649bf、31 提交 ac864b422 已核实。侧会话 439 次调用中 438 次继承，唯一新增 ctx_stats；两个成员在复用到 34 后未完成业务实现。具体证据见 `.scratch/proposal-agent-lifecycle/closeout-reconciliation.md`。第 19 轮已完成业务处置绑定：35 项回归通过，正式 CLI 加 --host-url 与 --review-file 核验退出码 0、status=reviewed-clear、blockers=[]。17 个日志成员归档回执、7 条业务处置及只新增 ctx_stats 的侧会话均已核对，允许恢复第 34 项；历史失败不改写为成功，34 仍须实现与验收。处置及报告位于 `.scratch/proposal-agent-lifecycle/business-review.json` 和 `reconciled-cli-audit.json`。
 
@@ -64,7 +64,7 @@
 | 40 | MQTT 连接与消息工作流 | 已完成 |
 | 41 | 直播与视频工具 | 用户暂缓：真实播放待授权配置 |
 | 42 | 代码生成配置与可编辑字段表 | 已完成：全部配置与字段编辑、公共表格、同步与事务回滚、真实桌面及 PG 清理通过 |
-| 43 | 生成预览、ZIP 与页面 CRUD | 待开始 |
+| 43 | 生成预览、ZIP 与页面 CRUD | 已完成 |
 | 44 | 代码直接生成与失败恢复 | 待开始 |
 | 45 | 生产运行时配置与代理闭环 | 待开始 |
 | 46 | 全量功能对应与跨模块验收 | 待开始 |
@@ -180,3 +180,11 @@ MQTT.js 5.16.0 与原连接配置、注册包主题、QoS / Retain、设备封�
 ## 第 42 项完成（2026-10-12）
 
 代码生成主配置、真实可编辑字段表、完整字段选项、唯一约束、菜单及自定义打印模板已迁移；保留复制与显式重建字段操作，同步刷新真实元数据并保留用户选项和已有 ID。公共表格已支持单元格编辑、分组表头、固定列、列显示与组内排序。16 项前端和 66 项后端回归、ESLint、类型检查、API 与生产构建通过。最终真实 PostgreSQL / API / Edge 桌面 12 阶段 passed / cleanupPassed=true、cleanupErrors=[]、browserErrors=[]；8 批非法请求拒绝且无写入，最后字段真实数据库失败使整批事务回滚、草稿保留并可重试，离页、重建、复制和删除通过。打印模板、动态菜单四关联表、生成配置与字段、测试触发器、API 及 PostgreSQL 均已清理，原数据摘要恢复。稳定明暗截图已实际复核；报告 adminnet-vben-6882640eb0164b11bcb93e5db23f5b06/evidence/codegen-browser-baseline.json，源码及截图 SHA256 见 codegen-config-acceptance.json，任务见 issues/42-codegen-config-fields.md。完成数 41 / 48；第 41 项依用户要求暂缓，下一项 43。
+
+## 提案 43 完成：生成预览、ZIP 与代表实体 CRUD
+
+七模板已输出 Vben / Antdv Next / AdminTable 和真实 SDK 适配，预览及 ZIP 按已保存配置生成，逐字节及清单 SHA256 核验通过。129 项后端与 8 项前端回归、ESLint、类型检查、Core net8 和生产构建通过。四个 C# 产物接入实际 Application 编译，提案 35 工具根据真实 Default Swagger 生成 SDK，临时前端类型检查和生产构建通过。
+
+最终真实 PostgreSQL / API / Edge 验收 14 阶段 passed / cleanupPassed=true：CRUD、唯一约束失败保草稿及重试、0 / false、空值双向查询、日期与布尔查询、状态、真实导入导出及错误明细、附件鉴权下载、PDF 与原生打印、同文档离页、UI 删除和真实停机恢复。稳定明暗截图已实际复核；全部业务、文件、菜单与配置、临时应用、API 和数据库资源回收。证据：`.scratch/frontend-vben-migration/codegen-zip-acceptance.json`。
+
+业务验收完成 42 / 48。第 41 项真实播放依用户指令暂缓；下一项为第 44 项直接生成与失败恢复。

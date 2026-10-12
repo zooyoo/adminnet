@@ -1,59 +1,51 @@
-import {useBaseApi} from '/@@/api/base';
-
-// @(Model.BusName)接口服务
-export const use@(Model.ClassName)Api = () => {
-	const baseApi = useBaseApi("@(Model.LowerClassName)");
-	return {
-		// 分页查询@(Model.BusName)
-		page: baseApi.page,
-		// 查看@(Model.BusName)详细
-		detail: baseApi.detail,
-		// 新增@(Model.BusName)
-		add: baseApi.add,
-		// 更新@(Model.BusName)
-		update: baseApi.update,
-		@if (Model.HasSetStatus) {
-		@:// 设置@(Model.BusName)状态
-		@:setStatus: baseApi.setStatus,
-		}
-		// 删除@(Model.BusName)
-		delete: baseApi.delete,
-		// 批量删除@(Model.BusName)
-		batchDelete: baseApi.batchDelete,
-		@if (Model.ImportFieldList.Count > 0) {
-		@:// 导出@(Model.BusName)数据
-		@:exportData: baseApi.exportData,
-		@:// 导入@(Model.BusName)数据
-		@:importData: baseApi.importData,
-		@:// 下载@(Model.BusName)数据导入模板
-		@:downloadTemplate: baseApi.downloadTemplate,
-		}
-		@if (Model.DropdownFieldList.Count > 0) {
-		@:// 获取下拉列表数据
-		@:getDropdownData: (fromPage: Boolean = false, cancel: boolean = false) => baseApi.dropdownData({ fromPage }, cancel),
-		}
-		@foreach (var column in Model.UploadFieldList) {
-		@:// 上传@(column.ColumnComment)
-		@:upload@(column.PropertyName): (params: any, cancel: boolean = false) => baseApi.uploadFile(params, 'upload@(column.PropertyName)', cancel),
-		}
-	}
+@{ var model = (Admin.NET.Core.Service.CustomViewEngine)Model; }
+import type { GeneratedApi, GeneratedRow, GeneratedSchema } from '#/components/admin/generated';
+@if (model.ImportFieldList.Count > 0) {
+@:import type { AxiosResponse } from 'axios';
 }
 
-// @(Model.BusName)实体
-export interface @(Model.ClassName) {
-@{
-var typeMap = new Dictionary<string, string>() {
-	{ "bool", "boolean" },
-	{ "int", "number" },
-	{ "long", "number" },
-	{ "double", "number" },
-	{ "float", "number" },
-	{ "decimal", "number" },
-	{ "byte", "number" }
+import { @(model.ClassName)Api } from '#/api-services/api';
+import { getAPI } from '#/api/sdk';
+
+const sdk = getAPI(@(model.ClassName)Api);
+export const schema: GeneratedSchema = @(model.FrontendSchemaJson);
+@if (model.ImportFieldList.Count > 0) {
+@:async function fileResponse(request: Promise<AxiosResponse<unknown>>): Promise<AxiosResponse<ArrayBuffer>> {
+@: const response = await request;
+@: if (!(response.data instanceof ArrayBuffer)) throw new Error('文件响应格式无效，请重试');
+@: return { ...response, data: response.data };
+@:}
+}
+// 动态表单按生成 schema 校验后，适配真实 SDK 的具体 DTO；服务端继续校验全部字段。
+export const api: GeneratedApi = {
+ page: async (query, signal) => {
+  const result = (await sdk.api@(model.ClassName)PagePost(query as unknown as @($"Parameters<typeof sdk.api{model.ClassName}PagePost>[0]"), { signal, silentError: true })).data.result;
+  return { items: (result?.items ?? []) as GeneratedRow[], total: result?.total ?? 0 };
+ },
+ detail: async (keys, signal) => (await sdk.api@(model.ClassName)DetailGet(@(string.Join(", ", model.PrimaryKeyFieldList.Select((field, index) => $"keys.{field.LowerPropertyName} as Parameters<typeof sdk.api{model.ClassName}DetailGet>[{index}]"))), { signal, silentError: true })).data.result as GeneratedRow,
+ add: async (values, signal) => (await sdk.api@(model.ClassName)AddPost(values as unknown as @($"Parameters<typeof sdk.api{model.ClassName}AddPost>[0]"), { signal, silentError: true })).data.result,
+ update: (values, signal) => sdk.api@(model.ClassName)UpdatePost(values as unknown as @($"Parameters<typeof sdk.api{model.ClassName}UpdatePost>[0]"), { signal, silentError: true }),
+ delete: (keys, signal) => sdk.api@(model.ClassName)DeletePost(keys as unknown as @($"Parameters<typeof sdk.api{model.ClassName}DeletePost>[0]"), { signal, silentError: true }),
+ batchDelete: (keys, signal) => sdk.api@(model.ClassName)BatchDeletePost(keys as unknown as @($"Parameters<typeof sdk.api{model.ClassName}BatchDeletePost>[0]"), { signal, silentError: true }),
+ @if (model.DropdownFieldList.Count > 0) {
+ @:dropdown: async (fromPage, signal) => (await sdk.api@(model.ClassName)DropdownDataPost({ fromPage }, { signal, silentError: true })).data.result as GeneratedRow,
+ }
+ @if (model.HasSetStatus) {
+ @:setStatus: (values, signal) => sdk.api@(model.ClassName)SetStatusPost(values as unknown as @($"Parameters<typeof sdk.api{model.ClassName}SetStatusPost>[0]"), { signal, silentError: true }),
+ }
+ @if (model.ImportFieldList.Count > 0) {
+ @:export: (query, signal) => fileResponse(sdk.api@(model.ClassName)ExportPost(query as unknown as @($"Parameters<typeof sdk.api{model.ClassName}ExportPost>[0]"), { signal, silentError: true, responseType: 'arraybuffer' })),
+ @:import: (file, signal) => fileResponse(sdk.api@(model.ClassName)ImportPostForm(file, { signal, silentError: true, responseType: 'arraybuffer' })),
+ @:downloadTemplate: (signal) => fileResponse(sdk.api@(model.ClassName)ImportGet({ signal, silentError: true, responseType: 'arraybuffer' })),
+ }
+ @if (model.UploadFieldList.Count > 0) {
+ @:upload: async (field, file, signal) => {
+ @: switch (field) {
+ foreach (var column in model.UploadFieldList) {
+ @:  case '@(column.LowerPropertyName)': return (await sdk.api@(model.ClassName)Upload@(column.PropertyName)PostForm(file, { signal, silentError: true })).data.result ?? {};
+ }
+ @:  default: throw new Error('未配置此字段上传');
+ @: }
+ @:},
+ }
 };
-foreach (var column in Model.TableField) {
-	@:// @(column.ColumnComment)
-	@:@(column.LowerPropertyName)@(column.WhetherRequired == "Y" ? "?" : ""): @(Regex.IsMatch("@(column.DataType.Trim('?'))", ".*?Enum") ? "number" : typeMap.GetValueOrDefault(column.DataType.Trim('?').ToLower(), "string"));
-}
-}
-}

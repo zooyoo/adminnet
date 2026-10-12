@@ -29,10 +29,10 @@ export function saveFile(file: FileRecord, signal?: AbortSignal) {
 	return requestClient.post('/api/sysFile/update', { id, fileName, fileType, isPublic, fileAlias, dataId }, { signal });
 }
 export const removeFile = (id: number, signal?: AbortSignal) => requestClient.post('/api/sysFile/delete', { id }, { signal });
-export async function readFile(file: SysFile, signal?: AbortSignal) {
+export async function readFile(file: Pick<SysFile, 'fileName' | 'id' | 'suffix' | 'url'>, signal?: AbortSignal) {
 	const response = await requestClient.post<AxiosResponse<ArrayBuffer>>(
 		'/api/sysFile/downloadFile',
-		{ id: file.id },
+		file.id ? { id: file.id } : { url: file.url },
 		{
 			signal,
 			responseType: 'arraybuffer',

@@ -1,0 +1,6 @@
+<Project>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'Admin.NET.Application'">
+    <Compile Include="$(CodeGenAcceptanceRoot)/CodeGenAcceptance.cs" />
+    <Compile Include="$(CodeGenAcceptanceRoot)/generated/**/*.cs" />
+  </ItemGroup>
+</Project>

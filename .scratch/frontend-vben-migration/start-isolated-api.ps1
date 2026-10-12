@@ -136,9 +136,8 @@ if ($CodeGenFixture) {
     $configuration['CodeGen']['BackendRootPath'] = Join-Path $runtimeRoot 'generated'
     $templateDirectory = Join-Path $runtimeRoot 'wwwroot/template'
     New-Item -ItemType Directory -Path $templateDirectory | Out-Null
-    foreach ($templateName in @('Entity.cs.vm', 'SeedData.cs.vm')) {
-        Copy-Item -LiteralPath (Join-Path $repositoryRoot ('Admin.NET/Admin.NET.Web.Entry/wwwroot/template/' + $templateName)) -Destination $templateDirectory
-    }
+    # 真实生成验收沿用生产全部模板。
+    Get-ChildItem -LiteralPath (Join-Path $repositoryRoot 'Admin.NET/Admin.NET.Web.Entry/wwwroot/template') -Filter '*.vm' -File | Copy-Item -Destination $templateDirectory
 }
 if ($JobFixture) {
     $configuration['JobSchedule'] = @{ IsolatedOnly = $true; ClusterId = 'isolated-job-cluster' }

@@ -28,6 +28,9 @@ public class CustomViewEngine : ViewEngineModel
 
     public string ProjectLastName { get; set; }
 
+    /// <summary>真实实体命名空间，独立于生成服务的保存命名空间。</summary>
+    public string EntityNamespace { get; set; }
+
     public string PagePath { get; set; } = "main";
 
     public string PrintType { get; set; }
@@ -104,6 +107,74 @@ public class CustomViewEngine : ViewEngineModel
     /// </summary>
     public List<CodeGenConfig> DefaultValueList { get; set; }
 
+    /// <summary>
+    /// 新前端共用的字段契约。JSON 编码同时保护描述、默认值和脚本上下文。
+    /// </summary>
+    public string FrontendSchemaJson => System.Text.Json.JsonSerializer.Serialize(new
+    {
+        title = BusName,
+        permission = LowerClassName,
+        primaryKeys = PrimaryKeyFieldList.Select(u => u.LowerPropertyName).ToArray(),
+        fields = TableField.Select(u => new
+        {
+            key = u.LowerPropertyName,
+            title = u.ColumnComment ?? u.PropertyName,
+            effectType = u.EffectType ?? "Input",
+            netType = u.NetType ?? "string",
+            dictTypeCode = u.DictTypeCode,
+            required = u.WhetherRequired == "Y",
+            query = u.WhetherQuery == "Y",
+            queryType = u.QueryType,
+            retract = u.WhetherRetract == "Y",
+            table = u.WhetherTable == "Y",
+            editable = u.WhetherAddUpdate == "Y",
+            sortable = u.WhetherSortable == "Y",
+            maxLength = u.ColumnLength,
+            extendedKey = ToLowerFirstLetter(u.ExtendedPropertyName),
+            isStatus = IsStatus(u)
+        }).ToArray(),
+        defaults = GetFrontendDefaults(),
+        importable = ImportFieldList.Count > 0,
+        printType = PrintType,
+        printName = PrintName
+    });
+
+    private Dictionary<string, object> GetFrontendDefaults()
+    {
+        var defaults = new Dictionary<string, object>();
+        foreach (var field in AddUpdateFieldList)
+        {
+            if (IsStatus(field)) defaults[field.LowerPropertyName] = (int)StatusEnum.Enable;
+            if (field.EffectType == "Switch" && field.NetType == "bool") defaults[field.LowerPropertyName] = false;
+            if (field.PropertyName == nameof(SysUser.OrderNo) && field.NetType.TrimEnd('?') == "int") defaults[field.LowerPropertyName] = 100;
+            var value = field.DefaultValue?.Trim();
+            if (string.IsNullOrEmpty(value) || value.Equals("null", StringComparison.OrdinalIgnoreCase)) continue;
+            while (value.Length > 1 && value[0] == '(' && value[^1] == ')') value = value[1..^1].Trim();
+            // PostgreSQL 返回带类型转换的 SQL 默认表达式，只将字面量带入表单。
+            var literal = Regex.Match(value, @"^(?<literal>NULL|N?'(?:''|[^'])*'|[+-]?\d+(?:\.\d+)?|true|false)(?:\s*::\s*[\w. ]+(?:\(\s*\d+(?:\s*,\s*\d+)?\s*\))?)*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            if (literal.Success) value = literal.Groups["literal"].Value;
+            else if (value.Contains("::") || value.Contains('(') || value.Contains(')')) continue;
+            if (value.Equals("null", StringComparison.OrdinalIgnoreCase)) continue;
+            if (value.StartsWith("N'", StringComparison.OrdinalIgnoreCase)) value = value[1..];
+            if (value.Length > 1 && value[0] == '\'' && value[^1] == '\'') value = value[1..^1].Replace("''", "'");
+            switch (field.EffectType)
+            {
+                case "InputNumber":
+                case "EnumSelector":
+                    if (decimal.TryParse(value, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var number)) defaults[field.LowerPropertyName] = number;
+                    break;
+                case "Switch":
+                    defaults[field.LowerPropertyName] = value == "1" || value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                    break;
+                case "DatePicker":
+                    break;
+                default:
+                    defaults[field.LowerPropertyName] = value;
+                    break;
+            }
+        }
+        return defaults;
+    }
     /// <summary>
     /// 判断字段是否为状态字段
     /// </summary>
