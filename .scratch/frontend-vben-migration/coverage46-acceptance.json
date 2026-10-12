@@ -1,13 +1,11 @@
 {
   "proposal": 46,
-  "complete": false,
+  "complete": true,
   "scopePassed": true,
   "verifiedAt": "2026-10-12T16:23:05.470Z",
   "boundary": "production-desktop-real-nginx-cross-module-users-tenants-postgresql-no-mock",
-  "scope": "available-integrations-with-user-deferred-live-playback",
-  "deferredProposals": [
-    41
-  ],
+  "scope": "cross-module-coverage-with-user-waived-live-playback",
+  "deferredProposals": [],
   "report": {
     "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-4c9f63b07b4240b4854ff20b21ac08ff/evidence/coverage46-browser-baseline.json",
     "sha256": "ac34cdc677e4763569d0f848fd89f60f412ec6e06803145889135c8a90fa1d12",
@@ -112,12 +110,12 @@
     },
     {
       "path": ".scratch/frontend-vben-migration/generate-coverage46-matrix.mjs",
-      "sha256": "77de819380a3d959a52f8fbba0eadc0898c84136b78baa30b3b62fa19fa002d6"
+      "sha256": "fc43dcb8a107c787f2abf1e6f73fe0a94eef833718551d83231fffc294d9fd95"
     }
   ],
   "matrix": {
     "path": ".scratch/frontend-vben-migration/coverage46-feature-map.json",
-    "sha256": "f620d3affff3ea67f434f9196d2633516259fed6723c44d8a9b681194434c6f0",
+    "sha256": "aa68135d38c62710a0fe9d7166064d406f2939bc089b8cf9f55924b9ae7b47cd",
     "counts": {
       "views": 103,
       "components": 34,
@@ -201,9 +199,25 @@
     }
   ],
   "limitations": [
-    "第 41 项真实视频首帧和标准控制仍按用户指令暂缓；本项完整闭票条件尚未满足。",
+    "第 41 项真实首帧和播放控制按用户明确指令豁免；原始 realPlaybackConfirmed=false 保留，不声称播放已实测。",
     "历史报告包含早期契约、失败或 SQLite 记录，矩阵逐层保留结果；本轮 PG 连续链不等同重新实测全部独立业务模块。",
     "仅验证桌面，不发起真实电话，不将旧扫码二维码或未消费的拨号 Token/回调扩展成业务协议。",
-    "第 47～48 项在现行规格中依赖第 46 项闭票，本次未删除旧前端或发布到外部环境。"
-  ]
+    "本次仅关闭第 46 项，后续第 47 项主清理及第 48 项发布按编号独立执行；未授权生产发布。"
+  ],
+  "completion": {
+    "recordedAt": "2026-10-12T21:05:48.568Z",
+    "basis": "既有全量功能对应和真实 PG 跨模块验收通过，第 41 项按用户明确验收豁免完成",
+    "dependency": {
+      "proposal": 41,
+      "commit": "bd8f9d6ed26f766bdb32208b3a5c0b39d1b31e1e",
+      "path": ".scratch/frontend-vben-migration/live-error-cleanup-acceptance.json",
+      "sha256": "3813a8682655af7dc08635ecf3186f4e60a6da679e7502560ee4f936aa8237ce",
+      "instruction": "不需要进行真实播放验收，41直接通过",
+      "realPlaybackConfirmed": false
+    },
+    "originalBrowserReportUnchanged": true,
+    "sourceLogsReportsAndScreenshotsRechecked": 126,
+    "legacySourceHashesRechecked": 137,
+    "dependencyIssueHashesRechecked": 44
+  }
 }

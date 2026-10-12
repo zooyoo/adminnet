@@ -8,6 +8,13 @@ const directory = dirname(fileURLToPath(import.meta.url));
 const root = resolve(directory, '../..');
 const app = 'Web/apps/web-antdv-next/src/';
 const oldRoot = 'Web/src/';
+const liveAcceptance = JSON.parse(readFileSync(join(directory, 'live-error-cleanup-acceptance.json'), 'utf8'));
+const liveWaived = liveAcceptance.complete === true && liveAcceptance.realPlaybackConfirmed === false && liveAcceptance.acceptanceOverride?.source === 'direct-human-instruction';
+const liveAccepted = liveAcceptance.complete === true && (liveAcceptance.realPlaybackConfirmed === true || liveWaived);
+const crossModule = JSON.parse(readFileSync(join(directory, 'coverage46-acceptance.json'), 'utf8'));
+const proposalComplete = liveAccepted && crossModule.scopePassed === true && crossModule.report.result.passed === true && crossModule.report.result.cleanupPassed === true;
+const deferredProposals = liveAccepted ? [] : [41];
+const liveStatus = liveWaived ? '已完成：真实播放按用户指令豁免' : liveAccepted ? '真实播放验收已完成' : '真实播放用户暂缓';
 const sha = path => createHash('sha256').update(readFileSync(join(root, path))).digest('hex');
 const slash = path => path.replaceAll('\\', '/');
 function files(path, extensions) {
@@ -22,7 +29,7 @@ const definitions = [
   ['views/error', [1], ['views/_core/fallback'], '认证、权限与未找到页面反馈'],
   ['views/login', [1, 11, 12, 13, 14], ['views/_core/authentication', 'api/core/auth.ts'], '密码、手机、注册、LDAP、第三方 Token 与锁屏；旧扫码仅项目二维码'],
   ['views/home', [4, 16], ['views/home', 'views/system/notice'], '欢迎、收藏、日程和工作台配置；随机收入图与固定进度示例已移除'],
-  ['views/elive', [41], ['views/elive'], 'EZUIKit 8.0.5 原引擎、输入和控制；错误与清理已验，真实首帧用户暂缓'],
+  ['views/elive', [41], ['views/elive'], 'EZUIKit 8.0.5 原引擎、输入和控制；错误与清理已验，' + liveStatus + ''],
   ['views/mqttx', [40], ['views/mqttx'], 'MQTT 连接、主题、收发、设备封装、重连及凭据清理'],
   ['views/system/cache', [2, 8], ['views/system/cache'], '缓存树、搜索、详情与删除'],
   ['views/system/codeGen', [42, 43, 44], ['views/system/codeGen', 'components/admin', 'api/system/codegen.ts'], '全部主/字段配置、关联选项、复制、同步、预览、ZIP 与直接生成恢复'],
@@ -91,7 +98,7 @@ const entries = legacy.map(source => {
   const globals = key === 'components/sysDict' ? ['GSysDict'] : key === 'components/multiLangInput' ? ['GMultiLangInput'] : [];
   const removedExample = /views\/home\/widgets\/components\/(?:echarts|progressing)\.vue$/u.test(old);
   const unmountedCallBar = old === 'components/callTel/callBar.vue';
-  return { source, sha256: sha(source), group: key, behavior: removedExample ? '旧随机收入图/固定进度示例已明确移除，不计为业务' : unmountedCallBar ? '旧用户页未挂接拨号栏；公开拨号路径单独保留' : behavior, classification: removedExample ? 'removed-example' : unmountedCallBar ? 'library-unmounted' : classification, replacements: replacementPaths, proposals, issueFiles: proposals.map(id => issue(id)).filter(Boolean).map(name => slash(relative(root, join(directory, 'issues', name)))), staticCallers, globals, deferred: proposals.includes(41) };
+  return { source, sha256: sha(source), group: key, behavior: removedExample ? '旧随机收入图/固定进度示例已明确移除，不计为业务' : unmountedCallBar ? '旧用户页未挂接拨号栏；公开拨号路径单独保留' : behavior, classification: removedExample ? 'removed-example' : unmountedCallBar ? 'library-unmounted' : classification, replacements: replacementPaths, proposals, issueFiles: proposals.map(id => issue(id)).filter(Boolean).map(name => slash(relative(root, join(directory, 'issues', name)))), staticCallers, globals, deferred: proposals.includes(41) && !liveAccepted };
 });
 assert.equal(new Set(entries.map(row => row.source)).size, legacy.length);
 const artifactNames = { 40: 'mqtt-acceptance.json', 41: 'live-error-cleanup-acceptance.json', 42: 'codegen-config-acceptance.json', 43: 'codegen-zip-acceptance.json', 44: 'codegen-direct-acceptance.json', 45: 'runtime45-acceptance.json' };
@@ -132,12 +139,12 @@ const removed = [
   { proposal: 37, feature: 'GoView', disposition: '按编号提案明确删除；不映射为新 UI' },
   { proposal: 39, feature: '微信支付订单与退款', disposition: '按用户范围明确删除，微信用户模块保留' },
 ];
-const data = { version: 1, scope: 'source-map-and-proposal-evidence-with-user-deferred-live-playback', proposalComplete: false, deferredProposals: [41], counts: { views: entries.filter(entry => entry.source.startsWith(oldRoot + 'views/')).length, components: entries.filter(entry => entry.source.startsWith(oldRoot + 'components/')).length, mapped: entries.length }, groups, entries, removed, evidence };
+const data = { version: 1, scope: liveAccepted ? 'source-map-and-proposal-evidence-with-live-acceptance-decision' : 'source-map-and-proposal-evidence-with-user-deferred-live-playback', proposalComplete, deferredProposals, counts: { views: entries.filter(entry => entry.source.startsWith(oldRoot + 'views/')).length, components: entries.filter(entry => entry.source.startsWith(oldRoot + 'components/')).length, mapped: entries.length }, groups, entries, removed, evidence };
 writeFileSync(join(directory, 'coverage46-feature-map.json'), JSON.stringify(data, null, 2) + '\n', 'utf8');
-const md = ['# 第 46 项功能覆盖矩阵', '', '本表将旧视图和公共组件逐文件绑定到当前新实现、编号提案及证据。旧源码内容不复制，只记录路径和 SHA256。当前范围不包含用户暂缓的第 41 项真实视频首帧与标准控制验收，第 46 项仍未整体完成。', '', '旧扫码仅生成项目二维码，旧拨号 Token/回调未消费，随机图表与固定进度是示例；这些不能当作已实现的认证或业务协议。静态调用、全局注册与未挂接工具分别记录，未挂接工具不计为业务端点。', '', '历史报告采用多种结果结构；JSON 保留每个 passed/cleanupPassed/proposalComplete 的实际层级和真值。旧 SQLite 报告仅作历史记录，本轮跨用户和双租户的连续链使用真实 PostgreSQL，不能据历史证据声称所有模块均在本轮重测。', '', '| 旧功能组 | 新行为 | 新实现 | 编号证据 | 状态 |', '| --- | --- | --- | --- | --- |'];
-for (const row of groups) md.push('| `' + row.group + '`（' + row.legacyFiles.length + '） | ' + row.behavior + ' | ' + row.replacements.map(path => '`' + path.slice(app.length) + '`').join('、') + ' | ' + row.proposals.map(id => String(id).padStart(2, '0')).join('、') + ' | ' + (row.proposals.includes(41) ? '真实播放用户暂缓' : row.classification === 'library-unmounted' ? '旧工具未挂接，保留替代关系' : '逐文件映射，业务证据见对应提案') + ' |');
+const md = ['# 第 46 项功能覆盖矩阵', '', '本表将旧视图和公共组件逐文件绑定到当前新实现、编号提案及证据。旧源码内容不复制，只记录路径和 SHA256。第 41 项状态：' + liveStatus + '。原始报告的实际验证范围和真值保留，整项决定见 coverage46-acceptance.json。', '', '旧扫码仅生成项目二维码，旧拨号 Token/回调未消费，随机图表与固定进度是示例；这些不能当作已实现的认证或业务协议。静态调用、全局注册与未挂接工具分别记录，未挂接工具不计为业务端点。', '', '历史报告采用多种结果结构；JSON 保留每个 passed/cleanupPassed/proposalComplete 的实际层级和真值。旧 SQLite 报告仅作历史记录，本轮跨用户和双租户的连续链使用真实 PostgreSQL，不能据历史证据声称所有模块均在本轮重测。', '', '| 旧功能组 | 新行为 | 新实现 | 编号证据 | 状态 |', '| --- | --- | --- | --- | --- |'];
+for (const row of groups) md.push('| `' + row.group + '`（' + row.legacyFiles.length + '） | ' + row.behavior + ' | ' + row.replacements.map(path => '`' + path.slice(app.length) + '`').join('、') + ' | ' + row.proposals.map(id => String(id).padStart(2, '0')).join('、') + ' | ' + (row.proposals.includes(41) ? liveStatus : row.classification === 'library-unmounted' ? '旧工具未挂接，保留替代关系' : '逐文件映射，业务证据见对应提案') + ' |');
 md.push('', '## 全部旧文件映射', '', '| 旧文件 | 新实现所在功能组 | 验收编号 |', '| --- | --- | --- |');
 for (const row of entries) md.push('| `' + row.source + '` | `' + row.group + '` → ' + row.replacements.map(path => '`' + path.slice(app.length) + '`').join('、') + ' | ' + row.proposals.map(id => String(id).padStart(2, '0')).join('、') + '（' + row.classification + '） |');
-md.push('', '## 已批准删除', '', ...removed.map(row => '- 第 ' + row.proposal + ' 项：' + row.feature + '。' + row.disposition + '。'), '', '## 证据和剩余条件', '', '- `coverage46-feature-map.json` 保存完整路径、旧源码 SHA256、静态调用/全局入口、证据文件 SHA256 和每层结果真值。共享证据沿原提案指向，不将契约测试冒充真实业务。', '- 本轮 `coverage46-acceptance.json` 另行封存真实 Nginx、管理员/普通用户、双租户、深链接刷新、退出、明暗主题和 PG 清理回执。', '- 第 41 项目前仅错误与资源清理通过。真实首帧/标准控制未通过前，不关闭第 46 项，不将第 47～48 项的依赖标记为满足。', '');
+md.push('', '## 已批准删除', '', ...removed.map(row => '- 第 ' + row.proposal + ' 项：' + row.feature + '。' + row.disposition + '。'), '', '## 证据和剩余条件', '', '- `coverage46-feature-map.json` 保存完整路径、旧源码 SHA256、静态调用/全局入口、证据文件 SHA256 和每层结果真值。共享证据沿原提案指向，不将契约测试冒充真实业务。', '- 本轮 `coverage46-acceptance.json` 另行封存真实 Nginx、管理员/普通用户、双租户、深链接刷新、退出、明暗主题和 PG 清理回执。', '- 第 41 项：' + liveStatus + '。原始 realPlaybackConfirmed=false 不变；用户验收豁免与第 46 项既有跨模块验收共同构成闭票依据。', '');
 writeFileSync(join(directory, 'coverage46-matrix.md'), md.join('\n'), 'utf8');
-console.log(JSON.stringify({ counts: data.counts, groups: groups.length, evidenceReports: evidence.reduce((count, item) => count + item.reports.length, 0), proposalComplete: false, deferredProposals: [41] }));
+console.log(JSON.stringify({ counts: data.counts, groups: groups.length, evidenceReports: evidence.reduce((count, item) => count + item.reports.length, 0), proposalComplete, deferredProposals }));

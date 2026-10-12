@@ -1,10 +1,8 @@
 {
   "version": 1,
-  "scope": "source-map-and-proposal-evidence-with-user-deferred-live-playback",
-  "proposalComplete": false,
-  "deferredProposals": [
-    41
-  ],
+  "scope": "source-map-and-proposal-evidence-with-live-acceptance-decision",
+  "proposalComplete": true,
+  "deferredProposals": [],
   "counts": {
     "views": 103,
     "components": 34,
@@ -93,7 +91,7 @@
     },
     {
       "group": "views/elive",
-      "behavior": "EZUIKit 8.0.5 原引擎、输入和控制；错误与清理已验，真实首帧用户暂缓",
+      "behavior": "EZUIKit 8.0.5 原引擎、输入和控制；错误与清理已验，已完成：真实播放按用户指令豁免",
       "proposals": [
         41
       ],
@@ -960,7 +958,7 @@
       "source": "Web/src/views/elive/index.vue",
       "sha256": "a77946c15f4caba06a6ccc7178d851805d984017e7d1c52bbfdc00a9541fa397",
       "group": "views/elive",
-      "behavior": "EZUIKit 8.0.5 原引擎、输入和控制；错误与清理已验，真实首帧用户暂缓",
+      "behavior": "EZUIKit 8.0.5 原引擎、输入和控制；错误与清理已验，已完成：真实播放按用户指令豁免",
       "classification": "replaced",
       "replacements": [
         "Web/apps/web-antdv-next/src/views/elive"
@@ -973,7 +971,7 @@
       ],
       "staticCallers": [],
       "globals": [],
-      "deferred": true
+      "deferred": false
     },
     {
       "source": "Web/src/views/error/401.vue",
@@ -5903,16 +5901,16 @@
     {
       "proposal": 41,
       "issue": ".scratch/frontend-vben-migration/issues/41-live-video.md",
-      "issueSha256": "74dd350aaa4d931c8a68f5e92c9730c4ebe0d15f2a41d1bd6874a17f411b055a",
-      "execution": "deferred-by-user",
+      "issueSha256": "1dca0d01eaeda7a267c83ca13487ddc7c76df3e97a40042c5ca905e679b28a69",
+      "execution": "completed",
       "reports": [
         {
           "path": "E:/pri/Admin.NET/.scratch/frontend-vben-migration/live-error-cleanup-acceptance.json",
-          "sha256": "56246e5b90efe89c5dd86d13d8fc0b8980110dc969d9caf6a383cd40d975de85",
+          "sha256": "3813a8682655af7dc08635ecf3186f4e60a6da679e7502560ee4f936aa8237ce",
           "verdicts": [
             {
               "key": "complete",
-              "value": false
+              "value": true
             },
             {
               "key": "realPlaybackConfirmed",
