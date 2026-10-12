@@ -7,6 +7,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const manifestName = 'release-manifest.json';
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const slash = (value) => value.split(sep).join('/');
+function containsPath(parent, candidate) {
+	const difference = relative(parent, candidate);
+	return difference === '' || (!isAbsolute(difference) && difference !== '..' && !difference.startsWith('..' + sep));
+}
 function safePath(root, name) {
 	assert.equal(typeof name, 'string', '发布路径无效');
 	assert.ok(name && !isAbsolute(name) && !name.includes('\\') && !name.split('/').some((part) => !part || part === '.' || part === '..'), '发布路径必须位于目录内');
@@ -17,7 +21,8 @@ function safePath(root, name) {
 function noLinks(file) {
 	let current = resolve(file);
 	while (true) {
-		if (existsSync(current)) assert.equal(lstatSync(current).isSymbolicLink(), false, '发布目录不能经过符号链接或联接');
+		const status = lstatSync(current, { throwIfNoEntry: false });
+		if (status) assert.equal(status.isSymbolicLink(), false, '发布目录不能经过符号链接或联接');
 		const parent = dirname(current);
 		if (parent === current) break;
 		current = parent;
@@ -85,9 +90,9 @@ export function packFrontendRelease({ dist, output, commit, version, deployRoot 
 	assert.match(commit, /^[a-f0-9]{40}$/);
 	assert.ok(typeof version === 'string' && /^[\w.-]{1,80}$/.test(version), '发布版本无效');
 	assert.equal(existsSync(output), false, '发布输出已存在');
-	assert.ok(!output.startsWith(dist + sep) && !dist.startsWith(output + sep) && output !== dist, '发布输出与输入不能互相包含');
+	assert.ok(!containsPath(dist, output) && !containsPath(output, dist), '发布输出与输入不能互相包含');
 	noLinks(dist);
-	noLinks(dirname(output));
+	noLinks(output);
 	const pending = join(dirname(output), '.' + basename(output) + '.stage-' + randomUUID());
 	mkdirSync(pending);
 	try {
@@ -123,7 +128,7 @@ export function activateFrontendRelease({ source, target, manifestSha256, replac
 	source = resolve(source);
 	target = resolve(target);
 	assert.match(manifestSha256, /^[a-f0-9]{64}$/, '切换需要先核对发布清单哈希');
-	assert.ok(source !== target && !source.startsWith(target + sep) && !target.startsWith(source + sep), '发布源与目标不能互相包含');
+	assert.ok(!containsPath(source, target) && !containsPath(target, source), '发布源与目标不能互相包含');
 	const verified = verifyFrontendRelease(source, manifestSha256);
 	noLinks(dirname(target));
 	noLinks(target);

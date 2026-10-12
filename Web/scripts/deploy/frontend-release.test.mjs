@@ -98,6 +98,46 @@ test('目标独占锁和重叠目录拒绝，不覆盖其它任务内容', () =>
 		assert.equal(existsSync(join(root, '.current.deploy-lock')), true);
 		assert.throws(() => activateFrontendRelease({ source: release.root, target: join(release.root, 'nested'), manifestSha256: release.manifestSha256 }), /互相包含/);
 	}));
+test('Windows 大小写别名不能将候选目录作为切换目标', { skip: process.platform !== 'win32' }, () =>
+	fixture((root, dist) => {
+		const release = pack(root, dist);
+		const target = join(root, 'RELEASE');
+		assert.equal(existsSync(target), true);
+		assert.throws(() => activateFrontendRelease({ source: release.root, target, manifestSha256: release.manifestSha256, replace: true }), /互相包含/);
+		assert.equal(verifyFrontendRelease(release.root, release.manifestSha256).fileCount, 8);
+	})
+);
+test('Windows 大小写别名不能将打包输出放入输入目录', { skip: process.platform !== 'win32' }, () =>
+	fixture((root, dist) => {
+		assert.throws(() => packFrontendRelease({ dist, output: join(root, 'DIST', 'candidate'), commit: 'a'.repeat(40), version: 'candidate-1', deployRoot: actualDeploy }), /不能互相包含/);
+		assert.deepEqual(readdirSync(dist).sort(), ['_app-config-12345678.js', 'asset-12345678.js', 'index.html']);
+	})
+);
+test('悬空目录链接必须明确拒绝且保持链接和缺失目标不变', () =>
+	fixture((root, dist) => {
+		const release = pack(root, dist);
+		const target = join(root, 'current');
+		const missing = join(root, 'missing');
+		fs.symlinkSync(missing, target, process.platform === 'win32' ? 'junction' : 'dir');
+		assert.equal(existsSync(target), false);
+		assert.throws(() => activateFrontendRelease({ source: release.root, target, manifestSha256: release.manifestSha256, replace: true }), /链接|联接/);
+		assert.equal(fs.lstatSync(target).isSymbolicLink(), true);
+		assert.equal(existsSync(missing), false);
+	}));
+test('打包输出拒绝悬空链接并保留原链接', () =>
+	fixture((root, dist) => {
+		const output = join(root, 'release');
+		const missing = join(root, 'missing');
+		fs.symlinkSync(missing, output, process.platform === 'win32' ? 'junction' : 'dir');
+		assert.equal(existsSync(output), false);
+		assert.throws(() => pack(root, dist), /链接|联接/);
+		assert.equal(fs.lstatSync(output).isSymbolicLink(), true);
+		assert.equal(existsSync(missing), false);
+		assert.equal(
+			readdirSync(root).some((name) => /stage-|rollback-|deploy-lock/.test(name)),
+			false
+		);
+	}));
 test('清单越界与缺失资源拒绝', () =>
 	fixture((root, dist) => {
 		const release = pack(root, dist);

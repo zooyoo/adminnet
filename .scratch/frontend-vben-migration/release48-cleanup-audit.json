@@ -7,9 +7,9 @@
   "nginxOwnedCleanupVerifiedByBrowser": true,
   "closedPorts": [
     5158,
-    52788,
-    61842,
-    61843
+    51555,
+    63745,
+    63746
   ],
   "primaryLegacyFilesPreserved": 770
 }

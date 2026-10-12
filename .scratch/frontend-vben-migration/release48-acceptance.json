@@ -24,42 +24,85 @@
   },
   "release": {
     "source": "verified-cleanup47-dist",
-    "zip": {
-      "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-release48-485d5d1ccd8b4fb1ad4c2bad93c4069f/adminnet-vben-candidate.zip",
-      "sha256": "4dbf55b5db2c7f7620a23caa8ffc6602beb6815cda821797c816b583465de12b"
+    "supersedes": {
+      "ownerRoot": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-release48-485d5d1ccd8b4fb1ad4c2bad93c4069f",
+      "manifestSha256": "ceca6f02dc1e83794072b0d0f6162589305e8d5978f32cdf76d44a1adae4657b",
+      "zipSha256": "4dbf55b5db2c7f7620a23caa8ffc6602beb6815cda821797c816b583465de12b"
     },
-    "manifestSha256": "ceca6f02dc1e83794072b0d0f6162589305e8d5978f32cdf76d44a1adae4657b",
-    "packagedRoot": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-release48-485d5d1ccd8b4fb1ad4c2bad93c4069f\\candidate",
-    "extractedRoot": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-release48-485d5d1ccd8b4fb1ad4c2bad93c4069f\\extracted",
+    "zip": {
+      "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-release48-7a5e852efc554e3b9f77df0f943ebbb1/adminnet-vben-candidate.zip",
+      "sha256": "6d4ed611ace487465b6f96b61c9e4ae7e27da3c4fb74ea632f669315f37a95d4"
+    },
+    "manifestSha256": "cf2c1ec2ee00b085adee59b21c4b70b0d3093d4451ef777efb0d1cdf4c415838",
+    "packagedRoot": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-release48-7a5e852efc554e3b9f77df0f943ebbb1\\candidate",
+    "extractedRoot": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-release48-7a5e852efc554e3b9f77df0f943ebbb1\\extracted",
     "files": 435,
     "requiresFreshLogin": true
   },
   "toolTests": {
-    "passed": 6,
+    "passed": 10,
     "failed": 0,
     "skipped": 0,
     "log": {
       "path": "E:/pri/Admin.NET/.scratch/frontend-vben-migration/release48-tool-tests.tmp.log",
-      "sha256": "3d62b13b39049d2611c919232e63268a8702d59fff381196a0d6d5f7d5996705"
-    }
+      "sha256": "9557fcaa56d0c1df454169655ce89d49ddeafbb5fd127a3e3fe014eaabe2e617"
+    },
+    "pathRegressions": [
+      {
+        "name": "Windows 大小写别名不能将候选目录作为切换目标",
+        "redBeforeFix": true,
+        "passedAfterFix": true,
+        "redLog": {
+          "path": "E:/pri/Admin.NET/.scratch/frontend-vben-migration/release48-path-red-alias.tmp.log",
+          "sha256": "d5dde20c955a946405c728a645c05e85c0bbf05912dd883f4785bb890d93cff1"
+        }
+      },
+      {
+        "name": "Windows 大小写别名不能将打包输出放入输入目录",
+        "redBeforeFix": true,
+        "passedAfterFix": true,
+        "redLog": {
+          "path": "E:/pri/Admin.NET/.scratch/frontend-vben-migration/release48-path-red-pack.tmp.log",
+          "sha256": "7b163bbe44cd7082878ad7d9c523970d8570868f6edac02afae1c2c61a204c72"
+        }
+      },
+      {
+        "name": "悬空目录链接必须明确拒绝且保持链接和缺失目标不变",
+        "redBeforeFix": true,
+        "passedAfterFix": true,
+        "redLog": {
+          "path": "E:/pri/Admin.NET/.scratch/frontend-vben-migration/release48-path-red-link.tmp.log",
+          "sha256": "e159bc015ad305c99a473ff4c9fc4cda53391c6a095ab10781b881496d475a4f"
+        }
+      },
+      {
+        "name": "打包输出拒绝悬空链接并保留原链接",
+        "redBeforeFix": true,
+        "passedAfterFix": true,
+        "redLog": {
+          "path": "E:/pri/Admin.NET/.scratch/frontend-vben-migration/release48-path-red-pack-link.tmp.log",
+          "sha256": "d2fa04fb3a44113992c55756302796fdb604b57cb330be833114ff283172235b"
+        }
+      }
+    ]
   },
   "sourceHashes": {
-    "Web/scripts/deploy/frontend-release.mjs": "a0e95d47fd103fe9d24e6c5c6ce163b91ebf9c7cb8225c3dfd926a115d7471f3",
-    "Web/scripts/deploy/frontend-release.test.mjs": "73c3ce71bf133d58be5bee8795c80d98a8f9e24220cd82738c91a59134ce4ffb",
-    "Web/scripts/deploy/CUTOVER.md": "df14e0bb7d96779f073549b59c916b4716aad0a75323826954053ea86b432d44",
+    "Web/scripts/deploy/frontend-release.mjs": "63a2a8e0bc7f9fd369e74565b04ce4e38b8323a033e5b1cd4c17ca4465568e1f",
+    "Web/scripts/deploy/frontend-release.test.mjs": "53077d776812b3ee7b3be36804fd2be2c5bd68b6785fa4dc7e3fa024f5627993",
+    "Web/scripts/deploy/CUTOVER.md": "e16ae9a0fa5a0df8679a811a2230a70b16dc50a5fe76cc18b53ec977c1879c64",
     "Web/scripts/deploy/README.md": "f62155438fff97e17037de54c42da138dbe7b2fdf077f06dfc606b082aaed2d6",
     ".scratch/frontend-vben-migration/prepare-release48-browser-baseline.mjs": "200a05a50a80c95599ecbb4d8bd69d3787509189d19dc53739b28a3bed484897",
     ".scratch/frontend-vben-migration/run-release48-browser-baseline.mjs": "f445adc7ef8a7ce56f3af94109244473b6b2d79f459a8d7f3e05fa592cb1df98",
     ".scratch/frontend-vben-migration/release48-nginx-fixture.mjs": "f3cefdfbd492e63ea6134cbd97a2cccc8677f40c5f4efe068ee286219eec4121",
-    ".scratch/frontend-vben-migration/seal-release48-acceptance.mjs": "3f6df9a54a1c1bc995ca7488d6ef541e8e24b61ff2c32fbe98675f5a73374c6b",
+    ".scratch/frontend-vben-migration/seal-release48-acceptance.mjs": "1a09233e0a86adcc88f135795c72a19a17608104264e8e266384799f76ccf43e",
     ".scratch/frontend-vben-migration/run-cleanup47-browser-baseline.mjs": "17876f5ecdfe2eb41899047c1c67cc456216e62b4260e0dc03b68bd2da27629a",
     ".scratch/frontend-vben-migration/runtime45-browser-flow.mjs": "5663cb00bacd37d6a810b63b924cd426a7a0d970664edac8facb7918cf5ae1e1",
     ".scratch/frontend-vben-migration/mqtt-api-startup.mjs": "a1109d84249dd5508590f9dc5108c73602d5b012f4fb320a60c4b18dc7eb5115"
   },
   "browser": {
     "log": {
-      "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/release48-browser-baseline.json",
-      "sha256": "644bedb519e06019b5f939ef762e605a3d8a40cc4a5388925c54ea9199f9194f"
+      "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-f34fcf88bc5d4bd89383691f04002118/evidence/release48-browser-baseline.json",
+      "sha256": "96ab3944fcd4b8a70bd897b802d373faefaa885e6ee31252fe59da9746a6cd4b"
     },
     "report": {
       "passed": true,
@@ -73,7 +116,7 @@
           "liveActivation": true,
           "parentMounted": true,
           "previousReleaseRetained": false,
-          "manifestSha256": "ceca6f02dc1e83794072b0d0f6162589305e8d5978f32cdf76d44a1adae4657b",
+          "manifestSha256": "cf2c1ec2ee00b085adee59b21c4b70b0d3093d4451ef777efb0d1cdf4c415838",
           "files": 435
         },
         {
@@ -111,7 +154,7 @@
           "liveActivation": true,
           "parentMounted": true,
           "previousReleaseRetained": false,
-          "manifestSha256": "ceca6f02dc1e83794072b0d0f6162589305e8d5978f32cdf76d44a1adae4657b",
+          "manifestSha256": "cf2c1ec2ee00b085adee59b21c4b70b0d3093d4451ef777efb0d1cdf4c415838",
           "files": 435
         },
         {
@@ -151,8 +194,8 @@
       "productionAuthorized": false,
       "productionSwitched": false,
       "release": {
-        "manifestSha256": "ceca6f02dc1e83794072b0d0f6162589305e8d5978f32cdf76d44a1adae4657b",
-        "zipSha256": "4dbf55b5db2c7f7620a23caa8ffc6602beb6815cda821797c816b583465de12b",
+        "manifestSha256": "cf2c1ec2ee00b085adee59b21c4b70b0d3093d4451ef777efb0d1cdf4c415838",
+        "zipSha256": "6d4ed611ace487465b6f96b61c9e4ae7e27da3c4fb74ea632f669315f37a95d4",
         "fileCount": 435
       },
       "candidateRoot": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-cleanup47-f341950f1bbe4b27a24ff6f3ac50853d",
@@ -282,6 +325,18 @@
         {
           "path": "/prod-api/api/sysTenant/list",
           "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysNotice/unReadList",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysOnlineUser/page",
+          "method": "POST",
           "template": 0,
           "mode": 0
         },
@@ -713,7 +768,7 @@
           "liveActivation": true,
           "parentMounted": true,
           "previousReleaseRetained": false,
-          "manifestSha256": "ceca6f02dc1e83794072b0d0f6162589305e8d5978f32cdf76d44a1adae4657b",
+          "manifestSha256": "cf2c1ec2ee00b085adee59b21c4b70b0d3093d4451ef777efb0d1cdf4c415838",
           "files": 435
         },
         {
@@ -722,20 +777,20 @@
           "liveActivation": true,
           "parentMounted": true,
           "previousReleaseRetained": false,
-          "manifestSha256": "ceca6f02dc1e83794072b0d0f6162589305e8d5978f32cdf76d44a1adae4657b",
+          "manifestSha256": "cf2c1ec2ee00b085adee59b21c4b70b0d3093d4451ef777efb0d1cdf4c415838",
           "files": 435
         }
       ],
       "addresses": [
         {
-          "http": "http://127.0.0.1:52788",
+          "http": "http://127.0.0.1:51555",
           "loginPath": "/#/auth/login",
           "dashboardPath": "/schedule/",
           "historicalAfterCleanup": true
         },
         {
-          "http": "http://127.0.0.1:61842",
-          "tls": "https://127.0.0.1:61843",
+          "http": "http://127.0.0.1:63745",
+          "tls": "https://127.0.0.1:63746",
           "loginPath": "/#/auth/login",
           "dashboardPath": "/schedule/",
           "historicalAfterCleanup": true
@@ -771,22 +826,22 @@
         {
           "name": "message",
           "size": 299,
-          "time": 1782833.758377
+          "time": 1785097.812116
         },
         {
           "name": "message",
           "size": 299,
-          "time": 1782833.809668
+          "time": 1785097.868908
         },
         {
           "name": "message",
           "size": 299,
-          "time": 1782853.770274
+          "time": 1785116.634309
         },
         {
           "name": "message",
           "size": 299,
-          "time": 1782853.909359
+          "time": 1785116.774339
         }
       ],
       "eventStreams": [
@@ -818,40 +873,40 @@
     },
     "reviewed": [
       {
-        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/48-release-first-login-0.png",
+        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-f34fcf88bc5d4bd89383691f04002118/evidence/48-release-first-login-0.png",
         "sha256": "59a7e86fc587b3cf28be6888ae91e50e9c59d17db06a3827baf6bdb5791d9988",
         "reviewed": true
       },
       {
-        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/48-release-first-login-1.png",
+        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-f34fcf88bc5d4bd89383691f04002118/evidence/48-release-first-login-1.png",
         "sha256": "59a7e86fc587b3cf28be6888ae91e50e9c59d17db06a3827baf6bdb5791d9988",
         "reviewed": true
       },
       {
-        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/48-release-runtime-online-0-2.png",
-        "sha256": "aa1fd2ab46750d614a6421a218245b388cc8f81d9f6e3f3da5784c14b6a047df",
+        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-f34fcf88bc5d4bd89383691f04002118/evidence/48-release-runtime-online-0-2.png",
+        "sha256": "485948e1714336d58380888dd47099579007a37518927889aad4dbb99ff1ef24",
         "reviewed": true
       },
       {
-        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/48-release-runtime-online-1-0.png",
-        "sha256": "08a045bc76d2d5fddf87e50d4c133cf846150591f13e058c5988e013e8842f84",
+        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-f34fcf88bc5d4bd89383691f04002118/evidence/48-release-runtime-online-1-0.png",
+        "sha256": "5f85f14546059f1ae2c243bd3cbe0861eb71d9a4c3cf0f8a43d3e7347895d452",
         "reviewed": true
       },
       {
-        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/48-release-runtime-file-preview-0.png",
-        "sha256": "94be38e0e69981eeee8f91634ff5257e926308df35b29080cd4545bf96a2995f",
+        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-f34fcf88bc5d4bd89383691f04002118/evidence/48-release-runtime-file-preview-0.png",
+        "sha256": "32f4b720f158c1baca660e106aac26473c8c2afde5ce94583a4065e2d68b962f",
         "reviewed": true
       },
       {
-        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/48-release-runtime-file-preview-1.png",
-        "sha256": "bdb4f6012d1291ef50e4e5a1424c3f309d57d4d3663b1368124e0c829fd2fe8d",
+        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-f34fcf88bc5d4bd89383691f04002118/evidence/48-release-runtime-file-preview-1.png",
+        "sha256": "4e534d12df334e30ac06c9950b7b7f252006d031254465d120aeb3888d71f4ea",
         "reviewed": true
       }
     ]
   },
   "independentCleanup": {
     "path": "E:/pri/Admin.NET/.scratch/frontend-vben-migration/release48-cleanup-audit.json",
-    "sha256": "8b31ed7b3c58587290cc2164ab1c67b8b022df10c7b3648c4945da08855756aa",
+    "sha256": "5e5bab10507bf5baa29da623d9ad5de42e0aeabb6ddddd08b54aefd2a58feb33",
     "report": {
       "passed": true,
       "boundary": "read-only-no-process-or-container-mutation",
@@ -861,9 +916,9 @@
       "nginxOwnedCleanupVerifiedByBrowser": true,
       "closedPorts": [
         5158,
-        52788,
-        61842,
-        61843
+        51555,
+        63745,
+        63746
       ],
       "primaryLegacyFilesPreserved": 770
     }

@@ -13,7 +13,10 @@ const origin = resolve(directory, '../..');
 const runtime = realpathSync(process.argv[2] ?? '');
 const json = (file) => JSON.parse(readFileSync(file, 'utf8').replace(/^\uFEFF/, ''));
 const sha256 = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
-const artifact = (file) => ({ path: file.replaceAll('\\', '/'), sha256: sha256(file) });
+const artifact = (file) => ({
+	path: file.replaceAll('\\', '/'),
+	sha256: sha256(file),
+});
 const quote = (value) => "'" + String(value).replaceAll("'", "''") + "'";
 const native = (command, args) =>
 	execFileSync(
@@ -139,10 +142,10 @@ writeFileSync(join(directory, 'release48-cleanup-audit.json'), JSON.stringify(cl
 const reviewed = [
 	['48-release-first-login-0.png', '59a7e86fc587b3cf28be6888ae91e50e9c59d17db06a3827baf6bdb5791d9988'],
 	['48-release-first-login-1.png', '59a7e86fc587b3cf28be6888ae91e50e9c59d17db06a3827baf6bdb5791d9988'],
-	['48-release-runtime-online-0-2.png', 'aa1fd2ab46750d614a6421a218245b388cc8f81d9f6e3f3da5784c14b6a047df'],
-	['48-release-runtime-online-1-0.png', '08a045bc76d2d5fddf87e50d4c133cf846150591f13e058c5988e013e8842f84'],
-	['48-release-runtime-file-preview-0.png', '94be38e0e69981eeee8f91634ff5257e926308df35b29080cd4545bf96a2995f'],
-	['48-release-runtime-file-preview-1.png', 'bdb4f6012d1291ef50e4e5a1424c3f309d57d4d3663b1368124e0c829fd2fe8d'],
+	['48-release-runtime-online-0-2.png', '485948e1714336d58380888dd47099579007a37518927889aad4dbb99ff1ef24'],
+	['48-release-runtime-online-1-0.png', '5f85f14546059f1ae2c243bd3cbe0861eb71d9a4c3cf0f8a43d3e7347895d452'],
+	['48-release-runtime-file-preview-0.png', '32f4b720f158c1baca660e106aac26473c8c2afde5ce94583a4065e2d68b962f'],
+	['48-release-runtime-file-preview-1.png', '4e534d12df334e30ac06c9950b7b7f252006d031254465d120aeb3888d71f4ea'],
 ].map(([file, expected]) => {
 	const entry = artifact(join(runtime, 'evidence', file));
 	assert.equal(entry.sha256, expected);
@@ -171,10 +174,27 @@ for (const [published, source] of [
 	assert.equal(sha256(join(control.extractedRoot, 'deploy', published)), sha256(join(origin, source)), published);
 const testsLog = join(directory, 'release48-tool-tests.tmp.log');
 const testsText = readFileSync(testsLog, 'utf8');
-assert.match(testsText, /tests\s+6\b/u);
-assert.match(testsText, /pass\s+6\b/u);
+assert.match(testsText, /tests\s+10\b/u);
+assert.match(testsText, /pass\s+10\b/u);
 assert.match(testsText, /fail\s+0\b/u);
 assert.match(testsText, /skipped\s+0\b/u);
+const pathRegressionCases = [
+	['Windows 大小写别名不能将候选目录作为切换目标', 'release48-path-red-alias.tmp.log', /Missing expected exception/u],
+	['Windows 大小写别名不能将打包输出放入输入目录', 'release48-path-red-pack.tmp.log', /Missing expected exception/u],
+	['悬空目录链接必须明确拒绝且保持链接和缺失目标不变', 'release48-path-red-link.tmp.log', /operation not permitted, rename/u],
+	['打包输出拒绝悬空链接并保留原链接', 'release48-path-red-pack-link.tmp.log', /operation not permitted, rename/u],
+];
+assert.equal(process.platform, 'win32', '大小写别名回归必须在真实 Windows 文件系统上执行');
+const pathRegressions = pathRegressionCases.map(([name, log, failure]) => {
+	assert.ok(testsText.includes(name), name);
+	assert.match(readFileSync(join(directory, log), 'utf8'), failure);
+	return {
+		name,
+		redBeforeFix: true,
+		passedAfterFix: true,
+		redLog: artifact(join(directory, log)),
+	};
+});
 const evidence = {
 	proposal: 48,
 	scopePassed: true,
@@ -185,9 +205,13 @@ const evidence = {
 	productionSwitched: false,
 	primaryDeletionApplied: false,
 	applicationBaselineCommit: control.baseCommit,
-	buildInput: { cleanup47Acceptance: artifact(join(directory, 'cleanup47-acceptance.json')), cleanup47Plan: artifact(join(directory, 'cleanup47-plan.json')) },
+	buildInput: {
+		cleanup47Acceptance: artifact(join(directory, 'cleanup47-acceptance.json')),
+		cleanup47Plan: artifact(join(directory, 'cleanup47-plan.json')),
+	},
 	release: {
 		source: 'verified-cleanup47-dist',
+		supersedes: control.supersedes ?? null,
 		zip: artifact(control.zip),
 		manifestSha256: control.manifestSha256,
 		packagedRoot: control.packagedRoot,
@@ -195,7 +219,13 @@ const evidence = {
 		files: 435,
 		requiresFreshLogin: true,
 	},
-	toolTests: { passed: 6, failed: 0, skipped: 0, log: artifact(testsLog) },
+	toolTests: {
+		passed: 10,
+		failed: 0,
+		skipped: 0,
+		log: artifact(testsLog),
+		pathRegressions,
+	},
 	sourceHashes: Object.fromEntries(
 		files.map((file) => {
 			assert.ok(existsSync(join(origin, file)), file);
@@ -203,13 +233,25 @@ const evidence = {
 		})
 	),
 	browser: { log: artifact(reportPath), report, reviewed },
-	independentCleanup: { ...artifact(join(directory, 'release48-cleanup-audit.json')), report: cleanupAudit },
+	independentCleanup: {
+		...artifact(join(directory, 'release48-cleanup-audit.json')),
+		report: cleanupAudit,
+	},
 	outstanding: ['41: 用户暂缓的授权播放源及真实首帧验收', '46: 第 41 项完成后整体闭票', '47: 第 46 项闭票后应用主工作区清理', '48: 第 47 项闭票与独立生产发布授权、现场配置和访问地址验收'],
 };
 writeFileSync(join(directory, 'release48-acceptance.json'), JSON.stringify(evidence, null, 2) + '\n', 'utf8');
 console.log(
 	JSON.stringify(
-		{ scopePassed: true, complete: false, files: 435, browserSteps: report.steps.length, reviewed: reviewed.length, toolTests: 6, cleanup: cleanupAudit, productionSwitched: false },
+		{
+			scopePassed: true,
+			complete: false,
+			files: 435,
+			browserSteps: report.steps.length,
+			reviewed: reviewed.length,
+			toolTests: 10,
+			cleanup: cleanupAudit,
+			productionSwitched: false,
+		},
 		null,
 		2
 	)

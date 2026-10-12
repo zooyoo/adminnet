@@ -4,8 +4,8 @@
 
 ## 已验证结果
 
-- 发布工具 lint 通过，6 项 Node 回归覆盖拒绝损坏包、路径和锁保护、安装与失败恢复。故障注入仅用于文件系统回归，真实浏览器未 mock API。
-- ZIP 实际重新解压后 verify 435 文件通过；ZIP SHA256 为 4dbf55b5db2c7f7620a23caa8ffc6602beb6815cda821797c816b583465de12b，清单 SHA256 为 ceca6f02dc1e83794072b0d0f6162589305e8d5978f32cdf76d44a1adae4657b。
+- 发布工具 lint 通过，10 项 Node 回归覆盖拒绝损坏包、路径和锁保护、安装与失败恢复；4 项新增测试先复现 Windows 大小写别名与悬空目录联接问题，再验证修复，全部测试在 Windows 上执行且无跳过。故障注入仅用于文件系统回归，真实浏览器未 mock API。
+- ZIP 实际重新解压后 verify 435 文件通过；ZIP SHA256 为 6d4ed611ace487465b6f96b61c9e4ae7e27da3c4fb74ea632f669315f37a95d4，清单 SHA256 为 cf2c1ec2ee00b085adee59b21c4b70b0d3093d4451ef777efb0d1cdf4c415838。
 - 真实 Nginx HTTP / TLS 执行损坏包拒绝、原站点保留及新包切换，正常结束无长期旧发布备份；父目录挂载已验证。
 - 每种协议带有效旧 token Cookie 和 8 个历史存储键访问，手动登录前鉴权请求为 0；新生产命名空间出现，旧键字节保留。
 - 17 阶段真实桌面浏览器验收、文件逐字节校验、SignalR 服务端 PG 归零、独立调度 SSE 真实事件及清理通过。6 张截图已实际查看并固定哈希。
@@ -27,9 +27,9 @@ node .scratch/frontend-vben-migration/seal-release48-acceptance.mjs <本轮隔�
 
 ## 地址与证据
 
-测试站点为 `http://127.0.0.1:52788/#/auth/login`、`https://127.0.0.1:61843/#/auth/login`，独立看板路径为 `/schedule/`。这些地址在测试清理后已关闭，仅作为历史证据。正式地址尚未授权确定。
+测试站点为 `http://127.0.0.1:51555/#/auth/login`、`https://127.0.0.1:63746/#/auth/login`，独立看板路径为 `/schedule/`。这些地址在测试清理后已关闭，仅作为历史证据。正式地址尚未授权确定。
 
-- 发布候选：`C:/Users/zoyo/AppData/Local/Temp/adminnet-release48-485d5d1ccd8b4fb1ad4c2bad93c4069f/adminnet-vben-candidate.zip`。
+- 发布候选：`C:/Users/zoyo/AppData/Local/Temp/adminnet-release48-7a5e852efc554e3b9f77df0f943ebbb1/adminnet-vben-candidate.zip`。
 - 脱敏报告和已查看图片哈希：[release48-acceptance.json](./release48-acceptance.json)。
 - 独立只读清理核验：[release48-cleanup-audit.json](./release48-cleanup-audit.json)。
-- 原始真实浏览器报告：`C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/release48-browser-baseline.json`。
+- 原始真实浏览器报告：`C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-f34fcf88bc5d4bd89383691f04002118/evidence/release48-browser-baseline.json`。

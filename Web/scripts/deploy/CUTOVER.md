@@ -18,7 +18,7 @@ node Web/scripts/deploy/frontend-release.mjs verify --root C:/releases/adminnet-
 if ($LASTEXITCODE -ne 0) { throw 'Release verification failed' }
 ```
 
-保存工具输出的 manifestSha256 并随发布审批核对。发布目录必须是新的输出位置。传输目录或压缩包后，在目标机器重新 verify；未知文件、缺失文件、文件哈希改变或链接都会拒绝。需要 ZIP 时对发布根目录内容压缩，解压后 release-manifest.json 应位于根目录。
+保存工具输出的 manifestSha256 并随发布审批核对。发布目录必须是新的输出位置，不能与构建输入或切换目标互相包含；Windows 下仅大小写不同的目录同样视为重叠。普通及悬空的符号链接、目录联接均在复制前拒绝。传输目录或压缩包后，在目标机器重新 verify；未知文件、缺失文件、文件哈希改变或链接都会拒绝。需要 ZIP 时对发布根目录内容压缩，解压后 release-manifest.json 应位于根目录。
 
 ## 自动切换
 
