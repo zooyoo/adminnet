@@ -33,4 +33,7 @@ public sealed class CodeGenOptions : IConfigurableOptions
 
     /// <summary>后端输出根目录；未配置时沿用 Web 项目上级目录</summary>
     public string BackendRootPath { get; set; }
+
+    /// <summary>授权项目仓库根目录；未配置时沿用 Web 项目上两级目录</summary>
+    public string ProjectRootPath { get; set; }
 }

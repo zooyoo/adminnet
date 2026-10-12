@@ -7,6 +7,7 @@ param(
     [switch]$JobFixture,
     [switch]$PostgreSqlFixture,
     [switch]$CodeGenFixture,
+    [switch]$CodeGenDirectFixture,
     [switch]$LogFixture,
     [switch]$MonitorFixture,
     [switch]$OpenAccessFixture,
@@ -134,6 +135,13 @@ if ($CodeGenFixture) {
     $codeGenConfig = Get-Content -LiteralPath (Join-Path $configurationRoot 'CodeGen.json') -Encoding UTF8 -Raw | ConvertFrom-Json -AsHashtable
     $configuration['CodeGen'] = $codeGenConfig['CodeGen']
     $configuration['CodeGen']['BackendRootPath'] = Join-Path $runtimeRoot 'generated'
+    if ($CodeGenDirectFixture) {
+        $authorizedProject = Join-Path $runtimeRoot 'authorized-project'
+        New-Item -ItemType Directory -Path (Join-Path $authorizedProject 'Admin.NET') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $authorizedProject '.adminnet-authorized-project') -Value $runtimeRoot -Encoding UTF8 -NoNewline
+        $configuration['CodeGen']['ProjectRootPath'] = $authorizedProject
+        $configuration['CodeGen']['BackendRootPath'] = Join-Path $authorizedProject 'Admin.NET'
+    }
     $templateDirectory = Join-Path $runtimeRoot 'wwwroot/template'
     New-Item -ItemType Directory -Path $templateDirectory | Out-Null
     # 真实生成验收沿用生产全部模板。

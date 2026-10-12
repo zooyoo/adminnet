@@ -19,8 +19,12 @@ export interface CodeGenQuery extends Record<string, unknown> { tableName: strin
 export interface CodeGenPage { items: CodeGenRow[]; total: number; }
 export interface CodeGenOption { label: string; value: string; }
 export interface CodeGenConstant { code?: string; name?: string; }
+export interface CodeGenDirectFile { template: string; path: string; sha256: string; existingSha256: null | string; }
+export interface CodeGenDirectPlan { fingerprint: string; files: CodeGenDirectFile[]; }
 
 export const codegenApi = {
+	inspectDirect: (id: CodeGenId, signal: AbortSignal) => requestClient.post<CodeGenDirectPlan>('/api/sysCodeGen/directPlan', { id }, { signal, silentError: true }),
+	runDirect: (id: CodeGenId, fingerprint: string, overwrite: boolean, signal: AbortSignal) => requestClient.post<CodeGenDirectPlan>('/api/sysCodeGen/runDirect', { id, fingerprint, overwrite }, { signal, silentError: true }),
 	preview: (id: CodeGenId, signal: AbortSignal) => requestClient.post<Record<string, string>>('/api/sysCodeGen/preview', { id }, { signal, silentError: true }),
 	zip: (id: CodeGenId, signal: AbortSignal) => requestClient.post<{ url: string }>('/api/sysCodeGen/runLocal', { id }, { signal, silentError: true }),
 	page: (query: CodeGenQuery, signal: AbortSignal) => requestClient.post<CodeGenPage>('/api/sysCodeGen/page', query, { signal, silentError: true }),

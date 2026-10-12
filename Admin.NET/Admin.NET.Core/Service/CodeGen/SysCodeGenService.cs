@@ -426,19 +426,7 @@ public class SysCodeGenService : IDynamicApiController, ITransient
             };
         }
 
-        // 直接生成沿用保存配置的目标目录，全部文件写入完成后才更新菜单。
-        var solutionRoot = Directory.GetParent(App.WebHostEnvironment.ContentRootPath)!.FullName;
-        var repositoryRoot = Directory.GetParent(solutionRoot)!.FullName;
-        var backendRoot = string.IsNullOrWhiteSpace(_codeGenOptions.BackendRootPath)
-            ? solutionRoot : Path.GetFullPath(_codeGenOptions.BackendRootPath, solutionRoot);
-        foreach (var plan in plans)
-        {
-            var root = plan.Template.EndsWith(".cs", StringComparison.Ordinal) ? backendRoot : repositoryRoot;
-            await CodeGenArtifacts.WriteFilesAsync(root, new[] { plan }, new Dictionary<string, string> { [plan.Template] = result[plan.Template] },
-                overwrite: true, cancellationToken: cancellationToken);
-        }
-        await GenerateMenu();
-        return null;
+        throw Oops.Oh("直接生成需要先核对目标清单并确认覆盖，请使用直接生成入口");
     }
 
     /// <summary>获取代码生成预览，模板与下载清单保持一致。</summary>
@@ -447,6 +435,52 @@ public class SysCodeGenService : IDynamicApiController, ITransient
     {
         var (_, _, _, result) = await RenderTemplateAsync(input);
         return result;
+    }
+
+    /// <summary>核对直接生成目标及已有文件摘要，不写入文件。</summary>
+    [HttpPost]
+    [DisplayName("核对代码直接生成清单")]
+    public async Task<CodeGenDirectPlan> DirectPlan(BaseIdInput input)
+    {
+        var (saved, _, plans, result) = await RenderTemplateAsync(new SysCodeGen { Id = input.Id });
+        if (!saved.GenerateType!.StartsWith('2')) throw Oops.Oh("当前配置不是直接生成类型，请保存生成配置后重试");
+        var (backendRoot, projectRoot) = DirectRoots();
+        return CodeGenDirectWriter.Inspect(backendRoot, projectRoot, plans, result, System.Text.Json.JsonSerializer.Serialize(saved));
+    }
+
+    /// <summary>仅发布已核对的文件清单；文件或菜单失败时整批恢复。</summary>
+    [HttpPost]
+    [DisplayName("代码直接生成")]
+    public async Task<CodeGenDirectPlan> RunDirect(CodeGenDirectInput input)
+    {
+        var (saved, fields, plans, result) = await RenderTemplateAsync(new SysCodeGen { Id = input.Id });
+        if (!saved.GenerateType!.StartsWith('2')) throw Oops.Oh("当前配置不是直接生成类型，请保存生成配置后重试");
+        var (backendRoot, projectRoot) = DirectRoots();
+        async Task CommitMenu()
+        {
+            var provider = _db.AsTenant().GetConnectionScope(SqlSugarConst.MainConfigId);
+            await provider.Ado.BeginTranAsync();
+            try
+            {
+                if (saved.GenerateMenu)
+                    await AddOrUpdateMenu(saved.TableName!, saved.BusName!, saved.MenuPid ?? 0, saved.MenuIcon, saved.PagePath!, fields);
+                await provider.Ado.CommitTranAsync();
+            }
+            catch { await provider.Ado.RollbackTranAsync(); throw; }
+        }
+        return await CodeGenDirectWriter.WriteAsync(backendRoot, projectRoot, plans, result, input.Fingerprint, input.Overwrite,
+            CommitMenu, App.HttpContext?.RequestAborted ?? CancellationToken.None, System.Text.Json.JsonSerializer.Serialize(saved));
+    }
+
+    private (string BackendRoot, string ProjectRoot) DirectRoots()
+    {
+        var solutionRoot = Directory.GetParent(App.WebHostEnvironment.ContentRootPath)!.FullName;
+        var repositoryRoot = Directory.GetParent(solutionRoot)!.FullName;
+        var projectRoot = string.IsNullOrWhiteSpace(_codeGenOptions.ProjectRootPath)
+            ? repositoryRoot : Path.GetFullPath(_codeGenOptions.ProjectRootPath, App.WebHostEnvironment.ContentRootPath);
+        var backendRoot = string.IsNullOrWhiteSpace(_codeGenOptions.BackendRootPath)
+            ? Path.Combine(projectRoot, "Admin.NET") : Path.GetFullPath(_codeGenOptions.BackendRootPath, solutionRoot);
+        return (backendRoot, projectRoot);
     }
 
     /// <summary>只从已保存配置读取生成参数，不能借预览或下载请求替换目标。</summary>
@@ -569,7 +603,14 @@ public class SysCodeGenService : IDynamicApiController, ITransient
     {
         var title = $"{busName}";
         var lowerClassName = className.ToFirstLetterLowerCase();
-        var menuType = pid == 0 ? MenuTypeEnum.Dir : MenuTypeEnum.Menu;
+        if (pid == 0)
+        {
+            var directory = await _db.Queryable<SysMenu>().FirstAsync(menu => menu.Pid == 0 && menu.Type == MenuTypeEnum.Dir && menu.Title == title);
+            if (directory == null)
+                pid = await _sysMenuService.AddMenu(new AddMenuInput { Pid = 0, Title = title, Type = MenuTypeEnum.Dir, Icon = "robot", Path = "/" + className.ToLowerInvariant(), Component = "Layout" });
+            else pid = directory.Id;
+        }
+        var menuType = MenuTypeEnum.Menu;
 
         // 查询是否已有主菜单
         var existingMenu = await _db.Queryable<SysMenu>()
@@ -649,7 +690,6 @@ public class SysCodeGenService : IDynamicApiController, ITransient
             .Where(m => m.Pid == menuId && m.Type == MenuTypeEnum.Btn)
             .ToListAsync();
 
-        var newPermissions = newButtons.Select(b => b.Permission).ToHashSet();
 
         // 添加或更新按钮
         foreach (var btn in newButtons)
@@ -670,10 +710,7 @@ public class SysCodeGenService : IDynamicApiController, ITransient
             }
         }
 
-        // 删除多余的旧按钮
-        var toDelete = existingButtons.Where(b => !newPermissions.Contains(b.Permission)).ToList();
-        foreach (var del in toDelete)
-            await _sysMenuService.DeleteMenu(new DeleteMenuInput { Id = del.Id });
+        // 保留既有按钮及角色、租户、用户授权；生成器不删除人工添加的权限。
     }
 
     /// <summary>
