@@ -68,11 +68,21 @@ public class SysCodeGenService : IDynamicApiController, ITransient
 
         if (input.TableUniqueList?.Count > 0) input.TableUniqueConfig = JSON.Serialize(input.TableUniqueList);
 
+        // 先核验实体与数据库字段，避免无效实体留下没有字段的主配置。
+        var columns = GetColumnList(input);
         var codeGen = input.Adapt<SysCodeGen>();
-        var newCodeGen = await _db.Insertable(codeGen).ExecuteReturnEntityAsync();
-
-        // 增加配置表
-        _codeGenConfigService.AddList(GetColumnList(input), newCodeGen);
+        try
+        {
+            _db.AsTenant().BeginTran();
+            var newCodeGen = await _db.Insertable(codeGen).ExecuteReturnEntityAsync();
+            _codeGenConfigService.AddList(columns, newCodeGen);
+            _db.AsTenant().CommitTran();
+        }
+        catch
+        {
+            _db.AsTenant().RollbackTran();
+            throw;
+        }
     }
 
     /// <summary>
@@ -84,10 +94,12 @@ public class SysCodeGenService : IDynamicApiController, ITransient
     [DisplayName("更新代码生成")]
     public async Task UpdateCodeGen(UpdateCodeGenInput input)
     {
+        if (input == null || input.Id <= 0) throw Oops.Oh("代码生成配置标识无效");
         var isExist = await _db.Queryable<SysCodeGen>().AnyAsync(u => u.TableName == input.TableName && u.Id != input.Id);
         if (isExist) throw Oops.Oh(ErrorCodeEnum.D1400);
 
-        var oldRecord = await _db.Queryable<SysCodeGen>().FirstAsync(u => u.Id == input.Id);
+        var oldRecord = await _db.Queryable<SysCodeGen>().FirstAsync(u => u.Id == input.Id)
+            ?? throw Oops.Oh("代码生成配置不存在，请刷新后重试");
         try
         {
             // 开启事务
@@ -132,13 +144,17 @@ public class SysCodeGenService : IDynamicApiController, ITransient
     [DisplayName("同步代码字段")]
     public async Task SyncCodeFieldGen(UpdateCodeGenInput input)
     {
-        var isExist = await _db.Queryable<SysCodeGen>().AnyAsync(u => u.TableName == input.TableName && u.Id != input.Id);
-        if (isExist) throw Oops.Oh(ErrorCodeEnum.D1400);
+        if (input == null || input.Id <= 0) throw Oops.Oh("代码生成配置标识无效");
         try
         {
-            // 开启事务
             _db.AsTenant().BeginTran();
-            await _codeGenConfigService.UpdateList(GetColumnList(input.Adapt<AddCodeGenInput>()), input.Id);
+            var provider = _db.AsTenant().GetConnectionScope(SqlSugarConst.MainConfigId);
+            var codeGen = await provider.Queryable<SysCodeGen>().TranLock(DbLockType.Wait).FirstAsync(row => row.Id == input.Id)
+                ?? throw Oops.Oh("代码生成配置不存在，请刷新后重试");
+            if (input.TableName != codeGen.TableName || input.ConfigId != codeGen.ConfigId)
+                throw Oops.Oh("实体或数据库与原配置不匹配，请刷新后重试");
+            // 字段元数据只取已保存配置对应的真实实体，不能由同步请求切换归属。
+            await _codeGenConfigService.UpdateList(GetColumnList(codeGen.Adapt<AddCodeGenInput>()), codeGen.Id);
             _db.AsTenant().CommitTran();
         }
         catch (Exception ex)
@@ -273,7 +289,7 @@ public class SysCodeGenService : IDynamicApiController, ITransient
     private List<ColumnOuput> GetColumnList([FromQuery] AddCodeGenInput input)
     {
         var entityType = GetEntityInfos(input.ConfigId).GetAwaiter().GetResult().FirstOrDefault(u => u.EntityName == input.TableName);
-        if (entityType == null) return null;
+        if (entityType == null) throw Oops.Oh("实体不存在或不可用于代码生成，请重新选择实体");
 
         var config = _dbConnectionOptions.ConnectionConfigs.FirstOrDefault(u => u.ConfigId.ToString() == input.ConfigId);
         var dbTableName = config!.DbSettings.EnableUnderLine ? entityType.DbTableName.ToUnderLine() : entityType.DbTableName;

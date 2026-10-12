@@ -1,0 +1,16 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const directory=dirname(fileURLToPath(import.meta.url));
+const sdk=readFileSync(join(directory,'run-sdk-browser-baseline.mjs'),'utf8');
+const first=sdk.indexOf('// 生产桌面页面'); const last=sdk.indexOf('try {\n  const port =');
+if(first<0||last<0) throw Error('SDK runner 结构不匹配');
+let source=sdk.slice(0,first)+readFileSync(join(directory,'codegen-browser-flow.mjs'),'utf8')+sdk.slice(last);
+source=source.replace("import { startProductionProxy } from './production-proxy.mjs';", "import { startProductionProxy } from './production-proxy.mjs';\nimport { startMqttApi } from './mqtt-api-startup.mjs';");
+source=source.replaceAll('sdk-browser-baseline.json','codegen-browser-baseline.json').replaceAll('plugin-startup-report.json','codegen-startup-report.json').replace('production-desktop-real-api-postgresql-generated-sdk-no-mock','production-desktop-real-api-postgresql-codegen-fields-no-mock');
+source=source.replace('process.argv[2] ?? 5035','process.argv[2] ?? 5152').replaceAll('runSdkBrowser()','runCodegenBrowser()').replace("'-SdkFixture', '-BuildRoot'", "'-SdkFixture', '-CodeGenFixture', '-BuildRoot'").replace('plugin-api-build','codegen-api-build');
+source=source.replace(/await execute\('pwsh', (\['-NoProfile', '-File', join\(root, '\.scratch\/frontend-vben-migration\/start-isolated-api\.ps1'\)[\s\S]*?\]), \{ windowsHide: true, timeout: 330000 \}\)/u,'await startMqttApi($1, 330000)');
+if(source.includes("await execute('pwsh', ['-NoProfile', '-File', join(root, '.scratch/frontend-vben-migration/start-isolated-api.ps1')")) throw Error('启动器替换失败');
+source=source.replace("page.locator('input[type=\"password\"]')", "page.locator('input[type=\"password\"]'), page.getByRole('textbox', { name: '数据库地址', exact: true })").replace('getByText(value, { exact: true })','getByText(value, { exact: false })');
+writeFileSync(join(directory,'run-codegen-browser-baseline.mjs'),source,'utf8');
+console.log('Generated codegen production browser baseline');

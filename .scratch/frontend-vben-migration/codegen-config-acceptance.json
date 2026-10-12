@@ -1,0 +1,114 @@
+{
+  "proposal": 42,
+  "complete": true,
+  "date": "2026-10-12",
+  "boundary": "production-desktop-real-api-postgresql-codegen-fields-no-mock",
+  "sourceHashes": {
+    "Admin.NET/Admin.NET.Core/Service/CodeGen/SysCodeGenConfigService.cs": "072699489892a0de9738168c10eb0275275e411df37e20c8948e2cb0f2e8c198",
+    "Admin.NET/Admin.NET.Core/Service/CodeGen/SysCodeGenService.cs": "7a82bcd22fe1d12ed334572a1ecae7efbd7d5e32fd87aa42d2484c52640372e3",
+    "Admin.NET/Admin.NET.Core/Service/CodeGen/CodeGenConfigContracts.cs": "3f6a9e7ae9206472e3a80e43f5638933eeb39ea381240aa24e63bdf806031193",
+    "Admin.NET/Admin.NET.Test/CodeGen/CodeGenConfigContractsTests.cs": "ac54a9be63fe5697a63de882c8d615059b88be36a80a2ebdef5faa41141bf154",
+    "Web/apps/web-antdv-next/src/api/system/codegen.ts": "9aa875ee561149a254a7703bc1dc1c1652fb87c0bad5760f71dbcdd4bfd257cf",
+    "Web/apps/web-antdv-next/src/components/admin-table/index.vue": "0d9a06e0ae3d0b03e047b5f8f359d30308e69d177e7f78284e78639690a70fce",
+    "Web/apps/web-antdv-next/src/components/admin-table/column-settings.ts": "44542751ce63479e1de6dbb5e35059ce8f47ceb143f66f1fa5af4c81bcc635e3",
+    "Web/apps/web-antdv-next/src/components/admin-table/column-settings.test.ts": "1ba8762c626fc12c3fdbe2a6bbda986e2b2a4247210a9641cbe1bb59ac912cbf",
+    "Web/apps/web-antdv-next/src/views/system/codeGen/index.vue": "9bb3d084cdad6dcb0e966917633bcf49e7d24ac2162532751bc029cb1e9b3737",
+    "Web/apps/web-antdv-next/src/views/system/codeGen/codegen-model.ts": "3c387607749f228ade473f49958a8e75a0ca29fbd589db4298a15567d49edfa9",
+    "Web/apps/web-antdv-next/src/views/system/codeGen/field-session.ts": "0e383235b0416eb94b4d410cb8f821a23a63c427582d500c0507f57bc1953da8",
+    "Web/apps/web-antdv-next/src/views/system/codeGen/field-session.test.ts": "2271a427c40fd6f1188725206779102168b22f4d9a3486d99d48ca3f70a3fc33"
+  },
+  "checks": {
+    "frontendTests": 16,
+    "backendTests": 66,
+    "eslint": "passed",
+    "typecheck": "passed",
+    "productionBuild": "passed",
+    "isolatedApiBuild": "passed",
+    "backendTestTarget": "net10.0",
+    "coreCompatibilityBuild": "net8.0 passed",
+    "database": "PostgreSQL",
+    "desktopOnly": true
+  },
+  "report": {
+    "path": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-vben-6882640eb0164b11bcb93e5db23f5b06\\evidence\\codegen-browser-baseline.json",
+    "sha256": "5f66f6121f7374e2faebb6b4fda22c19074f9678733393643e5afb289bc611c6",
+    "snapshot": {
+      "passed": true,
+      "cleanupPassed": true,
+      "boundary": "production-desktop-real-api-postgresql-codegen-fields-no-mock",
+      "steps": [
+        {
+          "name": "production-real-login-codegen-dynamic-menu-postgresql"
+        },
+        {
+          "name": "main-config-all-options-unique-menu-save-real-reload"
+        },
+        {
+          "name": "editable-all-field-flags-dictionary-tree-property-names-persisted"
+        },
+        {
+          "name": "public-editable-table-grouped-headers-sticky-columns-settings-light-dark-desktop"
+        },
+        {
+          "name": "real-field-sync-keeps-all-user-options-and-existing-ids"
+        },
+        {
+          "name": "real-api-rejects-incomplete-duplicate-mixed-stale-invalid-and-anonymous-without-mutation",
+          "cases": 8
+        },
+        {
+          "name": "real-postgresql-last-update-failure-rolls-back-keeps-draft-and-retries"
+        },
+        {
+          "name": "same-document-cached-page-leave-clears-unsaved-field-draft"
+        },
+        {
+          "name": "main-editor-explicit-rebuild-refreshes-defaults"
+        },
+        {
+          "name": "copy-config-preserves-generation-parameters-creates-new-entity-without-mutating-source"
+        },
+        {
+          "name": "browser-delete-removes-main-and-all-fields"
+        },
+        {
+          "name": "codegen-menu-config-field-trigger-postgresql-cleanup-restores-digests"
+        }
+      ],
+      "cleanupErrors": [],
+      "menuIds": [
+        "858657465634885"
+      ],
+      "codeGenIds": [
+        "858657489293381",
+        "858657607135301"
+      ],
+      "browserErrors": [],
+      "fixtureRecordsRemoved": true,
+      "containerRemoved": true,
+      "apiStopped": true
+    }
+  },
+  "screenshots": [
+    {
+      "path": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-vben-6882640eb0164b11bcb93e5db23f5b06\\evidence\\42-codegen-fields-light.png",
+      "sha256": "4ca341df56e183dab607f5b7d5e8b99f568b271e856ea15abee158ae3c489782",
+      "visuallyReviewed": true,
+      "viewport": "1680x1100",
+      "findings": "稳定弹窗、明暗主题、固定列与分组表头正常，无页面横向溢出，保存按钮可达；其余字段通过表格内部横向滚动操作。"
+    },
+    {
+      "path": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-vben-6882640eb0164b11bcb93e5db23f5b06\\evidence\\42-codegen-fields-dark.png",
+      "sha256": "08b062bf6fd1a4ca84ac427e3b18e13a0412604362050bed9ed7c79c540ef544",
+      "visuallyReviewed": true,
+      "viewport": "1680x1100",
+      "findings": "稳定弹窗、明暗主题、固定列与分组表头正常，无页面横向溢出，保存按钮可达；其余字段通过表格内部横向滚动操作。"
+    }
+  ],
+  "notes": [
+    "保留原主配置、复制与显式重建操作；同步保留用户字段选项及已有 ID。",
+    "真实 PostgreSQL 最后字段触发器失败验证整批回滚，浏览器草稿保留并可重试。",
+    "主配置旧 DTO ClassName/MenuApplication 没有持久化字段，按旧页面实际能力未新增输入。",
+    "提案 41 仍按用户要求暂缓，不计完成。"
+  ]
+}

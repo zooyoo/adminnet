@@ -1,18 +1,20 @@
 <script setup lang="ts" generic="T extends Record<string, unknown>, Q extends Record<string, unknown>">
 import type { TableProps } from 'antdv-next';
 
+import type { ColumnFixed } from './column-settings';
 import type { TableOutputOptions } from './table-output';
 import type { AdminTableController } from './use-admin-table';
 
-import { computed, onActivated, onBeforeUnmount, onDeactivated, ref } from 'vue';
+import { computed, onActivated, onBeforeUnmount, onDeactivated, ref, useId } from 'vue';
 
 import { ArrowDown, ArrowUp, createIconifyIcon, RotateCw, Settings } from '@vben/icons';
 
-import { Alert, Button, Checkbox, Dropdown, message, Popover, Table, Tooltip } from 'antdv-next';
+import { Alert, Button, Checkbox, Dropdown, message, Popover, Select, Table, Tooltip } from 'antdv-next';
 import { isCancel } from 'axios';
 
 import { sessionBoundary } from '#/api/session';
 
+import { canMoveColumnSetting, columnSettings, configuredColumns, moveColumnSetting } from './column-settings';
 import { exportTablePdf, exportWorkbook, printTable, tableMatrix } from './table-output';
 
 const props = withDefaults(
@@ -24,11 +26,15 @@ const props = withDefaults(
 		rowKey?: string;
 		output?: TableOutputOptions<T>;
 		disabledSelection?: (record: T) => boolean;
+		scroll?: TableProps<T>['scroll'];
+		editable?: (record: T, key: string) => boolean;
+		reloadDisabled?: boolean;
 	}>(),
-	{ pagination: true, selection: false, rowKey: 'id', output: undefined, disabledSelection: undefined }
+	{ pagination: true, selection: false, rowKey: 'id', output: undefined, disabledSelection: undefined, scroll: undefined, editable: undefined, reloadDisabled: false }
 );
 
 const hiddenKeys = ref<string[]>([]);
+const columnControlId = useId();
 const outputLoading = ref(false);
 let active = true;
 let outputGeneration = 0;
@@ -46,20 +52,10 @@ onBeforeUnmount(() => {
 const Download = createIconifyIcon('lucide:download');
 const Printer = createIconifyIcon('lucide:printer');
 const orderedKeys = ref<string[]>([]);
-const columnKey = (column: (typeof props.columns)[number], index: number) => String(column.key ?? ('dataIndex' in column ? column.dataIndex : undefined) ?? index);
-const columnOptions = computed(() =>
-	props.columns
-		.map((column, index) => ({
-			column,
-			key: columnKey(column, index),
-			label: typeof column.title === 'string' ? column.title : columnKey(column, index),
-		}))
-		.sort((a, b) => {
-			const rank = (key: string) => (orderedKeys.value.includes(key) ? orderedKeys.value.indexOf(key) : props.columns.length);
-			return rank(a.key) - rank(b.key);
-		})
-);
-const visibleColumns = computed(() => columnOptions.value.filter((item) => !hiddenKeys.value.includes(item.key)).map((item) => item.column));
+const fixedColumns = ref<Record<string, ColumnFixed>>({});
+const fixedOptions = [{ value: 'none', label: '不固定' }, { value: 'start', label: '固定左侧' }, { value: 'end', label: '固定右侧' }];
+const columnOptions = computed(() => columnSettings(configuredColumns(props.columns, [], orderedKeys.value, fixedColumns.value)));
+const visibleColumns = computed(() => configuredColumns(props.columns, hiddenKeys.value, orderedKeys.value, fixedColumns.value));
 const pager = computed(() =>
 	props.pagination
 		? {
@@ -124,17 +120,13 @@ function toggleColumn(key: string) {
 	hiddenKeys.value = hiddenKeys.value.includes(key) ? hiddenKeys.value.filter((item) => item !== key) : [...hiddenKeys.value, key];
 }
 
-function moveColumn(index: number, direction: number) {
-	const keys = columnOptions.value.map((item) => item.key);
-	const key = keys[index];
-	const other = keys[index + direction];
-	if (key !== undefined && other !== undefined) {
-		keys[index] = other;
-		keys[index + direction] = key;
-		orderedKeys.value = keys;
-	}
+function moveColumn(key: string, direction: -1 | 1) {
+	orderedKeys.value = moveColumnSetting(columnOptions.value, key, direction);
 }
 
+function setFixed(key: string, value: unknown) {
+	fixedColumns.value = { ...fixedColumns.value, [key]: value === 'start' || value === 'end' ? value : false };
+}
 function change(
 	pagination: { current?: number; pageSize?: number },
 	_filters: unknown,
@@ -171,7 +163,7 @@ function change(
 					><Button aria-label="打印" :disabled="outputLoading" @click="runOutput('print')"><Printer :size="16" /></Button
 				></Tooltip>
 				<Tooltip title="刷新"
-					><Button aria-label="刷新" :loading="controller.loading.value" @click="controller.reload"><RotateCw :size="16" /></Button
+					><Button aria-label="刷新" :loading="controller.loading.value" :disabled="reloadDisabled" @click="controller.reload"><RotateCw :size="16" /></Button
 				></Tooltip>
 				<Popover trigger="click" placement="bottomRight">
 					<Tooltip title="列设置"
@@ -180,14 +172,15 @@ function change(
 					<template #content>
 						<div v-for="(item, index) in columnOptions" :key="item.key" class="column-option">
 							<Checkbox :checked="!hiddenKeys.includes(item.key)" @change="toggleColumn(item.key)">{{ item.label }}</Checkbox>
-							<Button type="text" size="small" :disabled="index === 0" :aria-label="`上移${item.label}`" @click="moveColumn(index, -1)"><ArrowUp :size="14" /></Button>
-							<Button type="text" size="small" :disabled="index === columnOptions.length - 1" :aria-label="`下移${item.label}`" @click="moveColumn(index, 1)"><ArrowDown :size="14" /></Button>
+							<label class="column-control-label" :for="`${columnControlId}-${item.key}`">固定{{ item.label }}</label><Select :id="`${columnControlId}-${item.key}`" :value="item.fixed || 'none'" :options="fixedOptions" size="small" :aria-label="`固定${item.label}`" @update:value="(value) => setFixed(item.key, value)" />
+							<Button type="text" size="small" :disabled="!canMoveColumnSetting(columnOptions, index, -1)" :aria-label="`上移${item.label}`" @click="moveColumn(item.key, -1)"><ArrowUp :size="14" /></Button>
+							<Button type="text" size="small" :disabled="!canMoveColumnSetting(columnOptions, index, 1)" :aria-label="`下移${item.label}`" @click="moveColumn(item.key, 1)"><ArrowDown :size="14" /></Button>
 						</div>
 					</template>
 				</Popover>
 			</div>
 		</div>
-		<Alert v-if="controller.error.value" :message="controller.error.value" type="error" show-icon class="mb-3" />
+		<Alert v-if="controller.error.value" :title="controller.error.value" type="error" show-icon class="mb-3" />
 		<Table
 			v-bind="$attrs"
 			:columns="visibleColumns"
@@ -196,13 +189,14 @@ function change(
 			:pagination="pager"
 			:row-selection="rowSelection"
 			:row-key="rowKey"
-			:scroll="{ x: 'max-content' }"
+			:scroll="scroll ?? { x: 'max-content' }"
 			size="small"
 			@change="change"
 		>
-			<template v-if="$slots.bodyCell" #bodyCell="context"
-				><slot name="bodyCell" v-bind="context">{{ cellText(context.text) }}</slot></template
-			>
+			<template v-if="$slots.bodyCell || $slots.editCell" #bodyCell="context">
+				<slot v-if="$slots.editCell && editable?.(context.record, String(context.column.key ?? context.column.dataIndex ?? ''))" name="editCell" v-bind="context" />
+				<slot v-else name="bodyCell" v-bind="context">{{ cellText(context.text) }}</slot>
+			</template>
 			<template v-if="$slots.expandedRowRender" #expandedRowRender="context"><slot name="expandedRowRender" v-bind="context"></slot></template>
 		</Table>
 	</section>
@@ -226,9 +220,19 @@ function change(
 	gap: 8px;
 	flex-wrap: wrap;
 }
+.column-control-label {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
 .column-option {
 	display: grid;
-	grid-template-columns: minmax(120px, 1fr) 28px 28px;
+	grid-template-columns: minmax(100px, 1fr) 112px 28px 28px;
 	align-items: center;
 	gap: 4px;
 	min-height: 32px;

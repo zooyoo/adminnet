@@ -266,3 +266,11 @@
 - 条件：复用旧 ezuikit-js 8.0.5 standard 模板。按安装源码确认实际返回对象；该 iframe 播放器没有 destroy，可在可移除的独立执行 iframe 内加载真实 SDK，停止时先尽力 stop，再移除整个执行环境，验收事件、外部 frame 和 WebSocket 的关闭。
 - 正向播放必须核对真实首帧或解码帧及标准控制；SDK 脚本 HTTP 200、初始化回调和 Token 接口 code 200 不能替代设备播放权限。演示 Token 成功后，严格按官方明确配对做授权预检；10031 或 10002 时保留真实失败结果，不枚举设备或升级 SDK 寻找绕行。
 - 分别记录 production-error-and-resource-cleanup 与完整播放范围。错误范围 passed=true 仍应保存 realPlaybackConfirmed=false；缺授权配置且用户决定暂缓时，不把该提案计入完成数。截图遮罩 Token 及可能含设备密码的视频地址，报告不记录原始认证 URL。
+
+## 2026-10-12：生成字段表、Select 标签和嵌套弹窗
+
+- Antdv 1.5.2 Select 的外层 aria-label 不一定成为内部 input 的可访问名称。使用公开的 Select id 配合 FormItem html-for 或独立 label；以真实浏览器 role / name 验证，公共列设置用 Vue useId 防止重复 ID。
+- 多选下拉的 Tab 可能选择或取消当前选项，不能假定只关闭浮层。按 aria-controls 关联目标弹层，用完整属性名区分 Id 与 Pid，真实搜索虚拟列表，并等待浮层消失后再打开下一控件。
+- 打开嵌套弹窗前捕获控件 ID，后续以该 ID 稳定定位；动态 dialog().last() 会随新弹窗改变范围。主题按钮被 modal 遮挡时，按关闭弹窗、切换主题、重新打开的真实操作顺序取证。
+- 稳定截图检查 dialog 与祖先的有限动画已结束，再使用 screenshot animations='disabled'；必须实际查看图片，避免把透明或缩放中的弹窗计为视觉通过。
+- 字段整批事务验收可在所属隔离 PostgreSQL 中为最后一项更新设置失败触发器，核对全批摘要不变、浏览器草稿保留，移除触发器后重试；同时登记并回收测试函数、触发器和业务夹具。
