@@ -374,6 +374,7 @@ function clearPreferencesAndLogout() {
         <template v-else-if="slot.name === 'logout-btn'">
           <VbenIconButton
             class="mr-1"
+            :aria-label="$t('common.logout')"
             :tooltip="$t('common.logout')"
             @click="handleLogout"
           >

@@ -23,6 +23,12 @@ const fallbackNotFoundRoute: RouteRecordRaw = {
 /** 基本路由，这些路由是必须存在的 */
 const coreRoutes: RouteRecordRaw[] = [
   {
+    name: 'CallTel',
+    path: '/$callTel',
+    component: () => import('#/views/_core/call-tel/index.vue'),
+    meta: { title: '拨号', hideInMenu: true, hideInTab: true },
+  },
+  {
     name: 'ProfileLayout',
     path: '/profile',
     component: BasicLayout,

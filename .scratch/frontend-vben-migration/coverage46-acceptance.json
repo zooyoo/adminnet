@@ -1,0 +1,209 @@
+{
+  "proposal": 46,
+  "complete": false,
+  "scopePassed": true,
+  "verifiedAt": "2026-10-12T16:23:05.470Z",
+  "boundary": "production-desktop-real-nginx-cross-module-users-tenants-postgresql-no-mock",
+  "scope": "available-integrations-with-user-deferred-live-playback",
+  "deferredProposals": [
+    41
+  ],
+  "report": {
+    "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-4c9f63b07b4240b4854ff20b21ac08ff/evidence/coverage46-browser-baseline.json",
+    "sha256": "ac34cdc677e4763569d0f848fd89f60f412ec6e06803145889135c8a90fa1d12",
+    "result": {
+      "passed": true,
+      "cleanupPassed": true,
+      "boundary": "production-desktop-real-nginx-cross-module-users-tenants-postgresql-no-mock",
+      "steps": [
+        {
+          "name": "postgresql-two-tenants-read-only-user-and-rejected-cross-boundary-operations",
+          "tenantIds": [
+            "858753893212229",
+            "858753898823749"
+          ],
+          "roleId": "858753903870021",
+          "userId": "858753906159685",
+          "refusals": [
+            {
+              "path": "sysPos/update",
+              "status": 200,
+              "code": 400
+            },
+            {
+              "path": "sysPos/add",
+              "status": 200,
+              "code": 403
+            },
+            {
+              "path": "sysTenant/changeTenant",
+              "status": 200,
+              "code": 403
+            }
+          ]
+        },
+        {
+          "name": "anonymous-public-dial-legacy-double-encoding-deep-refresh-and-invalid-input"
+        },
+        {
+          "name": "normal-user-read-only-tenant-filter-deep-refresh-profile-workbench-and-cache-return"
+        },
+        {
+          "name": "logout-clears-old-identity-cache-and-protects-deep-route"
+        },
+        {
+          "name": "administrator-same-document-tenant-switch-clears-drafts-and-maintains-pg-isolation"
+        },
+        {
+          "name": "desktop-themes-tenant-workflow-no-horizontal-overflow"
+        },
+        {
+          "name": "owned-pg-relations-and-online-sessions-restored"
+        }
+      ],
+      "cleanupErrors": [],
+      "scope": "available-integrations-with-user-deferred-live-playback",
+      "proposalComplete": false,
+      "deferredProposals": [
+        41
+      ],
+      "browserErrors": [],
+      "serverSessionCleanupConfirmed": true,
+      "fixtureRecordsRemoved": true,
+      "nginxRemoved": true,
+      "containerRemoved": true,
+      "apiStopped": true
+    }
+  },
+  "sources": [
+    {
+      "path": "Web/apps/web-antdv-next/src/router/routes/core.ts",
+      "sha256": "9b0b6092b0ee6ea94c721fae78ff8fc72697c8644eb1f8520853a787a85af04d"
+    },
+    {
+      "path": "Web/apps/web-antdv-next/src/views/_core/call-tel/index.vue",
+      "sha256": "ba84b282c75b484b2e50c6fa2ea74ebae4131ac105b74af495fb5f4c07ccae9e"
+    },
+    {
+      "path": "Web/apps/web-antdv-next/src/views/_core/call-tel/call-tel.ts",
+      "sha256": "066c33582478c87290b32888ce2d41eb512b6f9bfbbab58f896be6427d453990"
+    },
+    {
+      "path": "Web/apps/web-antdv-next/src/views/_core/call-tel/call-tel.test.ts",
+      "sha256": "c8456d4d0636df580f2718e0ca24a55d5337da65b5dac300a28523d92dd7c251"
+    },
+    {
+      "path": "Web/packages/effects/layouts/src/basic/header/header.vue",
+      "sha256": "4dde54cc93957b7b08ad02b0ad1b0a0fe52dd351e09e63cbb3d2ac97b5ca62fa"
+    }
+  ],
+  "tooling": [
+    {
+      "path": ".scratch/frontend-vben-migration/coverage46-browser-flow.mjs",
+      "sha256": "034f7a36b41f68b0dea9b5d94adc12526a4bf430bdab0c7d92e16a17bfe2ac10"
+    },
+    {
+      "path": ".scratch/frontend-vben-migration/prepare-coverage46-browser-baseline.mjs",
+      "sha256": "40b04ba7a63f1d78a98c3584c4dd91c1d2ba50f5a339c3d0eae76efb491b468d"
+    },
+    {
+      "path": ".scratch/frontend-vben-migration/run-coverage46-browser-baseline.mjs",
+      "sha256": "626ddcddfec28bb494e085d772ce668941f2065f94d605c4a6c39aedc9b1ef24"
+    },
+    {
+      "path": ".scratch/frontend-vben-migration/generate-coverage46-matrix.mjs",
+      "sha256": "77de819380a3d959a52f8fbba0eadc0898c84136b78baa30b3b62fa19fa002d6"
+    }
+  ],
+  "matrix": {
+    "path": ".scratch/frontend-vben-migration/coverage46-feature-map.json",
+    "sha256": "f620d3affff3ea67f434f9196d2633516259fed6723c44d8a9b681194434c6f0",
+    "counts": {
+      "views": 103,
+      "components": 34,
+      "mapped": 137
+    },
+    "groups": 56,
+    "reports": 105
+  },
+  "checks": {
+    "frontendUnitTests": 473,
+    "testFiles": 51,
+    "frontendLint": "passed",
+    "frontendTypecheck": "passed",
+    "frontendProductionBuild": "passed",
+    "latestProductionModules": 13391,
+    "latestProductionBuildSeconds": 7.67,
+    "realBrowserStages": 7,
+    "postgresql": true,
+    "realNginx": true,
+    "sameDocumentTenantSwitch": true,
+    "visualReview": "4 张实际查看，无横溢；浅色管理员图保留未遮挡职位表格的登录成功提示"
+  },
+  "logs": [
+    {
+      "path": ".scratch/frontend-vben-migration/coverage46-unit.log",
+      "sha256": "5a812ac4064e88910a91db43a115461f1b586af46f850a51f32bc20bb307a9a3"
+    },
+    {
+      "path": ".scratch/frontend-vben-migration/coverage46-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".scratch/frontend-vben-migration/coverage46-typecheck.log",
+      "sha256": "e6d0dd7af5366b5a34c99e35afec08c2815c577f47a0ac3fef5aa031d894f490"
+    },
+    {
+      "path": ".scratch/frontend-vben-migration/coverage46-build.log",
+      "sha256": "89e3ef0049a0510eb625e9b7c29a2e0a1dcb92896b6b45e3951f41bf66612718"
+    },
+    {
+      "path": ".scratch/frontend-vben-migration/coverage46-header-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".scratch/frontend-vben-migration/coverage46-header-typecheck.log",
+      "sha256": "e6d0dd7af5366b5a34c99e35afec08c2815c577f47a0ac3fef5aa031d894f490"
+    },
+    {
+      "path": ".scratch/frontend-vben-migration/coverage46-header-build.log",
+      "sha256": "d9b90ab7043bea73b9e9ad6640b888224688033e7bd9a4cafbf5d0fce4bd8484"
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-vben-4c9f63b07b4240b4854ff20b21ac08ff\\evidence\\46-public-dial.png",
+      "sha256": "40d0e3ac742991aec1971873f72b6a49e1a878970899ae28fc39c3db4ca04e19",
+      "reviewed": true,
+      "width": 1680,
+      "height": 1100
+    },
+    {
+      "path": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-vben-4c9f63b07b4240b4854ff20b21ac08ff\\evidence\\46-normal-position-light.png",
+      "sha256": "bc25007d36ca5fe165c791d37f2b963ba9fa7aaae69d49708e49fe0d2efc91c0",
+      "reviewed": true,
+      "width": 1680,
+      "height": 1100
+    },
+    {
+      "path": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-vben-4c9f63b07b4240b4854ff20b21ac08ff\\evidence\\46-admin-tenant-light.png",
+      "sha256": "ff5a6b8e3b6c13c381a6d9c00506273cc2af598f0c825ae9a0fb3f208c11ce21",
+      "reviewed": true,
+      "width": 1680,
+      "height": 1100
+    },
+    {
+      "path": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-vben-4c9f63b07b4240b4854ff20b21ac08ff\\evidence\\46-admin-tenant-dark.png",
+      "sha256": "4294b2acb4ba88446205c860f0dc4295475e9be749ae72960b33adaf7a68b561",
+      "reviewed": true,
+      "width": 1680,
+      "height": 1100
+    }
+  ],
+  "limitations": [
+    "第 41 项真实视频首帧和标准控制仍按用户指令暂缓；本项完整闭票条件尚未满足。",
+    "历史报告包含早期契约、失败或 SQLite 记录，矩阵逐层保留结果；本轮 PG 连续链不等同重新实测全部独立业务模块。",
+    "仅验证桌面，不发起真实电话，不将旧扫码二维码或未消费的拨号 Token/回调扩展成业务协议。",
+    "第 47～48 项在现行规格中依赖第 46 项闭票，本次未删除旧前端或发布到外部环境。"
+  ]
+}
