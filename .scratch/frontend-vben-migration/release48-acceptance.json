@@ -1,0 +1,877 @@
+{
+  "proposal": 48,
+  "scopePassed": true,
+  "complete": false,
+  "execution": "local-verified-awaiting-dependencies-and-production-authorization",
+  "deferredProposals": [
+    41,
+    46,
+    47
+  ],
+  "productionAuthorized": false,
+  "productionSwitched": false,
+  "primaryDeletionApplied": false,
+  "applicationBaselineCommit": "3f381c3633880462a0903301a1c74136c7e5e1f0",
+  "buildInput": {
+    "cleanup47Acceptance": {
+      "path": "E:/pri/Admin.NET/.scratch/frontend-vben-migration/cleanup47-acceptance.json",
+      "sha256": "0121c301d0b6681ce0d0ae1b813a88ae4161e1b896b990a278d72650b0ab178f"
+    },
+    "cleanup47Plan": {
+      "path": "E:/pri/Admin.NET/.scratch/frontend-vben-migration/cleanup47-plan.json",
+      "sha256": "238df838d5e121f503360ec5cd8a7cda01b571eaa330304987b34fcdcba38b66"
+    }
+  },
+  "release": {
+    "source": "verified-cleanup47-dist",
+    "zip": {
+      "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-release48-485d5d1ccd8b4fb1ad4c2bad93c4069f/adminnet-vben-candidate.zip",
+      "sha256": "4dbf55b5db2c7f7620a23caa8ffc6602beb6815cda821797c816b583465de12b"
+    },
+    "manifestSha256": "ceca6f02dc1e83794072b0d0f6162589305e8d5978f32cdf76d44a1adae4657b",
+    "packagedRoot": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-release48-485d5d1ccd8b4fb1ad4c2bad93c4069f\\candidate",
+    "extractedRoot": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-release48-485d5d1ccd8b4fb1ad4c2bad93c4069f\\extracted",
+    "files": 435,
+    "requiresFreshLogin": true
+  },
+  "toolTests": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "log": {
+      "path": "E:/pri/Admin.NET/.scratch/frontend-vben-migration/release48-tool-tests.tmp.log",
+      "sha256": "3d62b13b39049d2611c919232e63268a8702d59fff381196a0d6d5f7d5996705"
+    }
+  },
+  "sourceHashes": {
+    "Web/scripts/deploy/frontend-release.mjs": "a0e95d47fd103fe9d24e6c5c6ce163b91ebf9c7cb8225c3dfd926a115d7471f3",
+    "Web/scripts/deploy/frontend-release.test.mjs": "73c3ce71bf133d58be5bee8795c80d98a8f9e24220cd82738c91a59134ce4ffb",
+    "Web/scripts/deploy/CUTOVER.md": "df14e0bb7d96779f073549b59c916b4716aad0a75323826954053ea86b432d44",
+    "Web/scripts/deploy/README.md": "f62155438fff97e17037de54c42da138dbe7b2fdf077f06dfc606b082aaed2d6",
+    ".scratch/frontend-vben-migration/prepare-release48-browser-baseline.mjs": "200a05a50a80c95599ecbb4d8bd69d3787509189d19dc53739b28a3bed484897",
+    ".scratch/frontend-vben-migration/run-release48-browser-baseline.mjs": "f445adc7ef8a7ce56f3af94109244473b6b2d79f459a8d7f3e05fa592cb1df98",
+    ".scratch/frontend-vben-migration/release48-nginx-fixture.mjs": "f3cefdfbd492e63ea6134cbd97a2cccc8677f40c5f4efe068ee286219eec4121",
+    ".scratch/frontend-vben-migration/seal-release48-acceptance.mjs": "3f6df9a54a1c1bc995ca7488d6ef541e8e24b61ff2c32fbe98675f5a73374c6b",
+    ".scratch/frontend-vben-migration/run-cleanup47-browser-baseline.mjs": "17876f5ecdfe2eb41899047c1c67cc456216e62b4260e0dc03b68bd2da27629a",
+    ".scratch/frontend-vben-migration/runtime45-browser-flow.mjs": "5663cb00bacd37d6a810b63b924cd426a7a0d970664edac8facb7918cf5ae1e1",
+    ".scratch/frontend-vben-migration/mqtt-api-startup.mjs": "a1109d84249dd5508590f9dc5108c73602d5b012f4fb320a60c4b18dc7eb5115"
+  },
+  "browser": {
+    "log": {
+      "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/release48-browser-baseline.json",
+      "sha256": "644bedb519e06019b5f939ef762e605a3d8a40cc4a5388925c54ea9199f9194f"
+    },
+    "report": {
+      "passed": true,
+      "cleanupPassed": true,
+      "boundary": "local-extracted-release-live-cutover-cache-first-login-real-nginx-http-tls-postgresql-no-mock",
+      "steps": [
+        {
+          "name": "extracted-release-live-switch-and-bad-package-preservation-0",
+          "rejectedTampered": true,
+          "currentPreserved": true,
+          "liveActivation": true,
+          "parentMounted": true,
+          "previousReleaseRetained": false,
+          "manifestSha256": "ceca6f02dc1e83794072b0d0f6162589305e8d5978f32cdf76d44a1adae4657b",
+          "files": 435
+        },
+        {
+          "name": "real-nginx-template-http-tls-syntax-0",
+          "template": "Web/scripts/deploy/nginx.conf",
+          "tls": false
+        },
+        {
+          "name": "old-cache-isolated-first-manual-login-required-0",
+          "legacyKeysPreserved": true,
+          "newNamespaceKeys": 3
+        },
+        {
+          "name": "runtime-config-login-reload-sdk-hub-cache-0-0"
+        },
+        {
+          "name": "runtime-config-login-reload-sdk-hub-cache-0-1"
+        },
+        {
+          "name": "runtime-config-login-reload-sdk-hub-cache-0-2"
+        },
+        {
+          "name": "nginx-upload-preview-auth-download-public-url-deep-refresh-0"
+        },
+        {
+          "name": "existing-authenticated-dashboard-sse-real-event-unbuffered-0"
+        },
+        {
+          "name": "browser-context-close-hub-disconnect-postgresql-confirmed-0"
+        },
+        {
+          "name": "extracted-release-live-switch-and-bad-package-preservation-1",
+          "rejectedTampered": true,
+          "currentPreserved": true,
+          "liveActivation": true,
+          "parentMounted": true,
+          "previousReleaseRetained": false,
+          "manifestSha256": "ceca6f02dc1e83794072b0d0f6162589305e8d5978f32cdf76d44a1adae4657b",
+          "files": 435
+        },
+        {
+          "name": "real-nginx-template-http-tls-syntax-1",
+          "template": "docker/nginx/conf/nginx.conf",
+          "tls": true
+        },
+        {
+          "name": "old-cache-isolated-first-manual-login-required-1",
+          "legacyKeysPreserved": true,
+          "newNamespaceKeys": 3
+        },
+        {
+          "name": "runtime-config-login-reload-sdk-hub-cache-1-0"
+        },
+        {
+          "name": "nginx-upload-preview-auth-download-public-url-deep-refresh-1"
+        },
+        {
+          "name": "existing-authenticated-dashboard-sse-real-event-unbuffered-1"
+        },
+        {
+          "name": "browser-context-close-hub-disconnect-postgresql-confirmed-1"
+        },
+        {
+          "name": "postgresql-file-menu-job-owned-records-and-physical-cleanup"
+        }
+      ],
+      "cleanupErrors": [],
+      "proposalComplete": false,
+      "primaryDeletionApplied": false,
+      "deferredProposals": [
+        41,
+        46,
+        47
+      ],
+      "productionAuthorized": false,
+      "productionSwitched": false,
+      "release": {
+        "manifestSha256": "ceca6f02dc1e83794072b0d0f6162589305e8d5978f32cdf76d44a1adae4657b",
+        "zipSha256": "4dbf55b5db2c7f7620a23caa8ffc6602beb6815cda821797c816b583465de12b",
+        "fileCount": 435
+      },
+      "candidateRoot": "C:\\Users\\zoyo\\AppData\\Local\\Temp\\adminnet-cleanup47-f341950f1bbe4b27a24ff6f3ac50853d",
+      "baseCommit": "3f381c3633880462a0903301a1c74136c7e5e1f0",
+      "backendConfiguration": "Release",
+      "requests": [
+        {
+          "path": "/prod-api/api/sysConfig/sysInfo",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysConfig/sysInfo",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysAuth/login",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysAuth/userInfo",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/hubs/onlineUser/negotiate",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysMenu/vbenMenuTree",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysNotice/unReadList",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysOnlineUser/page",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysTenant/list",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysAuth/userInfo",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/hubs/onlineUser/negotiate",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysMenu/vbenMenuTree",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysNotice/unReadList",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysOnlineUser/page",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysTenant/list",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysAuth/userInfo",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/hubs/onlineUser/negotiate",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysMenu/vbenMenuTree",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysNotice/unReadList",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysOnlineUser/page",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysTenant/list",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysTenant/list",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysFile/page",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysFile/uploadFile",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysFile/page",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysFile/page",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysFile/downloadFile",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysFile/downloadFile",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysAuth/userInfo",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/hubs/onlineUser/negotiate",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysMenu/vbenMenuTree",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysNotice/unReadList",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysTenant/list",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysFile/page",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysAuth/userInfo",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/hubs/onlineUser/negotiate",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysMenu/vbenMenuTree",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysNotice/unReadList",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysJob/pageJobDetail",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysJob/listJobGroup",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/login",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/get-jobs",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/timelines-log",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/check-change",
+          "method": "GET",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/get-jobs",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/timelines-log",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/get-jobs",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/timelines-log",
+          "method": "POST",
+          "template": 0,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysConfig/sysInfo",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysConfig/sysInfo",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysAuth/login",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysAuth/userInfo",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/hubs/onlineUser/negotiate",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysMenu/vbenMenuTree",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysNotice/unReadList",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysOnlineUser/page",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysTenant/list",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysNotice/unReadList",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysOnlineUser/page",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysTenant/list",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysFile/page",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysFile/page",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysFile/downloadFile",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysFile/downloadFile",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysAuth/userInfo",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/hubs/onlineUser/negotiate",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysMenu/vbenMenuTree",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysNotice/unReadList",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysTenant/list",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysFile/page",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysNotice/unReadList",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysAuth/userInfo",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/hubs/onlineUser/negotiate",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysMenu/vbenMenuTree",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysNotice/unReadList",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysJob/pageJobDetail",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/prod-api/api/sysJob/listJobGroup",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/login",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/get-jobs",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/timelines-log",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/check-change",
+          "method": "GET",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/get-jobs",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/timelines-log",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/get-jobs",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        },
+        {
+          "path": "/schedule/api/timelines-log",
+          "method": "POST",
+          "template": 1,
+          "mode": 0
+        }
+      ],
+      "sseResponses": [
+        {
+          "path": "/schedule/api/check-change",
+          "status": 200,
+          "contentType": "text/event-stream",
+          "cacheControl": "no-cache, no-store"
+        },
+        {
+          "path": "/schedule/api/check-change",
+          "status": 200,
+          "contentType": "text/event-stream",
+          "cacheControl": "no-cache, no-store"
+        }
+      ],
+      "runtimeConfigurations": [
+        {
+          "template": "Web/scripts/deploy/nginx.conf",
+          "kind": "relative",
+          "reloadedWithoutBuild": false
+        },
+        {
+          "template": "Web/scripts/deploy/nginx.conf",
+          "kind": "absolute",
+          "reloadedWithoutBuild": true
+        },
+        {
+          "template": "Web/scripts/deploy/nginx.conf",
+          "kind": "relative",
+          "reloadedWithoutBuild": true
+        },
+        {
+          "template": "docker/nginx/conf/nginx.conf",
+          "kind": "relative",
+          "reloadedWithoutBuild": false
+        }
+      ],
+      "cutovers": [
+        {
+          "rejectedTampered": true,
+          "currentPreserved": true,
+          "liveActivation": true,
+          "parentMounted": true,
+          "previousReleaseRetained": false,
+          "manifestSha256": "ceca6f02dc1e83794072b0d0f6162589305e8d5978f32cdf76d44a1adae4657b",
+          "files": 435
+        },
+        {
+          "rejectedTampered": true,
+          "currentPreserved": true,
+          "liveActivation": true,
+          "parentMounted": true,
+          "previousReleaseRetained": false,
+          "manifestSha256": "ceca6f02dc1e83794072b0d0f6162589305e8d5978f32cdf76d44a1adae4657b",
+          "files": 435
+        }
+      ],
+      "addresses": [
+        {
+          "http": "http://127.0.0.1:52788",
+          "loginPath": "/#/auth/login",
+          "dashboardPath": "/schedule/",
+          "historicalAfterCleanup": true
+        },
+        {
+          "http": "http://127.0.0.1:61842",
+          "tls": "https://127.0.0.1:61843",
+          "loginPath": "/#/auth/login",
+          "dashboardPath": "/schedule/",
+          "historicalAfterCleanup": true
+        }
+      ],
+      "firstLogins": [
+        {
+          "template": "Web/scripts/deploy/nginx.conf",
+          "required": true,
+          "validLegacyCookieIgnored": true,
+          "authenticatedRequestsBeforeManualLogin": 0,
+          "newKeys": [
+            "adminnet-vben-v1-5.8.0-prod-preferences-theme",
+            "adminnet-vben-v1-5.8.0-prod-preferences",
+            "adminnet-vben-v1-5.8.0-prod-preferences-locale"
+          ],
+          "legacyKeysPreserved": true
+        },
+        {
+          "template": "docker/nginx/conf/nginx.conf",
+          "required": true,
+          "validLegacyCookieIgnored": true,
+          "authenticatedRequestsBeforeManualLogin": 0,
+          "newKeys": [
+            "adminnet-vben-v1-5.8.0-prod-preferences-theme",
+            "adminnet-vben-v1-5.8.0-prod-preferences",
+            "adminnet-vben-v1-5.8.0-prod-preferences-locale"
+          ],
+          "legacyKeysPreserved": true
+        }
+      ],
+      "sseEvents": [
+        {
+          "name": "message",
+          "size": 299,
+          "time": 1782833.758377
+        },
+        {
+          "name": "message",
+          "size": 299,
+          "time": 1782833.809668
+        },
+        {
+          "name": "message",
+          "size": 299,
+          "time": 1782853.770274
+        },
+        {
+          "name": "message",
+          "size": 299,
+          "time": 1782853.909359
+        }
+      ],
+      "eventStreams": [
+        {
+          "path": "/schedule/api/check-change",
+          "status": 200,
+          "contentType": "text/event-stream",
+          "cacheControl": "no-cache, no-store"
+        },
+        {
+          "path": "/schedule/api/check-change",
+          "status": 200,
+          "contentType": "text/event-stream",
+          "cacheControl": "no-cache, no-store"
+        }
+      ],
+      "webSocketClosure": {
+        "serverConfirmed": true,
+        "observed": 8,
+        "closeEvents": 0
+      },
+      "browserErrors": [],
+      "noDuplicatedPrefix": true,
+      "fixtureRecordsRemoved": true,
+      "generatedFilesRemoved": true,
+      "nginxRemoved": true,
+      "containerRemoved": true,
+      "apiStopped": true
+    },
+    "reviewed": [
+      {
+        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/48-release-first-login-0.png",
+        "sha256": "59a7e86fc587b3cf28be6888ae91e50e9c59d17db06a3827baf6bdb5791d9988",
+        "reviewed": true
+      },
+      {
+        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/48-release-first-login-1.png",
+        "sha256": "59a7e86fc587b3cf28be6888ae91e50e9c59d17db06a3827baf6bdb5791d9988",
+        "reviewed": true
+      },
+      {
+        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/48-release-runtime-online-0-2.png",
+        "sha256": "aa1fd2ab46750d614a6421a218245b388cc8f81d9f6e3f3da5784c14b6a047df",
+        "reviewed": true
+      },
+      {
+        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/48-release-runtime-online-1-0.png",
+        "sha256": "08a045bc76d2d5fddf87e50d4c133cf846150591f13e058c5988e013e8842f84",
+        "reviewed": true
+      },
+      {
+        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/48-release-runtime-file-preview-0.png",
+        "sha256": "94be38e0e69981eeee8f91634ff5257e926308df35b29080cd4545bf96a2995f",
+        "reviewed": true
+      },
+      {
+        "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-8298f7eb74994ef782ce7fe9d96e83ed/evidence/48-release-runtime-file-preview-1.png",
+        "sha256": "bdb4f6012d1291ef50e4e5a1424c3f309d57d4d3663b1368124e0c829fd2fe8d",
+        "reviewed": true
+      }
+    ]
+  },
+  "independentCleanup": {
+    "path": "E:/pri/Admin.NET/.scratch/frontend-vben-migration/release48-cleanup-audit.json",
+    "sha256": "8b31ed7b3c58587290cc2164ab1c67b8b022df10c7b3648c4945da08855756aa",
+    "report": {
+      "passed": true,
+      "boundary": "read-only-no-process-or-container-mutation",
+      "apiProcessAbsent": true,
+      "ownedPostgresqlContainersAbsent": true,
+      "fixtureProxyContainersVisible": 0,
+      "nginxOwnedCleanupVerifiedByBrowser": true,
+      "closedPorts": [
+        5158,
+        52788,
+        61842,
+        61843
+      ],
+      "primaryLegacyFilesPreserved": 770
+    }
+  },
+  "outstanding": [
+    "41: 用户暂缓的授权播放源及真实首帧验收",
+    "46: 第 41 项完成后整体闭票",
+    "47: 第 46 项闭票后应用主工作区清理",
+    "48: 第 47 项闭票与独立生产发布授权、现场配置和访问地址验收"
+  ]
+}

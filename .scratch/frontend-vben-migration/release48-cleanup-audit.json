@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "boundary": "read-only-no-process-or-container-mutation",
+  "apiProcessAbsent": true,
+  "ownedPostgresqlContainersAbsent": true,
+  "fixtureProxyContainersVisible": 0,
+  "nginxOwnedCleanupVerifiedByBrowser": true,
+  "closedPorts": [
+    5158,
+    52788,
+    61842,
+    61843
+  ],
+  "primaryLegacyFilesPreserved": 770
+}

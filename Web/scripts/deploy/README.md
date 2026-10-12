@@ -2,11 +2,11 @@
 
 在 Web 目录使用仓库指定的 pnpm 版本：
 
-~~~powershell
+```powershell
 pnpm install --frozen-lockfile
 pnpm --filter @vben/web-antdv-next typecheck
 pnpm --filter @vben/web-antdv-next build
-~~~
+```
 
 生产交付目录为 Web/dist。开发命令仍为 pnpm --filter @vben/web-antdv-next dev，开发 Vite 将 /prod-api 和 /schedule 转发到本地 5005 端口。开发服务和 vite preview 仅用于开发及预览。
 
@@ -16,12 +16,12 @@ pnpm --filter @vben/web-antdv-next build
 
 VITE_GLOB_API_URL 支持以下形式：
 
-| 配置值 | 请求示例 |
-| --- | --- |
-| /prod-api 或 prod-api/ | /prod-api/api/sysAuth/login |
+| 配置值                            | 请求示例                                           |
+| --------------------------------- | -------------------------------------------------- |
+| /prod-api 或 prod-api/            | /prod-api/api/sysAuth/login                        |
 | https://api.example.com/prod-api/ | https://api.example.com/prod-api/api/sysAuth/login |
-| https://api.example.com | https://api.example.com/api/sysAuth/login |
-| 空字符串或 / | 当前站点的 /api/sysAuth/login |
+| https://api.example.com           | https://api.example.com/api/sysAuth/login          |
+| 空字符串或 /                      | 当前站点的 /api/sysAuth/login                      |
 
 该值是后端服务及挂载路径，不需要再添加业务 /api。尾部斜杠会统一去除；带查询、片段或用户信息的地址会在初始化时拒绝。SDK、鉴权文件资源和 /hubs/onlineUser 使用同一个地址规则。空地址要求当前站点直接承载后端 /api 与 /hubs，或配置相应根路径代理；这里提供的 Nginx 模板默认使用 /prod-api。使用不同域名或端口的 API 时，后端需允许该前端来源的 CORS 请求；HTTPS 页面应使用 HTTPS / WSS API。
 
@@ -43,3 +43,9 @@ Web/scripts/deploy/nginx.conf 用于 8080 HTTP 容器；docker/nginx/conf/nginx.
 ## 本地验收边界
 
 第 45 项自动验收使用本次隔离 PostgreSQL、真实 API、官方 Nginx 镜像和生产 Web/dist。TLS 使用临时自签名证书，验证代理链路；正式域名证书和外部发布由部署环境单独验证。验收不会连接生产数据库或写入现有发布目录。
+
+## 发布包、自动切换与首次登录
+
+使用 frontend-release.mjs 将已验证的 Web/dist 打成带 SHA256 清单的发布目录；传输或解压后重新 verify，再用核对过的清单哈希执行 activate。切换先校验新目录，完整成功后清除本次临时备份，不长期保留旧发布版本。命令、Nginx 父目录挂载要求、故障恢复及现场配置边界见 [CUTOVER.md](./CUTOVER.md)。
+
+浏览器缓存以 VITE_APP_NAMESPACE-VITE_APP_VERSION-prod 隔离，旧版本的 token Cookie 和冒号存储键不导入；首次访问新应用重新登录。站点登录地址为 /#/auth/login，独立调度看板仍为 /schedule/。本地测试地址随夹具结束关闭，历史地址和完整性证据见 .scratch/frontend-vben-migration/release48-acceptance.json；正式访问地址由独立获批的部署环境确定。
