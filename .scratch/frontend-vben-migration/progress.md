@@ -16,7 +16,7 @@
 
 ## 总览
 
-业务验收完成：43 / 48。提案 33 的模板 CRUD、分组与参数、原文重开、真实富文本与 Razor 渲染、租户授权、失败恢复、同文档离页、最终生产桌面明暗与活动图标、真实停机和 PostgreSQL 清理均已通过。
+业务验收完成：44 / 48。提案 33 的模板 CRUD、分组与参数、原文重开、真实富文本与 Razor 渲染、租户授权、失败恢复、同文档离页、最终生产桌面明暗与活动图标、真实停机和 PostgreSQL 清理均已通过。
 
 2026-10-11 收尾更新：18 个历史直接子会话已由宿主确认归档且停止；项目门禁已支持实时宿主清单（提交 09ee8a771，23 项回归通过）。无需再次归档。剩余为 7 条历史失败/中止结果的业务处置和 1 个侧会话的继承历史核对，不是归档未同步。提案 29、31、33 的原始真实报告已重新读取，passed/cleanupPassed 均 true、cleanupErrors 均空；提案 29 提交 ed16649bf、31 提交 ac864b422 已核实。侧会话 439 次调用中 438 次继承，唯一新增 ctx_stats；两个成员在复用到 34 后未完成业务实现。具体证据见 `.scratch/proposal-agent-lifecycle/closeout-reconciliation.md`。第 19 轮已完成业务处置绑定：35 项回归通过，正式 CLI 加 --host-url 与 --review-file 核验退出码 0、status=reviewed-clear、blockers=[]。17 个日志成员归档回执、7 条业务处置及只新增 ctx_stats 的侧会话均已核对，允许恢复第 34 项；历史失败不改写为成功，34 仍须实现与验收。处置及报告位于 `.scratch/proposal-agent-lifecycle/business-review.json` 和 `reconciled-cli-audit.json`。
 
@@ -66,7 +66,7 @@
 | 42 | 代码生成配置与可编辑字段表 | 已完成：全部配置与字段编辑、公共表格、同步与事务回滚、真实桌面及 PG 清理通过 |
 | 43 | 生成预览、ZIP 与页面 CRUD | 已完成 |
 | 44 | 代码直接生成与失败恢复 | 已完成 |
-| 45 | 生产运行时配置与代理闭环 | 待开始 |
+| 45 | 生产运行时配置与代理闭环 | 已完成：运行时配置、真实 Nginx HTTP / TLS、文件与实时代理验收 |
 | 46 | 全量功能对应与跨模块验收 | 待开始 |
 | 47 | 旧前端清理与可发布构建 | 待开始 |
 | 48 | 整体切换与回退演练 | 待开始 |
@@ -197,3 +197,11 @@ MQTT.js 5.16.0 与原连接配置、注册包主题、QoS / Retain、设备封�
 - 140 项 CodeGen 与 5 项菜单回归、Core net8、ESLint、类型和生产构建通过。最终真实浏览器 20 阶段与全部资源清理通过，明暗桌面截图已实际复核；证据见 codegen-direct-acceptance.json，任务见 issues/44-codegen-direct-recovery.md。
 
 业务验收完成 43 / 48。第 41 项真实播放依用户指令暂缓；下一项为第 45 项生产运行时配置与代理闭环。
+
+### 提案 45 完成（2026-10-12）
+
+统一 SDK、SignalR 和文件资源的 API 地址规范化；两份 Nginx 配置只去除一次 /prod-api，保留 /schedule，并补齐 WebSocket、SSE、上传和缓存设置。部署说明及 Dockerfile 使用当前目标应用与 Web/dist。
+
+67 项回归、ESLint、类型检查与生产构建通过。真实 PostgreSQL / API / 生产构建 / Nginx 下，13 阶段验证相对和绝对运行时地址、刷新生效、HTTP / TLS 登录、图片上传预览下载、SignalR、真实调度 SSE、缓存和深链接。最终报告 passed / cleanupPassed 均为 true，截图已实际查看，全部自有资源清理通过。证据：`.scratch/frontend-vben-migration/runtime45-acceptance.json`。
+
+业务验收完成 44 / 48。第 41 项真实播放依用户指令暂缓；下一项为第 46 项全量功能对应与跨模块验收。

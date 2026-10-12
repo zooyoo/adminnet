@@ -1,3 +1,5 @@
+import { normalizeApiUrl } from './api-url';
+
 export type OnlineStatus = 'connected' | 'connecting' | 'disconnected' | 'reconnecting';
 export type OnlineEvent = 'OnlineUserList' | 'PublicNotice' | 'ReceiveMessage';
 export type OnlineTokenProvider = () => Promise<string> | string;
@@ -113,5 +115,5 @@ export class OnlineSession {
 }
 
 export function onlineHubUrl(apiUrl: string) {
-	return `${apiUrl.replace(/\/+$/, '')}/hubs/onlineUser`;
+	return `${normalizeApiUrl(apiUrl)}/hubs/onlineUser`;
 }

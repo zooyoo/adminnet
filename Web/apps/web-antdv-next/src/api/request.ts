@@ -10,6 +10,7 @@ import { message } from 'antdv-next';
 import { useAuthStore } from '#/store';
 
 import { installAdminInterceptors } from './admin-interceptors';
+import { normalizeApiUrl } from './api-url';
 import { sessionBoundary } from './session';
 
 const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
@@ -21,7 +22,7 @@ class AdminRequestClient extends RequestClient {
 }
 
 export const requestClient = new AdminRequestClient({
-	baseURL: apiURL,
+	baseURL: normalizeApiUrl(apiURL),
 	timeout: 50_000,
 	// SDK 直接使用 instance 时保留 AxiosResponse，业务调用通过 request() 解包。
 	responseReturn: 'raw',
