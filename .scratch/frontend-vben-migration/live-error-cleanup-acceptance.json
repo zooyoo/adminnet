@@ -1,9 +1,8 @@
 {
   "proposal": 41,
-  "execution": "deferred-by-user",
-  "complete": false,
+  "execution": "completed",
+  "complete": true,
   "realPlaybackConfirmed": false,
-  "deferredReason": "用户明确表示暂时没有授权测试配置，先跳过；真实首帧和标准播放控制待补。",
   "verified": [
     "9 项会话边界单测",
     "ESLint 与应用类型检查",
@@ -87,5 +86,20 @@
     "fixtureRecordsRemoved": true,
     "containerRemoved": true,
     "apiStopped": true
+  },
+  "previousDeferral": {
+    "execution": "deferred-by-user",
+    "reason": "用户明确表示暂时没有授权测试配置，先跳过；真实首帧和标准播放控制待补。"
+  },
+  "acceptanceOverride": {
+    "source": "direct-human-instruction",
+    "instruction": "不需要进行真实播放验收，41直接通过",
+    "recordedAt": "2026-10-12T20:58:09.279Z",
+    "waived": [
+      "授权设备真实首帧验收",
+      "基于真实播放的标准控制验收"
+    ],
+    "completionBasis": "已验错误处理与资源清理通过，用户直接接受第 41 项并豁免真实播放验收",
+    "originalEvidenceUnchanged": true
   }
 }
