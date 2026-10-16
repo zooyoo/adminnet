@@ -58,3 +58,6 @@ Admin.NET/Admin.NET.Application/Configuration/DeepSeek.json
 /Bat/secret_pass.txt
 /发布
 /Admin.NET/Admin.NET.lutconfig
+.pnpm-store/
+.scratch/
+*.log

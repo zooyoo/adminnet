@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Schedule from './schedule.vue';
-import { scheduleLunarLabel } from './workbench';
+import { recentScheduleTimes, scheduleLunarLabel } from './workbench';
 
 const { api, boundary } = vi.hoisted(() => ({
 	api: { listSchedules: vi.fn(), saveSchedule: vi.fn(), deleteSchedule: vi.fn(), setScheduleStatus: vi.fn() },
@@ -60,17 +60,8 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 describe('日程旧行为恢复', () => {
-	it('整个 23 点新建日程使用 23:00 至 23:45', async () => {
-		vi.useFakeTimers({ toFake: ['Date'] });
-		for (const minute of [0, 14, 29, 45, 59]) {
-			vi.setSystemTime(new Date(2026, 9, 13, 23, minute));
-			const wrapper = open();
-			await flushPromises();
-			await button(wrapper, '添加日程').trigger('click');
-			expect(wrapper.get<HTMLInputElement>('[aria-label="开始时间"]').element.value).toBe('23:00');
-			expect(wrapper.get<HTMLInputElement>('[aria-label="结束时间"]').element.value).toBe('23:45');
-			wrapper.unmount();
-		}
+	it('整个 23 点使用旧默认 23:00 至 23:45', () => {
+		for (const minute of [0, 14, 29, 45, 59]) expect(recentScheduleTimes(new Date(2026, 9, 13, 23, minute))).toEqual({ startTime: '23:00', endTime: '23:45' });
 	});
 	it('农历提供月及中文日，跨月和无效日期不会错位', () => {
 		expect(scheduleLunarLabel('2026-09-28')).toBe('八月十八');

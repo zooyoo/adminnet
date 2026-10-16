@@ -4,6 +4,7 @@
 //
 // 不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目二次开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 using Microsoft.Extensions.Hosting.WindowsServices;
+using Microsoft.Extensions.Logging.EventLog;
 
 Serve.Run(
     RunOptions.Default //创建一个 WebApplication 主机的配置对象
@@ -14,6 +15,12 @@ public class WebComponent : IWebComponent
 {
     public void Load(WebApplicationBuilder builder, ComponentContext componentContext)
     {
+        // 控制台运行不写入 Windows 事件日志，避免普通用户权限导致日志写入异常。
+        if (OperatingSystem.IsWindows() && !WindowsServiceHelpers.IsWindowsService())
+        {
+            builder.Logging.AddFilter<EventLogLoggerProvider>(LogLevel.None);
+        }
+
         // 设置日志过滤
         builder.Logging.AddFilter((provider, category, logLevel) =>
         {

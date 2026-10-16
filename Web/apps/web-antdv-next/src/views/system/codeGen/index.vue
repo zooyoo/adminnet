@@ -8,9 +8,10 @@ import type { SysMenu } from '#/api-services/models/sys-menu';
 import type { TableOutput } from '#/api-services/models/table-output';
 import type { CodeGenDraft, CodeGenField, CodeGenId, CodeGenOption, CodeGenQuery, CodeGenRow } from '#/api/system/codegen';
 
-import { computed, onActivated, onDeactivated, onMounted, onScopeDispose, reactive, shallowRef, watch } from 'vue';
+import { computed, h, onActivated, onDeactivated, onMounted, onScopeDispose, reactive, shallowRef, watch } from 'vue';
 
 import { useAccess } from '@vben/access';
+import { IconPicker } from '@vben/common-ui';
 import { useUserStore } from '@vben/stores';
 
 import { Alert, Button, Checkbox, Form, FormItem, Input, InputNumber, message, Modal, Select, Switch } from 'antdv-next';
@@ -21,7 +22,7 @@ import { listPrintTemplates } from '#/api/system/print';
 import AdminTable from '#/components/admin-table/index.vue';
 import { useAdminTable } from '#/components/admin-table/use-admin-table';
 
-import { copyCodeGenDraft, createCodeGenDraft, FIELD_FLAGS, FOREIGN_TYPES, isFieldFlag, protectedField, redactedConnection, SELECTOR_TYPES, validateCodeGenDraft, validateCodeGenFields } from './codegen-model';
+import { changeCodeGenParent, copyCodeGenDraft, createCodeGenDraft, FIELD_FLAGS, fillCodeGenUniqueMessage, FOREIGN_TYPES, isFieldFlag, protectedField, redactedConnection, SELECTOR_TYPES, validateCodeGenDraft, validateCodeGenFields } from './codegen-model';
 import CodeGenPreview from './codegen-preview.vue';
 import { createFieldSession, createFieldState } from './field-session';
 
@@ -370,15 +371,15 @@ onMounted(activate); onActivated(activate); onDeactivated(deactivate); onScopeDi
 				<FormItem label="生成方式" html-for="codegen-generate"><Select id="codegen-generate" aria-label="生成方式" v-model:value="draft.generateType" :options="generateOptions" :disabled="operationBusy" /></FormItem>
 				<FormItem label="移除表前缀"><Input aria-label="移除表前缀" v-model:value="draft.tablePrefix" :disabled="operationBusy" /></FormItem>
 				<FormItem label="生成菜单"><Switch aria-label="生成菜单" v-model:checked="draft.generateMenu" :disabled="operationBusy" /></FormItem>
-				<FormItem label="上级菜单" html-for="codegen-parent"><Select id="codegen-parent" aria-label="上级菜单" :value="draft.menuPid ?? 0" :options="menuOptions" :disabled="operationBusy || !draft.generateMenu" show-search @update:value="(value) => draft.menuPid = Number(value)" /></FormItem>
-				<FormItem label="菜单图标"><Input aria-label="菜单图标" v-model:value="draft.menuIcon" :disabled="operationBusy || !draft.generateMenu" /></FormItem>
+				<FormItem label="上级菜单" html-for="codegen-parent"><Select id="codegen-parent" aria-label="上级菜单" :value="draft.menuPid ?? 0" :options="menuOptions" :disabled="operationBusy || !draft.generateMenu" show-search @update:value="(value) => changeCodeGenParent(draft, value, menus)" /></FormItem>
+				<FormItem label="菜单图标" html-for="codegen-menu-icon"><Input v-if="operationBusy || !draft.generateMenu" id="codegen-menu-icon" aria-label="菜单图标" :value="draft.menuIcon ?? ''" disabled /><IconPicker v-else :model-value="draft.menuIcon ?? ''" :input-component="h(Input, { id: 'codegen-menu-icon', 'aria-label': '菜单图标' })" model-value-prop="value" icon-slot="suffix" @change="draft.menuIcon = $event" @update:model-value="draft.menuIcon = $event" /></FormItem>
 				<FormItem label="菜单页面目录"><Input aria-label="菜单页面目录" v-model:value="draft.pagePath" :disabled="operationBusy || !draft.generateMenu" /></FormItem>
 				<FormItem label="打印类型" html-for="codegen-print"><Select id="codegen-print" aria-label="打印类型" v-model:value="draft.printType" :options="printOptions" :disabled="operationBusy" @change="() => { if (draft.printType === 'off') draft.printName = ''; }" /></FormItem>
 				<FormItem v-if="draft.printType === 'custom'" label="打印模板名称" html-for="codegen-print-template"><Select id="codegen-print-template" v-model:value="draft.printName" :options="printTemplateOptions" show-search option-filter-prop="label" :disabled="operationBusy" /></FormItem>
 				<div class="codegen-wide codegen-unique">
 					<div class="codegen-actions"><strong>唯一约束</strong><Button :auto-insert-space="false" :disabled="operationBusy" @click="draft.tableUniqueList.push({ columns: [], message: '' })">添加唯一约束</Button></div>
 					<div v-for="(item, index) in draft.tableUniqueList" :key="index" class="codegen-unique-row">
-						<label class="codegen-sr-only" :for="`codegen-unique-${index}`">唯一约束 {{ index + 1 }} 字段</label><Select :id="`codegen-unique-${index}`" v-model:value="item.columns" :options="entityColumnOptions" mode="multiple" :aria-label="`唯一约束 ${index + 1} 字段`" :disabled="operationBusy" />
+						<label class="codegen-sr-only" :for="`codegen-unique-${index}`">唯一约束 {{ index + 1 }} 字段</label><Select :id="`codegen-unique-${index}`" v-model:value="item.columns" :options="entityColumnOptions" mode="multiple" @change="(value) => fillCodeGenUniqueMessage(item, value, entityColumns)" :aria-label="`唯一约束 ${index + 1} 字段`" :disabled="operationBusy" />
 						<Input v-model:value="item.message" :aria-label="`唯一约束 ${index + 1} 提示`" :disabled="operationBusy" placeholder="重复数据提示" />
 						<Button danger :disabled="operationBusy" :auto-insert-space="false" @click="draft.tableUniqueList.splice(index, 1)">移除约束</Button>
 					</div>

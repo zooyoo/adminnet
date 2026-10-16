@@ -1,11 +1,13 @@
 {
   "proposal": 46,
-  "complete": true,
+  "complete": false,
   "scopePassed": true,
   "verifiedAt": "2026-10-12T16:23:05.470Z",
   "boundary": "production-desktop-real-nginx-cross-module-users-tenants-postgresql-no-mock",
-  "scope": "cross-module-coverage-with-user-waived-live-playback",
-  "deferredProposals": [],
+  "scope": "cross-module-runtime-scope-passed-full-behavior-audit-pending",
+  "deferredProposals": [
+    46
+  ],
   "report": {
     "path": "C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-4c9f63b07b4240b4854ff20b21ac08ff/evidence/coverage46-browser-baseline.json",
     "sha256": "ac34cdc677e4763569d0f848fd89f60f412ec6e06803145889135c8a90fa1d12",
@@ -110,12 +112,12 @@
     },
     {
       "path": ".scratch/frontend-vben-migration/generate-coverage46-matrix.mjs",
-      "sha256": "fc43dcb8a107c787f2abf1e6f73fe0a94eef833718551d83231fffc294d9fd95"
+      "sha256": "eb213896adce16768fe07f0582ad40deb08defc47680dde3cf136c37d776c824"
     }
   ],
   "matrix": {
     "path": ".scratch/frontend-vben-migration/coverage46-feature-map.json",
-    "sha256": "aa68135d38c62710a0fe9d7166064d406f2939bc089b8cf9f55924b9ae7b47cd",
+    "sha256": "625bdd656ea21808a452dc760d2bab103bfd49caa9ce5d422a6d4d92a242314a",
     "counts": {
       "views": 103,
       "components": 34,
@@ -202,9 +204,9 @@
     "第 41 项真实首帧和播放控制按用户明确指令豁免；原始 realPlaybackConfirmed=false 保留，不声称播放已实测。",
     "历史报告包含早期契约、失败或 SQLite 记录，矩阵逐层保留结果；本轮 PG 连续链不等同重新实测全部独立业务模块。",
     "仅验证桌面，不发起真实电话，不将旧扫码二维码或未消费的拨号 Token/回调扩展成业务协议。",
-    "本次仅关闭第 46 项，后续第 47 项主清理及第 48 项发布按编号独立执行；未授权生产发布。"
+    "用户要求从第 46 项重新执行，46、47、48 均未完成；第 46 项完整验收后才推进主清理与发布，生产切换另需授权。"
   ],
-  "completion": {
+  "priorCompletionDecision": {
     "recordedAt": "2026-10-12T21:05:48.568Z",
     "basis": "既有全量功能对应和真实 PG 跨模块验收通过，第 41 项按用户明确验收豁免完成",
     "dependency": {
@@ -218,6 +220,36 @@
     "originalBrowserReportUnchanged": true,
     "sourceLogsReportsAndScreenshotsRechecked": 126,
     "legacySourceHashesRechecked": 137,
-    "dependencyIssueHashesRechecked": 44
+    "dependencyIssueHashesRechecked": 44,
+    "commit": "8d86ae8e8859a2c975b29a6e4a4d66402bb49e58",
+    "withdrawn": true,
+    "reason": "闭票判断未逐行为核验完整证据，不能以文件映射和通过数量替代覆盖"
+  },
+  "behaviorCoverageComplete": false,
+  "acceptanceReview": {
+    "recordedAt": "2026-10-12T21:17:04.376Z",
+    "status": "in-progress",
+    "trigger": "用户追问第 46 项是否逐条满足验收点，以及不以测试数量或页面数量替代覆盖",
+    "existingRuntimeEvidencePreserved": true,
+    "livePlaybackWaiverPreserved": true,
+    "pending": [
+      "筛选各任务最终有效证据，明确历史失败、mock 和 SQLite 记录的范围",
+      "把每项已实现操作关联到具体断言及真实报告，复核公共组件与插件",
+      "证据汇总完成后重新运行真实 PostgreSQL 跨模块连续工作流",
+      "逐项确认所有真实集成已验收或具有明确用户豁免"
+    ],
+    "mobileScope": {
+      "tested": false,
+      "instruction": "AGENTS.md:20：不需要测试mobil端，只测试桌面端"
+    },
+    "tracker": {
+      "sourceDocumentExists": true,
+      "taskFileExists": true,
+      "pluginRecognized": false,
+      "reportRecorded": false,
+      "result": "issue 46 not-found",
+      "detail": "插件查询该 effort 返回 0 张票；目录或文件识别规则尚待核实，不能表述为仓库没有第 46 项"
+    },
+    "instruction": "从提案46开始都没有完成，从46开始重新执行"
   }
 }

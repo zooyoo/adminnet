@@ -54,11 +54,24 @@ public class SysUserLdapService : ITransient
     /// <returns></returns>
     public async Task AddUserLdap(long tenantId, long userId, string account, string domainAccount)
     {
-        var userLdap = await _sysUserLdapRep.GetFirstAsync(u => u.TenantId == tenantId && (u.Account == account || u.UserId == userId || u.EmployeeId == domainAccount));
+        // 只处理当前用户的映射，不能因账号字段相似而删除其他用户的数据。
+        var userLdap = await _sysUserLdapRep.GetFirstAsync(u => u.TenantId == tenantId && u.UserId == userId);
+        if (userLdap != null && !string.IsNullOrWhiteSpace(domainAccount) && userLdap.Account == domainAccount)
+        {
+            // 域账号未改变时保留同步得到的显示名、DN 和其他目录属性。
+            userLdap.EmployeeId = account;
+            await _sysUserLdapRep.AsUpdateable(userLdap).UpdateColumns(u => u.EmployeeId).ExecuteCommandAsync();
+            return;
+        }
         if (userLdap != null) await _sysUserLdapRep.DeleteByIdAsync(userLdap.Id);
 
         if (!string.IsNullOrWhiteSpace(domainAccount))
-            await _sysUserLdapRep.InsertAsync(new SysUserLdap { EmployeeId = account, TenantId = tenantId, UserId = userId, Account = domainAccount });
+            await _sysUserLdapRep.InsertAsync(new SysUserLdap
+            {
+                EmployeeId = account, TenantId = tenantId, UserId = userId, Account = domainAccount,
+                // 手工绑定尚未查询目录，使用账号作为显示名，DN 明确保留为空。
+                UserName = domainAccount, Dn = string.Empty
+            });
     }
 
     /// <summary>

@@ -41,7 +41,12 @@ function fixture(timeout = 1000) {
 		clients.push(client);
 		return client as unknown as MqttClient;
 	});
-	const profile = { ...createMqttProfile(), host: 'localhost', username: 'fixture', password: 'test-secret' };
+	const profile = {
+		...createMqttProfile(),
+		host: 'localhost',
+		username: 'fixture',
+		password: 'test-secret',
+	};
 	const session = new MqttSession(create, events, timeout);
 	session.connect(profile);
 	return { session, events, clients, create, profile, client: clients[0]! };
@@ -123,7 +128,14 @@ describe('MQTT 会话边界', () => {
 		await refusal;
 		client.publishDone?.();
 		expect(events.status).toHaveBeenLastCalledWith('reconnecting');
-		expect(create).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ clean: true, resubscribe: true, queueQoSZero: false }));
+		expect(create).toHaveBeenCalledWith(
+			expect.any(String),
+			expect.objectContaining({
+				clean: true,
+				resubscribe: true,
+				queueQoSZero: false,
+			})
+		);
 		session.disconnect();
 	});
 
@@ -175,7 +187,10 @@ describe('MQTT 会话边界', () => {
 		const { session, client } = fixture();
 		const pending = session.subscribe(['fixture/allowed', 'fixture/refused'], 1);
 		const refusal = expect(pending).rejects.toThrow('订阅被拒绝');
-		client.subscribeDone?.(null, [{ topic: 'fixture/allowed', qos: 1 }, { topic: 'fixture/refused', qos: 128 }]);
+		client.subscribeDone?.(null, [
+			{ topic: 'fixture/allowed', qos: 1 },
+			{ topic: 'fixture/refused', qos: 128 },
+		]);
 		await refusal;
 		expect(client.end).toHaveBeenCalledOnce();
 		expect(client.listenerCount('message')).toBe(0);
@@ -185,6 +200,55 @@ describe('MQTT 会话边界', () => {
 		const { session, client, events, profile } = fixture();
 		client.emit('error', new Error(`broker rejected ${profile.password}`));
 		expect(events.error).toHaveBeenLastCalledWith('MQTT 连接或操作失败，请检查地址、认证及 broker 权限');
+		session.disconnect();
+	});
+
+	it('同一客户端重连后旧拒绝 SUBACK 不能断开新连接或取消新操作', async () => {
+		const { session, client, events } = fixture();
+		const pending = session.subscribe(['fixture/old'], 1);
+		const refusal = expect(pending).rejects.toThrow('连接已中断');
+		const late = client.subscribeDone!;
+		client.emit('close');
+		await refusal;
+		client.emit('connect');
+		const publish = session.publish('fixture/new', 'new', 1, false);
+		late(null, [{ topic: 'fixture/old', qos: 128 }]);
+		expect(client.end).not.toHaveBeenCalled();
+		expect(events.status).toHaveBeenLastCalledWith('connected');
+		client.publishDone?.();
+		await expect(publish).resolves.toBeUndefined();
+		session.disconnect();
+		expect(client.end).toHaveBeenCalledWith(false, {}, expect.any(Function));
+	});
+
+	it('已完成订阅的重复拒绝回执不能结束当前连接', async () => {
+		const { session, client } = fixture();
+		const pending = session.subscribe(['fixture/probe'], 1);
+		client.subscribeDone?.(null, [{ topic: 'fixture/probe', qos: 1 }]);
+		await pending;
+		client.subscribeDone?.(null, [{ topic: 'fixture/probe', qos: 128 }]);
+		expect(client.end).not.toHaveBeenCalled();
+		session.disconnect();
+	});
+
+	it.each([-1, 3, Number.NaN])('非授予 QoS %s 不当作成功且结束 clean session', async (qos) => {
+		const { session, client } = fixture();
+		const pending = session.subscribe(['fixture/probe'], 1);
+		const refusal = expect(pending).rejects.toThrow('订阅被拒绝');
+		client.subscribeDone?.(null, [{ topic: 'fixture/probe', qos }]);
+		await refusal;
+		expect(client.end).toHaveBeenCalledOnce();
+	});
+
+	it('接受 MQTT.js 缓存去重后仅包含新主题的有效授予列表', async () => {
+		const { session, client } = fixture();
+		let pending = session.subscribe(['fixture/known'], 1);
+		client.subscribeDone?.(null, [{ topic: 'fixture/known', qos: 1 }]);
+		await pending;
+		pending = session.subscribe(['fixture/known', 'fixture/new'], 1);
+		client.subscribeDone?.(null, [{ topic: 'fixture/new', qos: 1 }]);
+		await expect(pending).resolves.toBeUndefined();
+		expect(client.end).not.toHaveBeenCalled();
 		session.disconnect();
 	});
 

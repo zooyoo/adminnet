@@ -1,10 +1,10 @@
 import type { TenantRecord, UpdateTenantInput } from '#/api/system/tenant';
 
-export function createTenantDraft(record?: TenantRecord): UpdateTenantInput {
+export function createTenantDraft(record?: TenantRecord, copy = false): UpdateTenantInput {
 	return {
-		id: record?.id,
-		userId: record?.userId,
-		orgId: record?.orgId,
+		id: copy ? undefined : record?.id,
+		userId: copy ? undefined : record?.userId,
+		orgId: copy ? undefined : record?.orgId,
 		name: record?.name ?? '',
 		adminAccount: record?.adminAccount ?? '',
 		tenantType: record?.tenantType ?? 0,
@@ -14,7 +14,7 @@ export function createTenantDraft(record?: TenantRecord): UpdateTenantInput {
 		host: record?.host ?? '',
 		connection: record?.connection ?? '',
 		slaveConnections: record?.slaveConnections ?? '',
-		configId: record?.configId,
+		configId: copy ? undefined : record?.configId,
 		orderNo: record?.orderNo ?? 100,
 		status: record?.status ?? 1,
 		remark: record?.remark ?? '',
@@ -29,6 +29,11 @@ export function createTenantDraft(record?: TenantRecord): UpdateTenantInput {
 		enableReg: record?.enableReg ?? 2,
 		regWayId: record?.regWayId,
 	};
+}
+
+export function createTenantSaveInput(draft: UpdateTenantInput): UpdateTenantInput {
+	// 禁用时沿用旧请求的省略规则；保留草稿选择，支持切回启用和失败重试。
+	return { ...draft, regWayId: draft.enableReg === 1 ? draft.regWayId : undefined };
 }
 
 export function isDefaultTenant(record: TenantRecord) {

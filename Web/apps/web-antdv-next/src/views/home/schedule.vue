@@ -3,13 +3,13 @@ import type { ScheduleRecord } from '#/api/system/home';
 
 import { computed, onMounted, onScopeDispose, reactive, ref, shallowRef } from 'vue';
 
-import { Alert, Button, Calendar, Form, FormItem, Input, Modal, Tag } from 'antdv-next';
+import { Alert, Button, Calendar, Form, FormItem, Input, Modal, Select, Tag } from 'antdv-next';
 import dayjs from 'dayjs';
 
 import { sessionBoundary } from '#/api/session';
 import { deleteSchedule, listSchedules, saveSchedule, setScheduleStatus } from '#/api/system/home';
 
-import { scheduleLunarLabel, scheduleValidation } from './workbench';
+import { recentScheduleTimes, scheduleEndTime, scheduleLunarLabel, scheduleTimeOptions, scheduleValidation, sortSchedules } from './workbench';
 
 const date = shallowRef(dayjs());
 const lunarFormatter = new Intl.DateTimeFormat('zh-CN-u-ca-chinese', { month: 'long', day: 'numeric' });
@@ -20,13 +20,15 @@ const error = ref('');
 const formError = ref('');
 const open = ref(false);
 const deleting = ref<ScheduleRecord>();
-const draft = reactive<ScheduleRecord>({ content: '', scheduleTime: '', startTime: '09:00', endTime: '10:00', status: 0 });
+const draft = reactive<ScheduleRecord>({ content: '', scheduleTime: '', startTime: '', endTime: '', status: 0 });
+const endTimeOptions = computed(() => scheduleTimeOptions.map((option) => ({ ...option, disabled: option.value <= draft.startTime })));
 const controller = new AbortController();
+sessionBoundary.track(controller);
 const version = sessionBoundary.version;
 let active = true;
 let requestId = 0;
-const current = () => active && version === sessionBoundary.version;
-const selected = computed(() => records.value.filter((item) => item.scheduleTime.slice(0, 10) === date.value.format('YYYY-MM-DD')));
+const current = () => active && !controller.signal.aborted && version === sessionBoundary.version;
+const selected = computed(() => sortSchedules(records.value.filter((item) => item.scheduleTime.slice(0, 10) === date.value.format('YYYY-MM-DD'))));
 const counts = computed(() => {
 	const result: Record<string, number> = {};
 	for (const item of records.value) {
@@ -36,6 +38,7 @@ const counts = computed(() => {
 	return result;
 });
 async function load() {
+	if (!current()) return;
 	const id = ++requestId;
 	loading.value = true;
 	error.value = '';
@@ -56,13 +59,35 @@ async function load() {
 	}
 }
 function edit(record?: ScheduleRecord) {
-	if (busy.value) return;
-	const lateNight = new Date().getHours() === 23;
-	Object.assign(draft, record ?? { id: undefined, content: '', scheduleTime: date.value.format('YYYY-MM-DD'), startTime: lateNight ? '23:00' : '09:00', endTime: lateNight ? '23:45' : '10:00', status: 0 });
+	if (busy.value || !current()) return;
+	// 编辑回填不触发开始时间联动，仅新建时按弹窗打开时的本地时间生成默认值。
+	Object.assign(draft, record ?? { id: undefined, content: '', scheduleTime: date.value.format('YYYY-MM-DD'), ...recentScheduleTimes(), status: 0 });
 	draft.scheduleTime = draft.scheduleTime.slice(0, 10);
 	formError.value = '';
 	open.value = true;
 }
+function changeStartTime(value: unknown) {
+	if (busy.value || !current()) return;
+	draft.startTime = typeof value === 'string' ? value : '';
+	draft.endTime = scheduleEndTime(draft.startTime);
+	formError.value = '';
+}
+controller.signal.addEventListener(
+	'abort',
+	() => {
+		active = false;
+		requestId += 1;
+		records.value = [];
+		open.value = false;
+		deleting.value = undefined;
+		Object.assign(draft, { id: undefined, content: '', scheduleTime: '', startTime: '', endTime: '', status: 0 });
+		loading.value = false;
+		busy.value = false;
+		formError.value = '';
+		error.value = '会话已切换，请重新打开工作台';
+	},
+	{ once: true }
+);
 async function save() {
 	if (busy.value || !current()) return;
 	formError.value = scheduleValidation(draft);
@@ -109,6 +134,7 @@ function selectDate(value: ReturnType<typeof dayjs>) {
 onMounted(() => void load());
 onScopeDispose(() => {
 	active = false;
+	sessionBoundary.release(controller);
 	controller.abort();
 });
 </script>
@@ -166,8 +192,18 @@ onScopeDispose(() => {
 			<Form :model="draft" layout="vertical" :disabled="busy">
 				<FormItem label="日程日期" required><Input v-model:value="draft.scheduleTime" type="date" aria-label="日程日期" /></FormItem>
 				<div class="schedule-times">
-					<FormItem label="开始时间" required><Input v-model:value="draft.startTime" type="time" aria-label="开始时间" /></FormItem>
-					<FormItem label="结束时间" required><Input v-model:value="draft.endTime" type="time" aria-label="结束时间" /></FormItem>
+					<FormItem label="开始时间" required
+						><Select class="schedule-time-select" :value="draft.startTime" :options="scheduleTimeOptions" allow-clear aria-label="开始时间" @change="changeStartTime"
+					/></FormItem>
+					<FormItem label="结束时间" required
+						><Select
+							class="schedule-time-select"
+							:value="draft.endTime"
+							:options="endTimeOptions"
+							allow-clear
+							aria-label="结束时间"
+							@change="(value) => (draft.endTime = typeof value === 'string' ? value : '')"
+					/></FormItem>
 				</div>
 				<FormItem label="日程内容" required><Input.TextArea v-model:value="draft.content" aria-label="日程内容" :maxlength="256" :rows="4" show-count /></FormItem>
 			</Form>
@@ -202,6 +238,9 @@ onScopeDispose(() => {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 16px;
+}
+.schedule-time-select {
+	width: 100%;
 }
 .schedule-list {
 	list-style: none;

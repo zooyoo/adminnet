@@ -18,7 +18,15 @@ defineOptions({ name: 'Mqttx' });
 const user = useUserStore();
 const profile = reactive(createMqttProfile());
 const status = ref<MqttStatus>('disconnected');
-const statusLabel = computed(() => ({ connected: '已连接', connecting: '连接中', disconnected: '未连接', reconnecting: '重连中' })[status.value]);
+const statusLabel = computed(
+	() =>
+		({
+			connected: '已连接',
+			connecting: '连接中',
+			disconnected: '未连接',
+			reconnecting: '重连中',
+		})[status.value]
+);
 const locked = computed(() => status.value !== 'disconnected');
 const error = ref('');
 const feedback = ref('');
@@ -32,21 +40,36 @@ const subQos = ref<MqttQos>(0);
 const pubQos = ref<MqttQos>(0);
 const subscriptions = ref<string[]>([]);
 const messages = ref<string[]>([]);
+const messageLog = ref<HTMLElement>();
 const received = ref(0);
 const device = ref(createDeviceState());
 let generation = 0;
 let boundary: AbortController | undefined;
 let snapshot = createMqttProfile();
 let topics = { subTopic: '', willTopic: '', dhtTopic: '', pubTopic: '' };
+let generatedTopicText = '';
+let generatedPublishTopic = '';
 const qosOptions = [0, 1, 2].map((value) => ({ value, label: `QoS ${value}` }));
 const textFields = [
-	{ key: 'host', label: 'Broker 主机', placeholder: '授权 broker 的主机名或 IP' },
+	{
+		key: 'host',
+		label: 'Broker 主机',
+		placeholder: '授权 broker 的主机名或 IP',
+	},
 	{ key: 'clientId', label: 'Client ID', placeholder: '客户端唯一标识' },
 	{ key: 'username', label: '账号', placeholder: 'Username' },
 	{ key: 'password', label: '密码', placeholder: 'Password' },
 	{ key: 'repacket', label: '设备注册包', placeholder: '设备包名' },
-	{ key: 'dhtRegpack', label: '共享传感器注册包', placeholder: '可与设备包名相同' },
-	{ key: 'mqttToken', label: '设备指令 Token', placeholder: '设备协议授权 Token' },
+	{
+		key: 'dhtRegpack',
+		label: '共享传感器注册包',
+		placeholder: '可与设备包名相同',
+	},
+	{
+		key: 'mqttToken',
+		label: '设备指令 Token',
+		placeholder: '设备协议授权 Token',
+	},
 ] as const;
 const numbers = [
 	{ key: 'keepalive', label: '保活（秒）' },
@@ -57,7 +80,10 @@ const commandOptions = [
 	{ label: '状态查询', value: '55 AA AA AA AA 91 CF' },
 	{ label: '全部打开', value: '55 AA AA AA AA 81 A4 01' },
 	{ label: '全部关闭', value: '55 AA AA AA AA 81 A4 00' },
-	...[1, 2, 3, 4].map((n) => ({ label: `${n} 路切换`, value: `55 AA AA AA AA 81 BA 0${n}` })),
+	...[1, 2, 3, 4].map((n) => ({
+		label: `${n} 路切换`,
+		value: `55 AA AA AA AA 81 BA 0${n}`,
+	})),
 ];
 function safe(text: string) {
 	return redactMqttText(text, [snapshot.password, snapshot.mqttToken, profile.password, profile.mqttToken]);
@@ -65,6 +91,7 @@ function safe(text: string) {
 const session = new MqttSession(mqtt.connect, {
 	status(value) {
 		status.value = value;
+		if (value !== 'connected') device.value = { ...device.value, online: null };
 		if (value === 'disconnected') subscriptions.value = [];
 	},
 	error(value) {
@@ -102,15 +129,36 @@ function disconnect(clear = false) {
 		device.value = createDeviceState();
 	}
 }
-function deriveTopics() {
+function handleProtocolChange(value: unknown) {
+	if (locked.value || (value !== 'ws' && value !== 'wss')) return;
+	profile.protocol = value;
+	profile.port = value === 'wss' ? 8084 : 8083;
+}
+function updateTextField(key: (typeof textFields)[number]['key'], value: string) {
+	if (locked.value) return;
+	if (key === 'repacket' && (!profile.dhtRegpack || profile.dhtRegpack === profile.repacket)) profile.dhtRegpack = value;
+	profile[key] = value;
+	if (key === 'repacket' || key === 'dhtRegpack') deriveTopics(false);
+}
+function deriveTopics(overwrite = true) {
+	let nextTopicText = '';
+	let nextPublishTopic = '';
 	try {
 		const value = createDeviceTopics(profile.repacket, profile.dhtRegpack || profile.repacket);
-		topicText.value = [value.subTopic, value.willTopic, value.dhtTopic].join('\n');
-		publishTopic.value = value.pubTopic;
+		nextTopicText = [value.subTopic, value.willTopic, value.dhtTopic].join('\n');
+		nextPublishTopic = value.pubTopic;
 		error.value = '';
 	} catch (e) {
-		error.value = e instanceof Error ? e.message : '生成主题失败';
+		if (overwrite) {
+			error.value = e instanceof Error ? e.message : '生成主题失败';
+			return;
+		}
 	}
+	// 自动衍生只更新上次生成的值，保留用户手写的主题；无效包名清除陈旧生成值。
+	if (overwrite || !topicText.value || topicText.value === generatedTopicText) topicText.value = nextTopicText;
+	if (overwrite || !publishTopic.value || publishTopic.value === generatedPublishTopic) publishTopic.value = nextPublishTopic;
+	generatedTopicText = nextTopicText;
+	generatedPublishTopic = nextPublishTopic;
 }
 function start() {
 	if (locked.value) return;
@@ -127,14 +175,16 @@ function start() {
 		messages.value = [];
 		received.value = 0;
 		boundary = new AbortController();
-		boundary.signal.addEventListener('abort', () => disconnect(true), { once: true });
+		boundary.signal.addEventListener('abort', () => disconnect(true), {
+			once: true,
+		});
 		sessionBoundary.track(boundary);
 		session.connect(snapshot);
 	} catch (e) {
 		error.value = safe(e instanceof Error ? e.message : '连接配置无效');
 	}
 }
-async function operation(name: string, run: () => Promise<void>, success: () => void) {
+async function operation(name: string, run: () => Promise<void>, success: () => Promise<void> | void) {
 	if (busy.value || status.value !== 'connected') return;
 	const current = generation;
 	busy.value = name;
@@ -142,9 +192,9 @@ async function operation(name: string, run: () => Promise<void>, success: () => 
 	feedback.value = '';
 	try {
 		await run();
-		if (current === generation) {
-			success();
-			feedback.value = `${name}成功`;
+		if (current === generation && status.value === 'connected') {
+			await success();
+			if (current === generation && status.value === 'connected') feedback.value = `${name}成功`;
 		}
 	} catch (e) {
 		if (current === generation) error.value = safe(e instanceof Error ? e.message : `${name}失败`);
@@ -161,11 +211,23 @@ function subscribe() {
 				.filter(Boolean)
 		),
 	];
+	const queryTopic = publishTopic.value;
+	const queryQos = pubQos.value;
+	const queryBody = createDevicePayload(snapshot, '55 AA AA AA AA 91 CF');
+	const queryDevice = !!topics.subTopic && requested.includes(topics.subTopic) && !subscriptions.value.includes(topics.subTopic) && queryTopic === topics.pubTopic;
 	void operation(
 		'订阅',
 		() => session.subscribe(requested, subQos.value),
-		() => {
+		async () => {
 			subscriptions.value = [...new Set([...subscriptions.value, ...requested])];
+			if (queryDevice) {
+				try {
+					// SUBACK 成功后查询当前设备；查询指令不作为保留消息重放。
+					await session.publish(queryTopic, queryBody, queryQos, false);
+				} catch (e) {
+					throw new Error(`订阅已成功，但设备状态查询失败：${e instanceof Error ? e.message : '发布失败'}`);
+				}
+			}
 		}
 	);
 }
@@ -192,6 +254,7 @@ function publishChannel(command: string) {
 	publish(command, true);
 }
 function publish(command = payload.value, deviceCommand = false) {
+	if (deviceCommand && device.value.online !== true) return;
 	const body = raw.value && !deviceCommand ? command : createDevicePayload(snapshot, command);
 	void operation(
 		'发布',
@@ -199,6 +262,13 @@ function publish(command = payload.value, deviceCommand = false) {
 		() => {}
 	);
 }
+watch(
+	messages,
+	() => {
+		if (messageLog.value) messageLog.value.scrollTop = messageLog.value.scrollHeight;
+	},
+	{ flush: 'post' }
+);
 watch(
 	() => [user.userInfo?.userId, user.userInfo?.tenantId, user.userInfo?.currentTenantId],
 	() => disconnect(true)
@@ -227,6 +297,7 @@ onScopeDispose(() => disconnect(true));
 							id="mqtt-protocol"
 							v-model:value="profile.protocol"
 							:disabled="locked"
+							@change="handleProtocolChange"
 							:options="[
 								{ label: 'ws', value: 'ws' },
 								{ label: 'wss', value: 'wss' },
@@ -237,11 +308,12 @@ onScopeDispose(() => disconnect(true));
 						>{{ field.label
 						}}<Input
 							:id="`mqtt-${field.key}`"
-							v-model:value="profile[field.key]"
+							:value="profile[field.key]"
 							:type="['password', 'mqttToken'].includes(field.key) ? 'password' : 'text'"
 							:placeholder="field.placeholder"
 							:disabled="locked"
 							autocomplete="off"
+							@update:value="updateTextField(field.key, $event)"
 					/></label>
 				</div>
 				<details class="mt-3">
@@ -259,7 +331,7 @@ onScopeDispose(() => disconnect(true));
 				<section class="bg-card rounded-lg border p-4" aria-labelledby="mqtt-topics-title">
 					<h2 id="mqtt-topics-title" class="mb-3 text-lg font-semibold">订阅与发布</h2>
 					<div class="mb-3 flex flex-wrap items-center gap-2">
-						<Button :disabled="locked" @click="deriveTopics">按注册包生成主题</Button><span class="text-muted-foreground text-sm">支持共享传感器；也可直接填写自定义主题。</span>
+						<Button :disabled="locked" @click="deriveTopics()">按注册包生成主题</Button><span class="text-muted-foreground text-sm">支持共享传感器；也可直接填写自定义主题。</span>
 					</div>
 					<label for="mqtt-topics">订阅主题（每行一个）<Input.TextArea id="mqtt-topics" v-model:value="topicText" :rows="3" :disabled="!!busy" /></label>
 					<div class="my-3 flex flex-wrap items-center gap-2">
@@ -300,11 +372,11 @@ onScopeDispose(() => disconnect(true));
 						<div v-for="(channel, index) in device.channels" :key="index" class="flex items-center gap-2">
 							<span>{{ index + 1 }} 路：{{ channel ? '开' : '关' }}</span
 							><Button
-								:disabled="status !== 'connected' || !!busy || channelCooldown.includes(`55 AA AA AA AA 81 0${index + 1} 01`)"
+								:disabled="device.online !== true || status !== 'connected' || !!busy || channelCooldown.includes(`55 AA AA AA AA 81 0${index + 1} 01`)"
 								@click="publishChannel(`55 AA AA AA AA 81 0${index + 1} 01`)"
 								>打开</Button
 							><Button
-								:disabled="status !== 'connected' || !!busy || channelCooldown.includes(`55 AA AA AA AA 81 0${index + 1} 00`)"
+								:disabled="device.online !== true || status !== 'connected' || !!busy || channelCooldown.includes(`55 AA AA AA AA 81 0${index + 1} 00`)"
 								@click="publishChannel(`55 AA AA AA AA 81 0${index + 1} 00`)"
 								>关闭</Button
 							>
@@ -324,7 +396,7 @@ onScopeDispose(() => disconnect(true));
 						>
 					</div>
 					<p class="text-muted-foreground mb-2 text-sm">保留最近 200 条，每条最多显示 4096 字符，凭据已隐藏。</p>
-					<pre class="message-log" aria-label="接收消息内容">{{ messages.length ? messages.join('\n\n') : '暂无消息，连接后订阅主题即可接收。' }}</pre>
+					<pre ref="messageLog" class="message-log" aria-label="接收消息内容">{{ messages.length ? messages.join('\n\n') : '暂无消息，连接后订阅主题即可接收。' }}</pre>
 				</section>
 			</div>
 		</div>

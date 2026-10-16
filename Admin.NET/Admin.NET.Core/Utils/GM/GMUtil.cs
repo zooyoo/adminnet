@@ -49,16 +49,31 @@ public class GMUtil
     /// <returns></returns>
     public static string SM2Decrypt(string privateKey_string, string encryptedData_string)
     {
-        if (!encryptedData_string.StartsWith("04"))
-            encryptedData_string = "04" + encryptedData_string;
-        BigInteger d = new(privateKey_string, 16);
-        // 先拿到私钥对象，用ECPrivateKeyParameters 或 AsymmetricKeyParameter 都可以
-        // ECPrivateKeyParameters bcecPrivateKey = GmUtil.GetPrivatekeyFromD(d);
-        AsymmetricKeyParameter bcecPrivateKey = GM.GetPrivatekeyFromD(d);
+        ArgumentException.ThrowIfNullOrEmpty(encryptedData_string);
         byte[] byToDecrypt = Hex.Decode(encryptedData_string);
-        byte[] byDecrypted = GM.Sm2Decrypt(byToDecrypt, bcecPrivateKey);
-        string strDecrypted = Encoding.UTF8.GetString(byDecrypted);
-        return strDecrypted;
+        if (byToDecrypt.Length < 96)
+            throw new ArgumentException("SM2 密文不完整", nameof(encryptedData_string));
+
+        BigInteger d = new(privateKey_string, 16);
+        AsymmetricKeyParameter privateKey = GM.GetPrivatekeyFromD(d);
+        if (byToDecrypt[0] == 0x04 && byToDecrypt.Length >= 97)
+        {
+            try
+            {
+                // 先验证包含点标记的报文，同时保留后端自身加密结果的兼容性。
+                return Encoding.UTF8.GetString(GM.Sm2Decrypt(byToDecrypt, privateKey));
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidCipherTextException)
+            {
+                // 前端省略点标记，横坐标也可能以 04 开头；只在完整认证解密失败后尝试补齐。
+            }
+        }
+
+        byte[] withPointPrefix = new byte[byToDecrypt.Length + 1];
+        withPointPrefix[0] = 0x04;
+        Buffer.BlockCopy(byToDecrypt, 0, withPointPrefix, 1, byToDecrypt.Length);
+        // 两种格式均经真实 SM2 C3 校验，损坏或错误密钥的报文继续拒绝。
+        return Encoding.UTF8.GetString(GM.Sm2Decrypt(withPointPrefix, privateKey));
     }
 
     /// <summary>

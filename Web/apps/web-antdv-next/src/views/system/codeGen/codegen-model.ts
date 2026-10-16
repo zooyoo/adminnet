@@ -1,3 +1,6 @@
+import type { ColumnOuput } from '#/api-services/models/column-ouput';
+import type { SysMenu } from '#/api-services/models/sys-menu';
+import type { TableUniqueConfigItem } from '#/api-services/models/table-unique-config-item';
 import type { CodeGenDraft, CodeGenField, CodeGenRow } from '#/api/system/codegen';
 
 export const FIELD_FLAGS = ['whetherTable', 'whetherAddUpdate', 'whetherImport', 'whetherRequired', 'whetherSortable', 'whetherQuery', 'whetherRetract'] as const;
@@ -17,6 +20,18 @@ export function createCodeGenDraft(row?: CodeGenRow): CodeGenDraft {
 export function copyCodeGenDraft(row: CodeGenRow): CodeGenDraft {
 	return { ...createCodeGenDraft(row), id: undefined, tableName: '', busName: '', tableUniqueList: [] };
 }
+export function changeCodeGenParent(draft: CodeGenDraft, value: unknown, menus: readonly Pick<SysMenu, 'id' | 'name'>[]) {
+	draft.menuPid = Number(value);
+	// 旧版按菜单 name 推导目录，不使用路由 path 或菜单标题。
+	draft.pagePath = menus.find((menu) => menu.id === draft.menuPid)?.name ?? '';
+}
+
+export function fillCodeGenUniqueMessage(item: TableUniqueConfigItem, value: unknown, columns: readonly Pick<ColumnOuput, 'columnComment' | 'propertyName'>[]) {
+	if (Array.isArray(value) && value.length === 1 && !item.message) {
+		item.message = columns.find((column) => column.propertyName === value[0])?.columnComment ?? '';
+	}
+}
+
 export function cloneFields(fields: CodeGenField[]) {
 	return fields.map((field) => {
 		const result = { ...field, fkDisplayColumnList: [...(field.fkDisplayColumnList ?? [])] };

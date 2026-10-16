@@ -4,7 +4,7 @@ import type { WidgetKey, WorkbenchLayout } from './workbench';
 import type { MenuOutput } from '#/api-services/models';
 import type { AdminUserInfo } from '#/api/core/user';
 
-import { computed, onMounted, onScopeDispose, ref } from 'vue';
+import { computed, onMounted, onScopeDispose, ref, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { preferences } from '@vben/preferences';
@@ -16,21 +16,36 @@ import { sessionBoundary } from '#/api/session';
 import { getAvailableMenus, getFavoriteMenus, saveFavoriteMenus } from '#/api/system/home';
 
 import { version as buildVersion } from '../../../../../package.json';
+import IncomeDemo from './income-demo.vue';
+import ProgressDemo from './progress-demo.vue';
 import Schedule from './schedule.vue';
-import { defaultLayout, layoutKey, parseLayout, widgetTitles } from './workbench';
+import { defaultLayout, layoutKey, layoutPositions, layoutPresets, moveWidget, parseLayout, resizeLayout, widgetTitles } from './workbench';
 
 defineOptions({ name: 'HomeWorkbench' });
 const router = useRouter();
-const user = useUserStore().userInfo as AdminUserInfo;
-const key = layoutKey(user.currentTenantId ?? user.tenantId, user.userId);
+const userStore = useUserStore();
+const user = computed(() => userStore.userInfo as AdminUserInfo | null);
+const key = computed(() => {
+	const info = user.value;
+	const tenantId = info?.currentTenantId ?? info?.tenantId;
+	if (!info || info.userId === undefined || info.userId === null || tenantId === undefined || tenantId === null) return null;
+	return layoutKey(tenantId, info.userId);
+});
+const initialKey = key.value;
+const identityActive = ref(true);
 const layout = ref(defaultLayout());
 const draft = ref(defaultLayout());
 const customizing = ref(false);
+const positions = computed(() => layoutPositions(layout.value.columns));
+const draftPositions = computed(() => layoutPositions(draft.value.columns));
+const layoutOptions = layoutPresets.map((preset) => ({ value: preset.columns.join(','), label: preset.label }));
+const dragged = shallowRef<{ column: number; index: number; widget: WidgetKey; scope: string; generation: number }>();
 const configError = ref('');
 const clock = ref(new Date());
 const controller = new AbortController();
 const generation = sessionBoundary.version;
-const valid = () => !controller.signal.aborted && generation === sessionBoundary.version;
+sessionBoundary.track(controller);
+const valid = () => !!initialKey && !controller.signal.aborted && generation === sessionBoundary.version && key.value === initialKey;
 let timer: ReturnType<typeof setInterval>;
 const menus = ref<MenuOutput[]>([]);
 const favorites = ref<Array<number | string>>([]);
@@ -54,6 +69,7 @@ function flatten(tree: MenuOutput[]): MenuOutput[] {
 	});
 }
 async function loadFavorites() {
+	if (!valid()) return;
 	favoritesLoading.value = true;
 	favoritesError.value = '';
 	try {
@@ -83,6 +99,7 @@ async function saveFavorites() {
 	}
 }
 function navigate(menu: MenuOutput) {
+	if (!valid()) return;
 	const path = menu.path;
 	if (!path) return;
 	if (/^https?:\/\//i.test(path)) window.open(path, '_blank', 'noopener,noreferrer');
@@ -94,16 +111,26 @@ function moveFavorite(index: number, direction: number) {
 	const [id] = favoriteDraft.value.splice(index, 1);
 	if (id !== undefined) favoriteDraft.value.splice(target, 0, id);
 }
+function clearDrag() {
+	dragged.value = undefined;
+}
 function configure() {
+	if (!valid()) return;
+	clearDrag();
 	draft.value = clone(layout.value);
 	configError.value = '';
 	customizing.value = true;
 }
-function changeColumns(value: number) {
-	const widgets = draft.value.widgets.flat();
-	draft.value = { columns: value === 1 ? [24] : value === 2 ? [12, 12] : [12, 6, 6], widgets: Array.from({ length: value }, (_, index) => widgets.filter((_, i) => i % value === index)) };
+function changeColumns(value: string) {
+	if (!valid() || !customizing.value) return;
+	const preset = layoutPresets.find((item) => item.columns.join(',') === value);
+	if (!preset) return;
+	clearDrag();
+	draft.value = resizeLayout(draft.value, preset.columns);
 }
 function move(column: number, index: number, direction: number) {
+	if (!valid() || !customizing.value) return;
+	clearDrag();
 	const items = draft.value.widgets[column]!;
 	const item = items[index];
 	if (!item || index + direction < 0 || index + direction >= items.length) return;
@@ -111,21 +138,90 @@ function move(column: number, index: number, direction: number) {
 	items.splice(index + direction, 0, item);
 }
 function moveColumn(column: number, index: number) {
-	const [item] = draft.value.widgets[column]!.splice(index, 1);
-	if (item) draft.value.widgets[(column + 1) % draft.value.columns.length]!.push(item);
+	if (!valid() || !customizing.value || draft.value.columns.length < 2) return;
+	clearDrag();
+	const target = (column + 1) % draft.value.columns.length;
+	draft.value = moveWidget(draft.value, column, index, target, draft.value.widgets[target]!.length);
+}
+function hideWidget(column: number, index: number) {
+	if (!valid() || !customizing.value) return;
+	clearDrag();
+	draft.value.widgets[column]?.splice(index, 1);
+}
+function addWidget(widget: WidgetKey) {
+	if (!valid() || !customizing.value || draft.value.widgets.flat().includes(widget)) return;
+	clearDrag();
+	draft.value.widgets[0]!.push(widget);
+}
+function resetLayout() {
+	const storageKey = key.value;
+	if (!valid() || !customizing.value || !storageKey) return;
+	clearDrag();
+	try {
+		localStorage.removeItem(storageKey);
+		layout.value = defaultLayout();
+		draft.value = clone(layout.value);
+		customizing.value = false;
+		configError.value = '';
+	} catch {
+		configError.value = '工作台配置无法恢复默认，请检查浏览器存储后重试';
+	}
+}
+function startDrag(event: DragEvent, column: number, index: number) {
+	const widget = draft.value.widgets[column]?.[index];
+	if (!valid() || !customizing.value || !key.value || !widget || !event.dataTransfer) {
+		event.preventDefault();
+		return;
+	}
+	dragged.value = { column, index, widget, scope: key.value, generation: sessionBoundary.version };
+	event.dataTransfer.effectAllowed = 'move';
+	event.dataTransfer.setData('text/plain', widget);
+}
+function dropWidget(event: DragEvent, column: number, index: number) {
+	event.preventDefault();
+	event.stopPropagation();
+	const source = dragged.value;
+	clearDrag();
+	if (!source || !valid() || !customizing.value || source.scope !== key.value || source.generation !== sessionBoundary.version || draft.value.widgets[source.column]?.[source.index] !== source.widget)
+		return;
+	draft.value = moveWidget(draft.value, source.column, source.index, column, index);
 }
 function saveLayout() {
-	if (!valid()) return;
+	const storageKey = key.value;
+	if (!valid() || !storageKey) return;
+	clearDrag();
 	try {
-		localStorage.setItem(key, JSON.stringify(draft.value));
+		localStorage.setItem(storageKey, JSON.stringify(draft.value));
 		layout.value = clone(draft.value);
 		customizing.value = false;
 	} catch {
 		configError.value = '工作台配置无法保存，请检查浏览器存储空间后重试';
 	}
 }
+function clearIdentity() {
+	identityActive.value = false;
+	clearDrag();
+	customizing.value = false;
+	favoritesOpen.value = false;
+	layout.value = { columns: [24], widgets: [[]] };
+	draft.value = defaultLayout();
+	menus.value = [];
+	favorites.value = [];
+	favoriteDraft.value = [];
+	commits.value = [];
+	clearInterval(timer);
+	configError.value = '会话已切换，请重新打开工作台';
+}
+controller.signal.addEventListener('abort', clearIdentity, { once: true });
+watch(
+	key,
+	() => {
+		if (key.value !== initialKey) controller.abort();
+	},
+	{ flush: 'sync' }
+);
 async function loadCommits() {
-	if (commitLoading.value) return;
+	if (commitLoading.value || !valid()) return;
 	commitLoading.value = true;
 	commitError.value = '';
 	try {
@@ -150,8 +246,12 @@ async function loadCommits() {
 	}
 }
 onMounted(() => {
+	if (!valid() || !key.value) {
+		clearIdentity();
+		return;
+	}
 	try {
-		layout.value = parseLayout(localStorage.getItem(key));
+		layout.value = parseLayout(localStorage.getItem(key.value));
 	} catch {
 		configError.value = '无法读取工作台配置，已使用默认布局';
 	}
@@ -163,6 +263,7 @@ onMounted(() => {
 });
 onScopeDispose(() => {
 	clearInterval(timer);
+	sessionBoundary.release(controller);
 	controller.abort();
 });
 </script>
@@ -172,13 +273,18 @@ onScopeDispose(() => {
 		<header class="workbench-header">
 			<div>
 				<h1>工作台</h1>
-				<p>{{ user.realName || user.username }}，欢迎回来</p>
+				<p>{{ user?.realName || user?.username }}，欢迎回来</p>
 			</div>
-			<div class="workbench-actions"><Button @click="router.push('/dashboard/notice')">通知中心</Button><Button @click="configure">自定义工作台</Button></div>
+			<div class="workbench-actions"><Button @click="router.push('/dashboard/notice')">通知中心</Button><Button :disabled="!identityActive" @click="configure">自定义工作台</Button></div>
 		</header>
 		<Alert v-if="configError && !customizing" type="warning" :title="configError" />
-		<div class="workbench-grid" :style="{ gridTemplateColumns: layout.columns.map((width) => `minmax(0, ${width}fr)`).join(' ') }">
-			<div v-for="(column, columnIndex) in layout.widgets" :key="columnIndex" class="workbench-column">
+		<div class="workbench-grid">
+			<div
+				v-for="(column, columnIndex) in layout.widgets"
+				:key="columnIndex"
+				class="workbench-column"
+				:style="{ gridColumn: `${positions[columnIndex]!.start} / span ${positions[columnIndex]!.span}`, gridRow: positions[columnIndex]!.row }"
+			>
 				<Card v-for="widget in column" :key="widget" :title="widgetTitles[widget]" :data-widget="widget">
 					<template v-if="widget === 'welcome'">
 						<h2>欢迎使用 {{ preferences.app.name || 'Admin.NET' }}</h2>
@@ -205,6 +311,8 @@ onScopeDispose(() => {
 						</div>
 					</template>
 					<Schedule v-else-if="widget === 'schedule'" />
+					<IncomeDemo v-else-if="widget === 'echarts'" :signal="controller.signal" />
+					<ProgressDemo v-else-if="widget === 'progressing'" />
 					<template v-else-if="widget === 'timer'"
 						><time class="workbench-clock">{{ clock.toLocaleTimeString() }}</time>
 						<p>{{ clock.toLocaleDateString() }}</p></template
@@ -233,34 +341,49 @@ onScopeDispose(() => {
 			</div>
 		</div>
 		<p v-if="layout.widgets.flat().length === 0">当前未显示组件，可通过“自定义工作台”添加。</p>
-		<Modal v-model:open="customizing" title="自定义工作台" :width="760" ok-text="保存布局" :mask-closable="false" @ok="saveLayout">
+		<Modal v-model:open="customizing" title="自定义工作台" :width="960" ok-text="保存布局" :mask-closable="false" @ok="saveLayout">
 			<Alert v-if="configError" type="error" :title="configError" />
 			<div class="workbench-actions mb-4">
 				<label for="workbench-columns">列布局</label>
-				<Select
-					id="workbench-columns"
-					:value="draft.columns.length"
-					:options="[
-						{ value: 1, label: '单列' },
-						{ value: 2, label: '双列' },
-						{ value: 3, label: '三列' },
-					]"
-					@change="(value) => changeColumns(Number(value))"
-				/>
-				<Button @click="draft = defaultLayout()">恢复默认布局</Button>
+				<Select id="workbench-columns" class="workbench-layout-select" :value="draft.columns.join(',')" :options="layoutOptions" @change="(value) => changeColumns(String(value))" />
+				<Button @click="resetLayout">恢复默认布局</Button>
 			</div>
-			<div v-for="(column, columnIndex) in draft.widgets" :key="columnIndex" class="workbench-config">
-				<h3>第 {{ columnIndex + 1 }} 列</h3>
-				<div v-for="(widget, index) in column" :key="widget" class="workbench-config-row">
-					<span>{{ widgetTitles[widget] }}</span>
-					<Button size="small" :aria-label="`上移${widgetTitles[widget]}`" :disabled="index === 0" @click="move(columnIndex, index, -1)">上移</Button>
-					<Button size="small" :aria-label="`下移${widgetTitles[widget]}`" :disabled="index === column.length - 1" @click="move(columnIndex, index, 1)">下移</Button>
-					<Button v-if="draft.columns.length > 1" size="small" :aria-label="`移列${widgetTitles[widget]}`" @click="moveColumn(columnIndex, index)">移至下一列</Button>
-					<Button size="small" danger :aria-label="`隐藏${widgetTitles[widget]}`" @click="column.splice(index, 1)">隐藏</Button>
+			<p id="workbench-drag-instructions" class="workbench-description">拖动部件调整顺序或移到其他容器，也可使用上移、下移与移列按钮。</p>
+			<div class="workbench-grid workbench-config-grid">
+				<div
+					v-for="(column, columnIndex) in draft.widgets"
+					:key="columnIndex"
+					class="workbench-config"
+					:class="{ 'workbench-drop-active': !!dragged }"
+					:data-workbench-column="columnIndex"
+					:style="{ gridColumn: `${draftPositions[columnIndex]!.start} / span ${draftPositions[columnIndex]!.span}`, gridRow: draftPositions[columnIndex]!.row }"
+					@dragover.prevent
+					@drop="dropWidget($event, columnIndex, column.length)"
+				>
+					<h3>容器 {{ columnIndex + 1 }} · 第 {{ draftPositions[columnIndex]!.row }} 行（{{ draft.columns[columnIndex] }} / 24 列）</h3>
+					<div v-for="(widget, index) in column" :key="widget" class="workbench-config-row" :data-workbench-widget="widget" @dragover.prevent.stop @drop="dropWidget($event, columnIndex, index)">
+						<span>{{ widgetTitles[widget] }}</span>
+						<button
+							type="button"
+							class="workbench-drag-handle"
+							draggable="true"
+							:aria-label="`拖动${widgetTitles[widget]}`"
+							aria-describedby="workbench-drag-instructions"
+							@dragstart="startDrag($event, columnIndex, index)"
+							@dragend="clearDrag"
+						>
+							拖动
+						</button>
+						<Button size="small" :aria-label="`上移${widgetTitles[widget]}`" :disabled="index === 0" @click="move(columnIndex, index, -1)">上移</Button>
+						<Button size="small" :aria-label="`下移${widgetTitles[widget]}`" :disabled="index === column.length - 1" @click="move(columnIndex, index, 1)">下移</Button>
+						<Button v-if="draft.columns.length > 1" size="small" :aria-label="`移列${widgetTitles[widget]}`" @click="moveColumn(columnIndex, index)">移至下一容器</Button>
+						<Button size="small" danger :aria-label="`隐藏${widgetTitles[widget]}`" @click="hideWidget(columnIndex, index)">隐藏</Button>
+					</div>
+					<p v-if="column.length === 0" class="workbench-drop-empty">拖动部件到此处</p>
 				</div>
 			</div>
 			<div class="workbench-actions">
-				<Button v-for="widget in availableWidgets" :key="widget" @click="draft.widgets[0]!.push(widget)">添加{{ widgetTitles[widget] }}</Button>
+				<Button v-for="widget in availableWidgets" :key="widget" @click="addWidget(widget)">添加{{ widgetTitles[widget] }}</Button>
 			</div>
 		</Modal>
 		<Modal
@@ -310,6 +433,7 @@ onScopeDispose(() => {
 }
 .workbench-grid {
 	display: grid;
+	grid-template-columns: repeat(24, minmax(0, 1fr));
 	gap: 20px;
 	align-items: start;
 }
@@ -332,8 +456,52 @@ onScopeDispose(() => {
 	font-size: 32px;
 	font-variant-numeric: tabular-nums;
 }
-.workbench-config {
+.workbench-layout-select {
+	min-width: 300px;
+}
+.workbench-config-grid {
+	gap: 12px;
 	margin-bottom: 16px;
+}
+.workbench-config {
+	min-width: 0;
+	min-height: 120px;
+	padding: 12px;
+	border: 1px dashed hsl(var(--border));
+	border-radius: 6px;
+}
+.workbench-drop-active {
+	border-color: hsl(var(--primary));
+}
+.workbench-config h3 {
+	font-size: 14px;
+}
+.workbench-config .workbench-config-row {
+	flex-wrap: wrap;
+	padding: 8px;
+	border: 1px solid hsl(var(--border));
+	border-radius: 4px;
+}
+.workbench-config .workbench-config-row > span {
+	flex-basis: 100%;
+}
+.workbench-drag-handle {
+	cursor: grab;
+	padding: 0 8px;
+	border: 1px solid hsl(var(--border));
+	border-radius: 4px;
+	min-height: 24px;
+}
+.workbench-drag-handle:active {
+	cursor: grabbing;
+}
+.workbench-drag-handle:focus-visible {
+	outline: 2px solid hsl(var(--primary));
+	outline-offset: 2px;
+}
+.workbench-drop-empty {
+	padding: 16px 0;
+	color: hsl(var(--muted-foreground));
 }
 .workbench-config-row {
 	display: flex;
@@ -362,9 +530,14 @@ onScopeDispose(() => {
 	color: hsl(var(--muted-foreground));
 	font-size: 12px;
 }
-@media (max-width: 900px) {
+@media (max-width: 991px) {
 	.workbench-grid {
-		grid-template-columns: minmax(0, 1fr) !important;
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.workbench-column,
+	.workbench-config {
+		grid-column: 1 / -1 !important;
+		grid-row: auto !important;
 	}
 	.workbench-header {
 		flex-wrap: wrap;

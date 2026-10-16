@@ -5,7 +5,6 @@
   "scope": "isolated-cleanup-and-reproducible-build-preparation",
   "primaryDeletionApplied": false,
   "deferredProposals": [
-    41,
     46
   ],
   "baseCommit": "3f381c3633880462a0903301a1c74136c7e5e1f0",
@@ -862,5 +861,13 @@
     "第 41 项真实视频首帧与控制依用户指令暂缓，第 46 项整体保持进行中。",
     "主工作区旧前端未删除，冻结清理范围只在自有候选副本中应用。",
     "本轮仅本地自签名 TLS 与隔离后端，不包含生产证书和外部发布。"
-  ]
+  ],
+  "restart": {
+    "requestedAt": "2026-10-12T21:21:30.857Z",
+    "instruction": "从提案46开始都没有完成，从46开始重新执行",
+    "fromProposal": 46,
+    "currentAccepted": false,
+    "historicalEvidenceRetained": true,
+    "requiredDependency": 46
+  }
 }

@@ -12,8 +12,9 @@ const liveAcceptance = JSON.parse(readFileSync(join(directory, 'live-error-clean
 const liveWaived = liveAcceptance.complete === true && liveAcceptance.realPlaybackConfirmed === false && liveAcceptance.acceptanceOverride?.source === 'direct-human-instruction';
 const liveAccepted = liveAcceptance.complete === true && (liveAcceptance.realPlaybackConfirmed === true || liveWaived);
 const crossModule = JSON.parse(readFileSync(join(directory, 'coverage46-acceptance.json'), 'utf8'));
-const proposalComplete = liveAccepted && crossModule.scopePassed === true && crossModule.report.result.passed === true && crossModule.report.result.cleanupPassed === true;
-const deferredProposals = liveAccepted ? [] : [41];
+const behaviorCoverageComplete = crossModule.behaviorCoverageComplete === true;
+const proposalComplete = liveAccepted && behaviorCoverageComplete && crossModule.scopePassed === true && crossModule.report.result.passed === true && crossModule.report.result.cleanupPassed === true;
+const deferredProposals = [...(liveAccepted ? [] : [41]), ...(behaviorCoverageComplete ? [] : [46])];
 const liveStatus = liveWaived ? '已完成：真实播放按用户指令豁免' : liveAccepted ? '真实播放验收已完成' : '真实播放用户暂缓';
 const sha = path => createHash('sha256').update(readFileSync(join(root, path))).digest('hex');
 const slash = path => path.replaceAll('\\', '/');
@@ -145,6 +146,6 @@ const md = ['# 第 46 项功能覆盖矩阵', '', '本表将旧视图和公共�
 for (const row of groups) md.push('| `' + row.group + '`（' + row.legacyFiles.length + '） | ' + row.behavior + ' | ' + row.replacements.map(path => '`' + path.slice(app.length) + '`').join('、') + ' | ' + row.proposals.map(id => String(id).padStart(2, '0')).join('、') + ' | ' + (row.proposals.includes(41) ? liveStatus : row.classification === 'library-unmounted' ? '旧工具未挂接，保留替代关系' : '逐文件映射，业务证据见对应提案') + ' |');
 md.push('', '## 全部旧文件映射', '', '| 旧文件 | 新实现所在功能组 | 验收编号 |', '| --- | --- | --- |');
 for (const row of entries) md.push('| `' + row.source + '` | `' + row.group + '` → ' + row.replacements.map(path => '`' + path.slice(app.length) + '`').join('、') + ' | ' + row.proposals.map(id => String(id).padStart(2, '0')).join('、') + '（' + row.classification + '） |');
-md.push('', '## 已批准删除', '', ...removed.map(row => '- 第 ' + row.proposal + ' 项：' + row.feature + '。' + row.disposition + '。'), '', '## 证据和剩余条件', '', '- `coverage46-feature-map.json` 保存完整路径、旧源码 SHA256、静态调用/全局入口、证据文件 SHA256 和每层结果真值。共享证据沿原提案指向，不将契约测试冒充真实业务。', '- 本轮 `coverage46-acceptance.json` 另行封存真实 Nginx、管理员/普通用户、双租户、深链接刷新、退出、明暗主题和 PG 清理回执。', '- 第 41 项：' + liveStatus + '。原始 realPlaybackConfirmed=false 不变；用户验收豁免与第 46 项既有跨模块验收共同构成闭票依据。', '');
+md.push('', '## 已批准删除', '', ...removed.map(row => '- 第 ' + row.proposal + ' 项：' + row.feature + '。' + row.disposition + '。'), '', '## 证据和剩余条件', '', '- `coverage46-feature-map.json` 保存完整路径、旧源码 SHA256、静态调用/全局入口、证据文件 SHA256 和每层结果真值。共享证据沿原提案指向，不将契约测试冒充真实业务。', '- 第 46 项完整验收仍待逐行为核验；旧文件映射和通过数量不作为整项完成依据。', '- 本轮 `coverage46-acceptance.json` 另行封存真实 Nginx、管理员/普通用户、双租户、深链接刷新、退出、明暗主题和 PG 清理回执。', '- 第 41 项：' + liveStatus + '。原始 realPlaybackConfirmed=false 不变；该豁免仅关闭第 41 项，第 46 项仍须逐行为证据复核及证据汇总后的跨模块回归。', '');
 writeFileSync(join(directory, 'coverage46-matrix.md'), md.join('\n'), 'utf8');
 console.log(JSON.stringify({ counts: data.counts, groups: groups.length, evidenceReports: evidence.reduce((count, item) => count + item.reports.length, 0), proposalComplete, deferredProposals }));

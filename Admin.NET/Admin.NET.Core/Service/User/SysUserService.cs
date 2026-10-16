@@ -204,8 +204,13 @@ public class SysUserService : IDynamicApiController, ITransient
         // 禁止越权更新超级管理员或系统管理员信息
         if (_userManager.AccountType != AccountTypeEnum.SuperAdmin && input.AccountType is AccountTypeEnum.SuperAdmin or AccountTypeEnum.SysAdmin) throw Oops.Oh(ErrorCodeEnum.D1038);
 
-        await _sysUserRep.AsUpdateable(input.Adapt<SysUser>()).IgnoreColumns(true)
-            .IgnoreColumns(u => new { u.Password, u.Status, u.TenantId, u.CreateUserId, u.CreateUserName, u.CreateTime }).ExecuteCommandAsync();
+        SysUser userToUpdate = input.Adapt<SysUser>();
+        await _sysUserRep.AsUpdateable(userToUpdate).IgnoreColumns(true)
+            .IgnoreColumns(u => new { u.Password, u.Status, u.TenantId, u.CreateUserId, u.CreateUserName, u.CreateTime, u.Birthday, u.JoinDate }).ExecuteCommandAsync();
+
+        // 可空日期单独按白名单更新，保证清空操作落库且不解除身份、密码和审计字段保护。
+        await _sysUserRep.AsUpdateable(userToUpdate)
+            .UpdateColumns(u => new { u.Birthday, u.JoinDate }).ExecuteCommandAsync();
 
         await UpdateRoleAndExtOrg(input);
 

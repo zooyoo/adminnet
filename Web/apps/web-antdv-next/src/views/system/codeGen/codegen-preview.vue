@@ -5,6 +5,7 @@ import { computed, onDeactivated, onScopeDispose, ref, shallowRef, useId, watch 
 
 import { useUserStore } from '@vben/stores';
 
+import { useClipboard } from '@vueuse/core';
 import { Alert, Button, Checkbox, message, Modal, Select } from 'antdv-next';
 
 import { decodeFileResponse, downloadFile } from '#/api/file-response';
@@ -12,8 +13,11 @@ import { requestClient } from '#/api/request';
 import { codegenApi } from '#/api/system/codegen';
 import { createGeneratedSession, generatedCancelled } from '#/components/admin/generated';
 
+import CodeEditor from '../plugin/code-editor.vue';
+
 const user = useUserStore();
 const session = createGeneratedSession();
+const { copy } = useClipboard({ legacy: true });
 const controlId = useId();
 const open = ref(false);
 const busy = ref(false);
@@ -28,12 +32,19 @@ const canDirect = computed(() => row.value?.generateType?.startsWith('2') ?? fal
 const row = shallowRef<CodeGenRow>();
 const files = shallowRef<Record<string, string>>({});
 const selected = ref<string>();
+const editedSource = ref('');
+const copying = ref(false);
+const copyError = ref('');
+const selectedSource = computed(() => selected.value === undefined ? undefined : files.value[selected.value]);
+// 每次选文件恢复服务器原文；局部编辑只存在于当前预览。
+watch([selected, files], () => { editedSource.value = selectedSource.value ?? ''; copyError.value = ''; }, { flush: 'sync' });
 const fileOptions = computed(() => Object.keys(files.value).map((value) => ({ value, label: value })));
 const canZip = computed(() => row.value?.generateType?.startsWith('1') ?? false);
 let generation = 0;
 function close() {
  generation += 1; session.clear(); open.value = false; busy.value = false; downloading.value = false;
  error.value = ''; row.value = undefined; files.value = {}; selected.value = undefined;
+ editedSource.value = ''; copying.value = false; copyError.value = '';
  directPlan.value = undefined; overwrite.value = false; reviewing.value = false; generating.value = false;
 }
 async function load() {
@@ -48,6 +59,16 @@ async function load() {
   if (!selected.value) error.value = '没有可预览的生成文件，请检查配置';
  } catch (cause) { if (current === generation && !generatedCancelled(cause)) error.value = cause instanceof Error ? cause.message : '预览失败，请重试'; }
  finally { if (current === generation) busy.value = false; }
+}
+async function copyOriginal() {
+ if (selectedSource.value === undefined || busy.value || copying.value) return;
+ const current = generation; const source = selectedSource.value;
+ copying.value = true; copyError.value = '';
+ try {
+  await copy(source);
+  if (current === generation) message.success('已复制生成原文');
+ } catch { if (current === generation) copyError.value = '复制失败，请重试或手动选择原文。'; }
+ finally { if (current === generation) copying.value = false; }
 }
 async function show(value: CodeGenRow) { close(); row.value = value; open.value = true; await load(); }
 async function download() {
@@ -100,8 +121,16 @@ defineExpose({ show, close });
   <div class="codegen-preview space-y-3">
    <Alert v-if="error" :title="error" type="error" role="alert"><template #action><Button :loading="busy" @click="load">重新预览</Button></template></Alert>
    <label :for="controlId">生成文件</label>
-   <Select :id="controlId" v-model:value="selected" :options="fileOptions" :disabled="busy" class="w-full" />
-   <pre aria-label="生成文件内容" :aria-busy="busy" class="codegen-source" :class="{ 'with-plan': directPlan }">{{ selected ? files[selected] : busy ? '正在生成预览…' : '请选择生成文件' }}</pre>
+   <div class="codegen-preview-tools">
+    <Select :id="controlId" v-model:value="selected" :options="fileOptions" :disabled="busy || copying" class="codegen-file-select" />
+    <Button :loading="copying" :disabled="busy || selectedSource === undefined" @click="copyOriginal">复制原文</Button>
+   </div>
+   <Alert v-if="copyError" :title="copyError" type="error" role="alert" />
+   <p class="text-muted-foreground">支持局部编辑、代码折叠和自动换行；切换文件或关闭后丢弃编辑。复制原文、下载 ZIP 和直接生成均使用服务器内容，局部编辑不保存到配置或服务器。</p>
+   <div aria-label="生成文件内容" :aria-busy="busy" class="codegen-source" :class="{ 'with-plan': directPlan }">
+    <CodeEditor v-if="selectedSource !== undefined" v-model:value="editedSource" :disabled="busy" />
+    <p v-else role="status">{{ busy ? '正在生成预览…' : '请选择生成文件' }}</p>
+   </div>
    <section v-if="canDirect" aria-label="直接生成清单" class="space-y-3">
     <Button :loading="reviewing" :disabled="busy || generating" @click="inspectDirect">核对生成清单</Button>
     <ul v-if="directPlan" class="direct-files">
@@ -122,6 +151,9 @@ defineExpose({ show, close });
 <style scoped>
 .direct-files { max-height: 240px; overflow: auto; padding: 12px; border: 1px solid hsl(var(--border)); border-radius: 6px; }
 .direct-files li { display: grid; gap: 4px; margin-bottom: 12px; overflow-wrap: anywhere; }
-.codegen-source.with-plan { min-height: 180px; max-height: 28vh; }
-.codegen-source { min-height: 360px; max-height: 62vh; overflow: auto; padding: 16px; border: 1px solid hsl(var(--border)); border-radius: 6px; background: hsl(var(--muted)); color: hsl(var(--foreground)); font-family: ui-monospace, monospace; font-size: 13px; line-height: 1.5; white-space: pre; }
+.codegen-preview-tools { display: flex; gap: 12px; align-items: center; }
+.codegen-file-select { flex: 1; min-width: 0; }
+.codegen-source.with-plan { max-height: 28vh; }
+.codegen-source { max-height: 62vh; overflow: auto; }
+.codegen-source > p { min-height: 180px; padding: 16px; }
 </style>

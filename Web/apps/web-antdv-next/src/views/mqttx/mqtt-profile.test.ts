@@ -4,7 +4,12 @@ import { applyDeviceMessage, createDevicePayload, createDeviceState, createDevic
 
 describe('MQTT 配置与旧设备协议', () => {
 	it('连接地址仅接受主机和 WebSocket 协议，认证信息不进入 URL', () => {
-		const profile = { ...createMqttProfile(), host: 'localhost', username: 'fixture', password: 'secret' };
+		const profile = {
+			...createMqttProfile(),
+			host: 'localhost',
+			username: 'fixture',
+			password: 'secret',
+		};
 		expect(mqttConnectionUrl(profile)).toBe('ws://localhost:8083/mqtt');
 		for (const host of ['user:secret@localhost', 'localhost/mqtt', 'localhost?token=secret', 'ws://localhost', 'local host']) {
 			expect(() => mqttConnectionUrl({ ...profile, host })).toThrow();
@@ -20,7 +25,10 @@ describe('MQTT 配置与旧设备协议', () => {
 			pubTopic: 'mqtt/admintnet/relay/into',
 		});
 		expect(JSON.parse(createDevicePayload({ clientId: 'fixture-client', mqttToken: 'device-secret' }, '55 AA AA AA AA 91 CF'))).toEqual({
-			token: 'device-secret', cmd: '55 AA AA AA AA 91 CF', cmdpara: '', clientid: 'fixture-client',
+			token: 'device-secret',
+			cmd: '55 AA AA AA AA 91 CF',
+			cmdpara: '',
+			clientid: 'fixture-client',
 		});
 	});
 
@@ -36,23 +44,123 @@ describe('MQTT 配置与旧设备协议', () => {
 		let state = createDeviceState();
 		state = applyDeviceMessage(state, profile, topics, topics.subTopic, JSON.stringify({ regpacket: 'relay', redata: '55 AA AA AA AA 82 02 01' }));
 		expect(state.channels).toEqual([false, true, false, false]);
-		expect(applyDeviceMessage(state, profile, topics, topics.subTopic, JSON.stringify({ regpacket: 'another', redata: '55 AA AA AA AA 82 A4 01' }))).toBe(state);
-		expect(applyDeviceMessage(state, profile, topics, 'unrelated/topic', JSON.stringify({ regpacket: 'relay', redata: '55 AA AA AA AA 82 A4 01' }))).toBe(state);
-		state = applyDeviceMessage(state, profile, topics, topics.dhtTopic, JSON.stringify({ regpacket: 'sensor', temperature: 23.5, humidity: 60, runsec: 42 }));
-		const invalid = applyDeviceMessage(state, profile, topics, topics.dhtTopic, JSON.stringify({ regpacket: 'sensor', temperature: 'bad', humidity: null }));
-		expect(invalid).toMatchObject({ temperature: 23.5, humidity: 60, runSeconds: 42 });
+		expect(
+			applyDeviceMessage(
+				state,
+				profile,
+				topics,
+				topics.subTopic,
+				JSON.stringify({
+					regpacket: 'another',
+					redata: '55 AA AA AA AA 82 A4 01',
+				})
+			)
+		).toBe(state);
+		expect(
+			applyDeviceMessage(
+				state,
+				profile,
+				topics,
+				'unrelated/topic',
+				JSON.stringify({
+					regpacket: 'relay',
+					redata: '55 AA AA AA AA 82 A4 01',
+				})
+			)
+		).toBe(state);
+		state = applyDeviceMessage(
+			state,
+			profile,
+			topics,
+			topics.dhtTopic,
+			JSON.stringify({
+				regpacket: 'sensor',
+				temperature: 23.5,
+				humidity: 60,
+				runsec: 42,
+			})
+		);
+		const invalid = applyDeviceMessage(
+			state,
+			profile,
+			topics,
+			topics.dhtTopic,
+			JSON.stringify({
+				regpacket: 'sensor',
+				temperature: 'bad',
+				humidity: null,
+			})
+		);
+		expect(invalid).toMatchObject({
+			temperature: 23.5,
+			humidity: 60,
+			runSeconds: 42,
+		});
 	});
 
 	it('共享传感器注册包留空时使用设备注册包接收温湿度', () => {
 		const profile = { repacket: 'relay', dhtRegpack: '' };
 		const topics = createDeviceTopics('relay', 'relay');
-		const state = applyDeviceMessage(createDeviceState(), profile, topics, topics.dhtTopic, JSON.stringify({ regpacket: 'relay', temperature: 23.5, humidity: 60, runsec: 42 }));
-		expect(state).toMatchObject({ temperature: 23.5, humidity: 60, runSeconds: 42 });
+		const state = applyDeviceMessage(
+			createDeviceState(),
+			profile,
+			topics,
+			topics.dhtTopic,
+			JSON.stringify({
+				regpacket: 'relay',
+				temperature: 23.5,
+				humidity: 60,
+				runsec: 42,
+			})
+		);
+		expect(state).toMatchObject({
+			temperature: 23.5,
+			humidity: 60,
+			runSeconds: 42,
+		});
 	});
 
 	it('消息日志隐藏原文、URL 编码与 JSON 转义后的认证信息', () => {
 		const secret = 'secret/"\n';
 		const result = redactMqttText(`${secret}|${encodeURIComponent(secret)}|${JSON.stringify(secret).slice(1, -1)}`, [secret, '']);
 		expect(result).toBe('[已隐藏]|[已隐藏]|[已隐藏]');
+	});
+
+	it('在线证据仅接受匹配设备 will 上的明确 online 或 offline，未知内容保留原状态', () => {
+		const profile = { repacket: 'relay', dhtRegpack: 'sensor' };
+		const topics = createDeviceTopics('relay', 'sensor');
+		let state = createDeviceState();
+		const status = applyDeviceMessage(state, profile, topics, topics.subTopic, JSON.stringify({ regpacket: 'relay', redata: '55 AA AA AA AA 82 01 01' }));
+		expect(status.online).toBeNull();
+		expect(status.channels[0]).toBe(true);
+		for (const redata of [undefined, null, '', 'unknown', 'OFFLINE', true, 1, {}, []]) {
+			expect(applyDeviceMessage(state, profile, topics, topics.willTopic, JSON.stringify({ regpacket: 'relay', redata }))).toBe(state);
+		}
+		state = applyDeviceMessage(state, profile, topics, topics.willTopic, JSON.stringify({ regpacket: 'relay', redata: 'online' }));
+		expect(state.online).toBe(true);
+		expect(applyDeviceMessage(state, profile, topics, topics.willTopic, JSON.stringify({ regpacket: 'another', redata: 'offline' }))).toBe(state);
+		state = applyDeviceMessage(state, profile, topics, topics.willTopic, JSON.stringify({ regpacket: 'relay', redata: 'offline' }));
+		expect(state.online).toBe(false);
+		expect(applyDeviceMessage(state, profile, topics, topics.willTopic, JSON.stringify({ regpacket: 'relay', redata: 'unexpected' }))).toBe(state);
+		expect(
+			applyDeviceMessage(
+				state,
+				profile,
+				topics,
+				topics.dhtTopic,
+				JSON.stringify({
+					regpacket: 'sensor',
+					redata: 'online',
+					temperature: 25,
+				})
+			).online
+		).toBe(false);
+	});
+
+	it('设备与共享传感器包都不能衍生层级或通配符主题', () => {
+		for (const packet of ['', 'relay/#', 'relay+', 'relay/suffix', 'nul\0packet']) {
+			expect(() => createDeviceTopics(packet, 'sensor')).toThrow();
+			expect(() => createDeviceTopics('relay', packet)).toThrow();
+		}
 	});
 });

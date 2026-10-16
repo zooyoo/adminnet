@@ -38,9 +38,17 @@ pnpm format
 
 前端格式由 `Web/.prettierrc.cjs` 定义：使用制表符缩进（宽度为 2）、分号、单引号、`LF` 换行和 200 字符行宽。遵循既有的 `index.vue` 与功能目录组织模式，避免建立平行的目录结构。
 
-## 测试约定
+## 自动化测试与验收集成规范
 
 在 `Admin.NET.Test` 中使用 xUnit v3。测试文件应放在对应领域目录下；新测试类命名为 `*Tests`，测试方法使用 `Method_Scenario_ExpectedResult` 格式，例如 `Init_WithTimeSpan_ReturnsCorrectDateTime`。测试采用 Arrange、Act、Assert 结构。提交 PR 前运行受影响的测试项目和相关构建。
+
+###  **禁止自研测试工具**：严禁自写底层驱动、时序探测器或临时协议；禁止生成散碎 `.tmp` 证据文件。验收以标准测试框架的退出码 `0`、关键截图和 PG 数据为准。
+###  **分层与标准工具**：
+  - 后端：`Admin.NET.Test` (xUnit v3) + 真实 PostgreSQL。
+  - 前端与 E2E：Vitest 测逻辑；**Playwright** 测桌面端流程。
+  - 浏览器边界：大写锁定（CapsLock）、快捷键及桌面通知（Notification）统一在浏览器层通过 Playwright API 或 Mock 验证，**严禁手写 Windows 原生 Hook**。
+###  **30 分钟熔断机制**：单项测试调试超过 **30 分钟**未果，必须立即停止折腾测试工具；降级为 Mock 并注明 1~2 步人工核验操作，绝不允许单项阻塞主线。
+
 
 ## 提交与 Pull Request 约定
 
@@ -81,15 +89,12 @@ pnpm format
 
 ## 项目检索规则
 
-进行代码分析、定位实现、追踪调用链或修改代码前，优先使用 `codegraph` 和 `fast-context`，避免无目的地遍历整个仓库。
+进行代码分析、定位实现、追踪调用链或修改代码前，优先使用 `codegraph`，避免无目的地遍历整个仓库。
 
 ### 工具选择
 
 - 已知类名、函数、接口、文件或业务入口时，优先调用 `codegraph_explore`。
 - 需要理解调用链、依赖关系、数据流或修改影响范围时，优先使用 `codegraph_explore`。
-- 不知道代码位置，仅有自然语言需求、错误现象或业务描述时，先调用 `fast_context_search`。
-- `codegraph` 没有索引、查询失败或结果不足时，使用 `fast_context_search`。
-- `fast-context` 找到候选文件或符号后，如项目存在 Codegraph 索引，再用 `codegraph_explore` 追踪调用关系和影响范围。
 
 ### Codegraph 使用规范
 
@@ -97,35 +102,18 @@ pnpm format
 - 查询应包含具体符号、文件名、业务流程或待修改行为，避免只有“分析项目”之类的宽泛描述。
 - Codegraph 返回的带行号源码视为已经读取过，不要立即重复打开同一段代码。
 - 修改共享方法、公共接口或核心流程前，使用 Codegraph 检查调用方和影响范围。
-- 如果项目没有 `.codegraph` 索引，立即切换到 `fast_context_search` 或本地检索继续任务，不要中断工作，也不要重复调用 Codegraph。
 - 同时说明 Codegraph 当前不可用于该项目，并提供用户可执行的 `codegraph init` 命令。
 - 不得自行升级 Codegraph，或删除、重建现有索引；发现版本、损坏或索引过期问题时，说明原因和建议操作。
-
-### Fast-context 使用规范
-
-- 调用时传入当前项目的绝对路径 `project_path`。
-- 查询应描述要寻找的行为、入口、数据流或故障现象，而不只是关键词列表。
-- 默认使用轻量检索：
-  - `include_code_snippets: false`
-  - `max_turns: 1-3`
-  - `max_results: 5-10`
-  - `tree_depth: 0`，让工具自动选择
-- 排除 `.git`、`node_modules`、`dist`、`build`、`coverage`、日志及其他生成目录。
-- 只有候选文件不足时才增加 `max_turns`、目录深度或启用代码片段。
-- Fast-context 返回的是候选位置，不应直接视为最终事实；修改前必须读取对应源码或用 Codegraph进一步验证。
 
 ### 标准检索流程
 
 1. 判断是否已有明确符号或入口。
-2. 明确入口时调用 `codegraph_explore`；入口不明确时调用 `fast_context_search`。
 3. 根据结果进行一次有针对性的补充检索。
 4. 必要时再使用 `rg`、`git grep`、`Select-String` 或文件读取工具核实具体内容。
 5. 修改前确认定义位置、调用方、配置入口、测试位置和潜在影响范围。
 6. 以当前磁盘源码和 `git diff` 为最终依据；工具索引与源码冲突时，以源码为准。
 
 ### 检索约束
-
-- 不要同时对两个工具发起相同的宽泛查询。
 - 不要重复读取工具已经返回的完整源码。
 - 不要为了探索代码而自动修改、初始化或升级项目。
 - 不得检索或输出 `.env`、密钥、令牌、证书及其他敏感内容。
@@ -134,10 +122,6 @@ pnpm format
 
 
 ## Agent skills
-
-### 提案推进门禁
-
-按编号推进提案、恢复执行或复用子智能体前，读取 `docs/agents/proposal-closeout.md`。当前批次业务验收完成且全部子智能体经宿主确认关闭后，才可派发下一批次；缺少关闭能力或回执时，记录阻塞并停留在当前批次。
 
 ### Issue tracker
 

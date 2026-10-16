@@ -43,7 +43,12 @@ export class MqttSession {
 				resubscribe: true,
 				queueQoSZero: false,
 			});
-			const active: ActiveConnection = { client, retries: 0, pending: new Set(), confirmedSubscriptions: new Map() };
+			const active: ActiveConnection = {
+				client,
+				retries: 0,
+				pending: new Set(),
+				confirmedSubscriptions: new Map(),
+			};
 			this.active = active;
 			const current = () => this.active === active;
 			client.on('connect', () => {
@@ -105,26 +110,24 @@ export class MqttSession {
 		for (const topic of topics) validateMqttTopic(topic, true);
 		const requested = [...new Set(topics)];
 		const active = this.active;
-		let confirmed = new Map(active?.confirmedSubscriptions);
-		return this.operation((client, done, isPending) =>
+		return this.operation((client, done) =>
 			client.subscribe(requested, { qos }, (error, grants) => {
-				if (!isPending()) return;
-				confirmed = new Map(active?.confirmedSubscriptions);
-				const received = new Set<string>();
-				let invalid = !!error || !!grants?.some((grant) => Number(grant.qos) > 2);
+				const confirmed = new Map(active?.confirmedSubscriptions);
+				const grantedTopics = new Set<string>();
+				let invalid = !!error;
 				for (const grant of grants ?? []) {
-					if (!requested.includes(grant.topic)) invalid = true;
-					else if ([0, 1, 2].includes(grant.qos)) {
+					if (!requested.includes(grant.topic) || ![0, 1, 2].includes(grant.qos)) invalid = true;
+					else {
 						confirmed.set(grant.topic, grant.qos as MqttQos);
-						received.add(grant.topic);
+						grantedTopics.add(grant.topic);
 					}
 				}
-				if (invalid || !requested.every((topic) => received.has(topic) || (confirmed.get(topic) ?? -1) >= qos)) {
-					done(new Error('订阅被拒绝，请检查主题权限'));
-					if (this.active === active) this.disconnect();
-				} else done();
-			}),
-			() => { if (active) active.confirmedSubscriptions = confirmed; }
+				// MQTT.js 的空或部分回执只能由本客户端已经确认且 QoS 足够的主题补齐。
+				if (invalid || !requested.every((topic) => grantedTopics.has(topic) || (confirmed.get(topic) ?? -1) >= qos)) {
+					const accepted = done(new Error('订阅被拒绝，请检查主题权限'));
+					if (accepted && this.active === active) this.disconnect();
+				} else if (done() && this.active === active && active) active.confirmedSubscriptions = confirmed;
+			})
 		);
 	}
 
@@ -132,27 +135,29 @@ export class MqttSession {
 		if (!topics.length) throw new Error('没有可取消的订阅');
 		for (const topic of topics) validateMqttTopic(topic, true);
 		const active = this.active;
-		return this.operation((client, done) => client.unsubscribe(topics, (error) => done(error ? new Error('取消订阅失败') : null)), () => {
-			for (const topic of topics) active?.confirmedSubscriptions.delete(topic);
-		});
+		return this.operation((client, done) =>
+			client.unsubscribe(topics, (error) => {
+				if (done(error ? new Error('取消订阅失败') : null) && !error && this.active === active) {
+					for (const topic of topics) active?.confirmedSubscriptions.delete(topic);
+				}
+			})
+		);
 	}
 
-	private operation(run: (client: MqttClient, done: (error?: Error | null) => void, isPending: () => boolean) => void, onSuccess?: () => void): Promise<void> {
+	private operation(run: (client: MqttClient, done: (error?: Error | null) => boolean) => void): Promise<void> {
 		const active = this.active;
 		if (!active?.client.connected) return Promise.reject(new Error('请先连接 MQTT broker'));
 		return new Promise((resolve, reject) => {
 			let settled = false;
 			const done = (error?: Error | null) => {
-				if (settled) return;
+				if (settled) return false;
 				settled = true;
 				clearTimeout(timer);
 				active.pending.delete(cancel);
 				if (error) reject(error);
 				else if (this.active !== active) reject(new Error('连接已切换'));
-				else {
-					onSuccess?.();
-					resolve();
-				}
+				else resolve();
+				return true;
 			};
 			const cancel = (error: Error) => done(error);
 			const timer = setTimeout(() => {
@@ -161,7 +166,7 @@ export class MqttSession {
 			}, this.operationTimeout);
 			active.pending.add(cancel);
 			try {
-				run(active.client, done, () => !settled && this.active === active);
+				run(active.client, done);
 			} catch {
 				done(new Error('MQTT 操作失败'));
 			}

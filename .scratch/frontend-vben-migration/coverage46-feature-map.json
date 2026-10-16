@@ -1,8 +1,10 @@
 {
   "version": 1,
   "scope": "source-map-and-proposal-evidence-with-live-acceptance-decision",
-  "proposalComplete": true,
-  "deferredProposals": [],
+  "proposalComplete": false,
+  "deferredProposals": [
+    46
+  ],
   "counts": {
     "views": 103,
     "components": 34,

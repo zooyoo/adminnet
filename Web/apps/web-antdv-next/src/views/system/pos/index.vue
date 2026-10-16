@@ -4,7 +4,7 @@ import type { FormInstance, TableProps } from 'antdv-next';
 import type { AuthApi } from '#/api/core/auth';
 import type { Position, PositionQuery } from '#/api/system/pos';
 
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 
 import { useAccess } from '@vben/access';
 import { Copy, createIconifyIcon, Plus, Search } from '@vben/icons';
@@ -13,6 +13,7 @@ import { useUserStore } from '@vben/stores';
 import { Button, Form, FormItem, Input, InputNumber, message, Modal, Popconfirm, Popover, RadioGroup, Select, Table, Tag, TextArea, Tooltip } from 'antdv-next';
 
 import { getTenantOptionsApi } from '#/api';
+import { sessionBoundary } from '#/api/session';
 import { deletePosition, listPositions, savePosition } from '#/api/system/pos';
 import AdminTable from '#/components/admin-table/index.vue';
 import { useAdminTable } from '#/components/admin-table/use-admin-table';
@@ -47,7 +48,8 @@ const columns: NonNullable<TableProps<Position>['columns']> = [
 	{ title: '修改记录', key: 'audit', width: 110 },
 	{ title: '操作', key: 'actions', fixed: 'right', width: 130 },
 ];
-const memberColumns = [
+const memberColumns: NonNullable<TableProps<NonNullable<Position['userList']>[number]>['columns']> = [
+	{ title: '序号', key: 'index', width: 65 },
 	{ title: '账号', dataIndex: 'account' },
 	{ title: '姓名', dataIndex: 'realName' },
 ];
@@ -57,8 +59,36 @@ const title = ref('');
 const drag = useDraggableModal(open, saving);
 const formRef = ref<FormInstance>();
 const value = ref<Position>({ name: '', code: '', orderNo: 100, status: 1 });
+let generation = 0;
+let editorSession = sessionBoundary.version;
+let editorBoundary: AbortController | undefined;
+let disposed = false;
+const deleteTarget = ref<Position['id']>();
+const deleting = ref(false);
+const deleteError = ref('');
+
+function invalidateEditor() {
+	generation += 1;
+	open.value = false;
+	saving.value = false;
+	if (editorBoundary) {
+		editorBoundary.signal.removeEventListener('abort', invalidateEditor);
+		sessionBoundary.release(editorBoundary);
+		editorBoundary = undefined;
+	}
+}
+
+function close() {
+	if (!saving.value) invalidateEditor();
+}
 
 function edit(record?: Position, copy = false) {
+	if (saving.value || disposed) return;
+	invalidateEditor();
+	editorSession = sessionBoundary.version;
+	editorBoundary = new AbortController();
+	editorBoundary.signal.addEventListener('abort', invalidateEditor);
+	sessionBoundary.track(editorBoundary);
 	title.value = record ? (copy ? '复制职位' : '编辑职位') : '添加职位';
 	value.value = record
 		? { id: copy ? undefined : record.id, name: copy ? '' : record.name, code: record.code, tenantId: record.tenantId, orderNo: record.orderNo, status: record.status, remark: record.remark }
@@ -68,26 +98,67 @@ function edit(record?: Position, copy = false) {
 }
 
 async function save() {
-	if (saving.value) return;
+	if (saving.value || !open.value || disposed || editorSession !== sessionBoundary.version) return;
+	const current = generation;
+	const version = editorSession;
+	const valid = () => current === generation && version === sessionBoundary.version && open.value && !disposed;
+	saving.value = true;
 	try {
 		await formRef.value?.validate();
-		saving.value = true;
-		await savePosition(value.value);
-		open.value = false;
+		if (!valid()) return;
+		await savePosition({ ...value.value });
+		if (!valid()) return;
+		invalidateEditor();
 		message.success('保存成功');
 		await table.reload();
 	} catch {
 		// 校验错误由表单显示，接口错误由统一请求层显示。
 	} finally {
-		saving.value = false;
+		if (valid()) saving.value = false;
 	}
 }
 
 async function remove(record: Position) {
-	if (!record.id) return;
+	if (!record.id || disposed) return;
+	const version = sessionBoundary.version;
 	await deletePosition(record.id);
+	if (disposed || version !== sessionBoundary.version) return;
 	message.success('删除成功');
+	const query = table.query.value;
+	const page = table.page.value;
+	const pageSize = table.pageSize.value;
 	await table.reload();
+	if (disposed || version !== sessionBoundary.version || table.loading.value || table.error.value || table.query.value !== query || table.page.value !== page || table.pageSize.value !== pageSize)
+		return;
+	const lastPage = Math.max(1, Math.ceil(table.total.value / pageSize));
+	if (page > lastPage) {
+		table.page.value = lastPage;
+		await table.reload();
+	}
+}
+
+function deleteOpenChanged(record: Position, open: boolean) {
+	if (deleting.value || disposed) return;
+	deleteTarget.value = open ? record.id : undefined;
+	deleteError.value = '';
+}
+async function confirmRemove(record: Position) {
+	if (!record.id || deleting.value || disposed) return;
+	const version = sessionBoundary.version;
+	deleting.value = true;
+	deleteError.value = '';
+	try {
+		await remove(record);
+		if (!disposed && version === sessionBoundary.version) deleteTarget.value = undefined;
+	} catch (cause) {
+		if (!disposed && version === sessionBoundary.version) deleteError.value = cause instanceof Error && cause.message ? cause.message : '职位删除失败，请重试';
+	} finally {
+		deleting.value = false;
+		if (disposed || version !== sessionBoundary.version) {
+			deleteTarget.value = undefined;
+			deleteError.value = '';
+		}
+	}
 }
 
 function reset() {
@@ -107,6 +178,10 @@ const outputOptions = {
 onMounted(async () => {
 	if (isSuperAdmin.value) tenants.value = await getTenantOptionsApi();
 	await table.reload();
+});
+onBeforeUnmount(() => {
+	disposed = true;
+	invalidateEditor();
 });
 </script>
 
@@ -130,7 +205,13 @@ onMounted(async () => {
 				<template v-else-if="column.key === 'count'">{{ record.userList?.length ?? 0 }}</template>
 				<Popover v-else-if="column.key === 'users' && record.userList?.length" :trigger="['hover', 'click', 'focus']" :mouse-enter-delay="0.6" placement="bottom">
 					<Button type="link" size="small">人员明细</Button>
-					<template #content><Table :data-source="record.userList" :columns="memberColumns" row-key="id" :pagination="false" size="small" /></template>
+					<template #content>
+						<Table :data-source="record.userList" :columns="memberColumns" row-key="id" :pagination="false" size="small">
+							<template #bodyCell="{ column: memberColumn, index: memberIndex }"
+								><template v-if="memberColumn.key === 'index'">{{ memberIndex + 1 }}</template></template
+							>
+						</Table>
+					</template>
 				</Popover>
 				<Tag v-else-if="column.key === 'status'" :color="record.status === 1 ? 'success' : 'default'">{{ record.status === 1 ? '启用' : '禁用' }}</Tag>
 				<AuditRecord v-else-if="column.key === 'audit'" :record="record" />
@@ -141,17 +222,38 @@ onMounted(async () => {
 					<Tooltip v-if="can('add')" title="复制"
 						><Button type="text" size="small" aria-label="复制职位" @click="edit(record, true)"><Copy :size="16" /></Button
 					></Tooltip>
-					<Popconfirm v-if="can('delete')" :title="`确定删除职位“${record.name}”？`" @confirm="remove(record)">
+					<Popconfirm
+						v-if="can('delete')"
+						:title="`确定删除职位“${record.name}”？`"
+						:open="deleteTarget === record.id"
+						:description="deleteTarget === record.id ? deleteError : ''"
+						:ok-button-props="{ loading: deleting }"
+						:cancel-button-props="{ disabled: deleting }"
+						@open-change="(open) => deleteOpenChanged(record, open)"
+						@confirm="void confirmRemove(record)"
+					>
 						<Button danger type="text" size="small" title="删除" aria-label="删除职位"><Trash2 :size="16" /></Button>
 					</Popconfirm>
 				</div>
 			</template>
 		</AdminTable>
-		<Modal v-model:open="open" :modal-render="drag.render" :confirm-loading="saving" :mask-closable="false" :width="640" @ok="save">
+		<Modal
+			:open="open"
+			:modal-render="drag.render"
+			:confirm-loading="saving"
+			:closable="!saving"
+			:keyboard="!saving"
+			:cancel-button-props="{ disabled: saving }"
+			:ok-button-props="{ disabled: saving }"
+			:mask-closable="false"
+			:width="640"
+			@ok="save"
+			@cancel="close"
+		>
 				<template #title><div role="button" tabindex="0" :aria-label="title" :style="{ cursor: saving ? 'default' : 'move', touchAction: 'none', userSelect: 'none' }" @pointerdown="drag.start" @pointermove="drag.move" @pointerup="drag.finish" @pointercancel="drag.finish" @keydown="drag.keyboard">{{ title }}</div></template>
-			<Form ref="formRef" name="position-editor" :model="value" layout="vertical">
-				<FormItem label="职位名称" name="name" :rules="[{ required: true, message: '请输入职位名称' }]"><Input v-model:value="value.name" /></FormItem>
-				<FormItem label="职位编码" name="code" :rules="[{ required: true, message: '请输入职位编码' }]"><Input v-model:value="value.code" /></FormItem>
+			<Form ref="formRef" name="position-editor" :model="value" layout="vertical" :disabled="saving">
+				<FormItem label="职位名称" name="name" :rules="[{ required: true, message: '请输入职位名称' }]"><Input v-model:value="value.name" allow-clear /></FormItem>
+				<FormItem label="职位编码" name="code" :rules="[{ required: true, message: '请输入职位编码' }]"><Input v-model:value="value.code" allow-clear /></FormItem>
 				<FormItem label="排序" name="orderNo"><InputNumber v-model:value="value.orderNo" class="w-full" /></FormItem>
 				<FormItem label="状态" name="status"
 					><RadioGroup
@@ -161,7 +263,7 @@ onMounted(async () => {
 							{ label: '禁用', value: 2 },
 						]"
 				/></FormItem>
-				<FormItem label="备注" name="remark"><TextArea v-model:value="value.remark" :rows="3" /></FormItem>
+				<FormItem label="备注" name="remark"><TextArea v-model:value="value.remark" :rows="3" allow-clear /></FormItem>
 			</Form>
 		</Modal>
 	</div>

@@ -4,7 +4,6 @@
   "complete": false,
   "execution": "local-verified-awaiting-dependencies-and-production-authorization",
   "deferredProposals": [
-    41,
     46,
     47
   ],
@@ -928,5 +927,13 @@
     "46: 第 41 项完成后整体闭票",
     "47: 第 46 项闭票后应用主工作区清理",
     "48: 第 47 项闭票与独立生产发布授权、现场配置和访问地址验收"
-  ]
+  ],
+  "restart": {
+    "requestedAt": "2026-10-12T21:21:30.867Z",
+    "instruction": "从提案46开始都没有完成，从46开始重新执行",
+    "fromProposal": 46,
+    "currentAccepted": false,
+    "historicalEvidenceRetained": true,
+    "requiredDependency": 47
+  }
 }

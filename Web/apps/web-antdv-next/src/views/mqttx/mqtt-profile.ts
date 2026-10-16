@@ -115,7 +115,10 @@ export function applyDeviceMessage(state: DeviceState, profile: Pick<MqttProfile
 		};
 	}
 	if (data.regpacket !== profile.repacket) return state;
-	if (topic === topics.willTopic) return { ...state, online: data.redata !== 'offline' };
+	if (topic === topics.willTopic) {
+		if (data.redata === 'online' || data.redata === 'offline') return { ...state, online: data.redata === 'online' };
+		return state;
+	}
 	if (topic !== topics.subTopic || typeof data.redata !== 'string') return state;
 	const command = /^55 AA AA AA AA 82 (0[1-4]|A4) (0[01])$/.exec(data.redata);
 	if (command) {
