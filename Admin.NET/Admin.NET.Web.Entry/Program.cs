@@ -18,7 +18,7 @@ public class WebComponent : IWebComponent
         // 控制台运行不写入 Windows 事件日志，避免普通用户权限导致日志写入异常。
         if (OperatingSystem.IsWindows() && !WindowsServiceHelpers.IsWindowsService())
         {
-            builder.Logging.AddFilter<EventLogLoggerProvider>(LogLevel.None);
+            builder.Logging.AddFilter<EventLogLoggerProvider>(_ => false);
         }
 
         // 设置日志过滤
