@@ -16,7 +16,7 @@
 
 ## 总览
 
-业务验收完成：46 / 48。第 46 项最终 R6 业务回归、继承账本和独立提交候选工程资格已核对，按用户明确豁免保留 3 项 Native 为待优化；第 47、48 项依次推进。
+业务验收完成：47 / 48。第 47 项主工作区清理、生产构建和真实桌面 PostgreSQL 验收已通过；第 48 项接续本地切换与回退，生产发布仍需独立授权。
 
 2026-10-11 收尾更新：18 个历史直接子会话已由宿主确认归档且停止；项目门禁已支持实时宿主清单（提交 09ee8a771，23 项回归通过）。无需再次归档。剩余为 7 条历史失败/中止结果的业务处置和 1 个侧会话的继承历史核对，不是归档未同步。提案 29、31、33 的原始真实报告已重新读取，passed/cleanupPassed 均 true、cleanupErrors 均空；提案 29 提交 ed16649bf、31 提交 ac864b422 已核实。侧会话 439 次调用中 438 次继承，唯一新增 ctx_stats；两个成员在复用到 34 后未完成业务实现。具体证据见 `.scratch/proposal-agent-lifecycle/closeout-reconciliation.md`。第 19 轮已完成业务处置绑定：35 项回归通过，正式 CLI 加 --host-url 与 --review-file 核验退出码 0、status=reviewed-clear、blockers=[]。17 个日志成员归档回执、7 条业务处置及只新增 ctx_stats 的侧会话均已核对，允许恢复第 34 项；历史失败不改写为成功，34 仍须实现与验收。处置及报告位于 `.scratch/proposal-agent-lifecycle/business-review.json` 和 `reconciled-cli-audit.json`。
 
@@ -68,7 +68,7 @@
 | 44 | 代码直接生成与失败恢复 | 已完成 |
 | 45 | 生产运行时配置与代理闭环 | 已完成：运行时配置、真实 Nginx HTTP / TLS、文件与实时代理验收 |
 | 46 | 全量功能对应与跨模块验收 | 已完成：R6 桌面/PostgreSQL 业务与代理闭环，3 项 Native 依用户明确豁免、passed=false |
-| 47 | 旧前端清理与可发布构建 | 隔离清理与构建已通过，主清理待第 46 项闭票 |
+| 47 | 旧前端清理与可发布构建 | 已完成：770 个旧文件精确清理、单次生产构建及 HTTP/TLS 桌面 PostgreSQL 文件/Hub/独立调度验收通过 |
 | 48   | 整体切换与回退演练                   | 本地发布候选与切换通过，整体待第 47 项及生产授权 |
 
 ## Comments
@@ -245,3 +245,8 @@ MQTT.js 5.16.0 与原连接配置、注册包主题、QoS / Retain、设备封�
 已排除原用户改动的 82 路径提交候选有独立正常源码副本，type、lint（5 warning）、production build、Web.Entry net10/Core net8 build 通过；D 环境适配的完整 Vitest 为 136 文件/1,080 例、Node 原生 10 例通过。默认 unit 的环境失败及全部旧失败原始日志保留，不声称零配置默认命令通过。测试 import 仅补两处空行。
 
 可复核小索引：coverage46-final-acceptance-20261016.json；完整继承账本与日志位于 D:/tmp，SHA 固定在该索引。生产部署/切换未获授权。第 47 项仅在本项中文提交后开始，第 48 项依赖第 47 项。
+
+
+## 2026-10-16 第 47 项完成
+
+精确旧文件清理、既有单次生产构建与真实 HTTP/TLS 桌面 PostgreSQL 文件、Hub、独立调度验收通过，原数据与资源恢复证明已核对。详见 `cleanup47-main-acceptance-20261016.json`；第 48 项尚未完成，未执行生产发布。

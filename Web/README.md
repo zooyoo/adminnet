@@ -1,67 +1,21 @@
-<div align="center">
-	<img src="https://i.hd-r.cn/6ce52e5724fae609444b5b48bdc4accb.png">
-	<p align="center">
-		<a href="https://v3.vuejs.org/" target="_blank">
-			<img src="https://img.shields.io/badge/vue.js-vue3.x-green" alt="vue">
-		</a>
-		<a href="https://element-plus.gitee.io/#/zh-CN/component/changelog" target="_blank">
-			<img src="https://img.shields.io/badge/element--plus-%3E1.0.0-blue" alt="element plus">
-		</a>
-		<a href="https://www.tslang.cn/" target="_blank">
-	    <img src="https://img.shields.io/badge/typescript-%3E4.0.0-blue" alt="typescript">
-	  </a>
-		<a href="https://vitejs.dev/" target="_blank">
-		  <img src="https://img.shields.io/badge/vite-%3E2.0.0-yellow" alt="vite">
-		</a>
-		<a href="https://gitee.com/lyt-top/vue-next-admin/blob/master/LICENSE" target="_blank">
-		  <img src="https://img.shields.io/badge/license-MIT-success" alt="license">
-		</a>
-	</p>
-	<p>&nbsp;</p>
-</div>
+# Admin.NET 前端
 
-#### 🌈 介绍
+当前应用位于 `apps/web-antdv-next`，使用 Vue 3、TypeScript、Vben Admin 和 Antdv Next。
 
-基于 vue3.x + CompositionAPI setup 语法糖 + typescript + vite + element plus + vue-router-next + pinia 技术，适配手机、平板、pc 的后台开源免费模板，希望减少工作量，帮助大家实现快速开发。
+在本目录使用 `package.json` 指定的 pnpm 版本运行：
 
-#### ⛱️ 线上预览
-
-- vue3.x 版本预览（vue-next-admin）<a href="https://lyt-top.gitee.io/vue-next-admin-preview/#/login" target="_blank">https://lyt-top.gitee.io/vue-next-admin-preview/#/login</a>
-- vue3.x + uni-app 商城 H5（vue-next-admin-shop）<a href="https://lyt-top.gitee.io/vue-next-admin-shop-preview" target="_blank">https://lyt-top.gitee.io/vue-next-admin-shop-preview</a>
-
-#### 💒 代码仓库
-
-- vue3.x 版本 <a href="https://gitee.com/lyt-top/vue-next-admin" target="_blank">https://gitee.com/lyt-top/vue-next-admin</a>
-
-#### 🚧 安装 cnpm、yarn
-
-- 复制代码(桌面 cmd 运行) `npm install -g pnpm --registry=https://registry.npmmirror.com`
-
-#### 🏭 环境支持
-
-| Edge      | Firefox      | Chrome      | Safari      |
-| --------- | ------------ | ----------- | ----------- |
-| Edge ≥ 88 | Firefox ≥ 78 | Chrome ≥ 87 | Safari ≥ 13 |
-
-> 由于 Vue3 不再支持 IE11，故而 ElementPlus 也不支持 IE11 及之前版本。
-
-#### ⚡ 使用说明
-
-建议使用 pnpm，因为 yarn 有时会报错。<a href="http://nodejs.cn/" target="_blank">node 版本 > 14.18+/16+</a>
-
-> Vite 不再支持 Node 12 / 13 / 15，因为上述版本已经进入了 EOL 阶段。现在你必须使用 Node 14.18+ / 16+ 版本。
-
-```bash
-# 安装依赖
-pnpm install
-
-# 运行项目
-pnpm run dev
-
-# 打包发布
-pnpm run build
+```powershell
+pnpm install --frozen-lockfile
+pnpm dev
+pnpm check:type
+pnpm lint
+pnpm build
 ```
 
-#### 📚 开发文档
+生产产物统一输出到 `Web/dist`。API SDK 通过 `pnpm build-api-ps` 生成到目标应用；代码生成器的前端文件也写入目标应用。
 
-- 查看开发文档：<a href="https://lyt-top.gitee.io/vue-next-admin-doc-preview" target="_blank">vue-next-admin-doc</a>
+运行时 API、Nginx、SignalR、SSE、上传和缓存配置见 [部署说明](scripts/deploy/README.md)。
+
+媒体、PDF、Office、富文本和调度看板使用各自已经验证的专业引擎。`Sundial.Dashboard` 由后端提供，随 API 部署保留。
+
+项目及上游许可证分别见 `LICENSE` 和 `LICENSE-VBEN`。
