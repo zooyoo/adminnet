@@ -16,7 +16,7 @@
 
 ## 总览
 
-业务验收完成：47 / 48。第 47 项主工作区清理、生产构建和真实桌面 PostgreSQL 验收已通过；第 48 项接续本地切换与回退，生产发布仍需独立授权。
+业务验收完成：48 / 48（按用户调整范围）。第 47、48 项本地验收已完成；回退演练由用户取消，页面重开保留 Mock 与人工核验，生产发布仍需独立授权。
 
 2026-10-11 收尾更新：18 个历史直接子会话已由宿主确认归档且停止；项目门禁已支持实时宿主清单（提交 09ee8a771，23 项回归通过）。无需再次归档。剩余为 7 条历史失败/中止结果的业务处置和 1 个侧会话的继承历史核对，不是归档未同步。提案 29、31、33 的原始真实报告已重新读取，passed/cleanupPassed 均 true、cleanupErrors 均空；提案 29 提交 ed16649bf、31 提交 ac864b422 已核实。侧会话 439 次调用中 438 次继承，唯一新增 ctx_stats；两个成员在复用到 34 后未完成业务实现。具体证据见 `.scratch/proposal-agent-lifecycle/closeout-reconciliation.md`。第 19 轮已完成业务处置绑定：35 项回归通过，正式 CLI 加 --host-url 与 --review-file 核验退出码 0、status=reviewed-clear、blockers=[]。17 个日志成员归档回执、7 条业务处置及只新增 ctx_stats 的侧会话均已核对，允许恢复第 34 项；历史失败不改写为成功，34 仍须实现与验收。处置及报告位于 `.scratch/proposal-agent-lifecycle/business-review.json` 和 `reconciled-cli-audit.json`。
 
@@ -69,7 +69,7 @@
 | 45 | 生产运行时配置与代理闭环 | 已完成：运行时配置、真实 Nginx HTTP / TLS、文件与实时代理验收 |
 | 46 | 全量功能对应与跨模块验收 | 已完成：R6 桌面/PostgreSQL 业务与代理闭环，3 项 Native 依用户明确豁免、passed=false |
 | 47 | 旧前端清理与可发布构建 | 已完成：770 个旧文件精确清理、单次生产构建及 HTTP/TLS 桌面 PostgreSQL 文件/Hub/独立调度验收通过 |
-| 48   | 整体切换与回退演练                   | 本地发布候选与切换通过，整体待第 47 项及生产授权 |
+| 48 | 整体切换验收（回退演练取消） | 已完成：新包本地激活、首次登录与真实桌面 PostgreSQL 验收；重开会话为 Mock/人工核验，生产未发布 |
 
 ## Comments
 
@@ -250,3 +250,7 @@ MQTT.js 5.16.0 与原连接配置、注册包主题、QoS / Retain、设备封�
 ## 2026-10-16 第 47 项完成
 
 精确旧文件清理、既有单次生产构建与真实 HTTP/TLS 桌面 PostgreSQL 文件、Hub、独立调度验收通过，原数据与资源恢复证明已核对。详见 `cleanup47-main-acceptance-20261016.json`；第 48 项尚未完成，未执行生产发布。
+
+## 2026-10-16 第 48 项完成
+
+按用户取消回退演练后的范围，新包本地激活、HTTP/TLS 首次手动登录、真实桌面 PostgreSQL 文件/Hub/独立调度及数据恢复通过。标准 Playwright 退出码 0，2 项通过（1 项真实业务、1 项浏览器存储 Mock），8 张截图已实际复核。页面重开会话检查按 AGENTS.md 30 分钟熔断保留 Mock 与两步人工核验，产品实测 passed=false；回退为 cancelled-by-user、passed=false、executed=false。原 3 项 Native 和第 41 项实播豁免继续有效，生产发布仍须独立授权。证据见 `release48-final-acceptance-20261016.json` 与 `release48-final-reproduction-20261016.md`。当前授权范围完成 48 / 48。
