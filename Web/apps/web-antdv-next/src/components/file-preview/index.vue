@@ -103,8 +103,8 @@ defineExpose({ show, close });
 			<Spin v-if="busy" tip="正在加载文件" class="preview-loading" />
 			<template v-if="source && !error">
 				<Docx v-if="kind === 'docx'" :src="source" @rendered="handlers.rendered" @error="handlers.failed" />
-				<Excel v-else-if="kind === 'excel'" :src="source" style="height: 65vh" @rendered="handlers.rendered" @error="handlers.failed" />
-				<Pdf v-else-if="kind === 'pdf'" :src="source" @rendered="handlers.rendered" @error="handlers.failed" />
+				<Excel v-else-if="kind === 'excel'" :src="url" style="height: 65vh" @rendered="handlers.rendered" @error="handlers.failed" />
+				<Pdf v-else-if="kind === 'pdf'" :src="url" @rendered="handlers.rendered" @error="handlers.failed" />
 				<img v-else-if="kind === 'image'" :src="url" :alt="title" @load="handlers.rendered" @error="handlers.failed" />
 				<video v-else-if="kind === 'video'" :src="url" controls preload="metadata" @loadedmetadata="handlers.rendered" @error="handlers.failed" />
 				<audio v-else-if="kind === 'audio'" :src="url" controls preload="metadata" @loadedmetadata="handlers.rendered" @error="handlers.failed" />

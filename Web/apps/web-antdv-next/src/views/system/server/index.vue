@@ -7,7 +7,7 @@ import { computed, h, onActivated, onDeactivated, onMounted, onScopeDispose, ref
 import { useAccess } from '@vben/access';
 import { createIconifyIcon } from '@vben/icons';
 
-import { Alert, Button, Card, Empty, Progress, Spin, Switch, Tag } from 'antdv-next';
+import { Alert, Button, Card, Collapse, Empty, Progress, Spin, Switch, Tag } from 'antdv-next';
 
 import { sessionBoundary } from '#/api/session';
 import { serverHardware, serverPackages, serverRuntime } from '#/api/system/server';
@@ -46,6 +46,13 @@ const gpuNames = computed(() =>
 		.filter(Boolean)
 		.join('、')
 );
+const activeNetworks = computed(() =>
+	(hardware.value?.networkInfos ?? []).filter((network) => network.operationalStatus === 'Up' && !['WFP', 'QoS', 'Filter', 'vSwitch'].some((excluded) => (network.name ?? '').includes(excluded)))
+);
+const networkPanels = computed(() => activeNetworks.value.map((network, index) => ({ key: String(index), label: text(network.name) })));
+const networkByKey = (key: number | string | undefined) => activeNetworks.value[Number(key)];
+const networkTypeColor = (type: null | string | undefined) => ({ Ethernet: 'blue', Wireless80211: 'green', Loopback: 'default' })[type as 'Ethernet' | 'Loopback' | 'Wireless80211'] ?? 'orange';
+const networkStatusIcon = (status: null | string | undefined) => createIconifyIcon(status === 'Up' ? 'lucide:circle-check' : status === 'Down' ? 'lucide:circle-x' : 'lucide:circle-alert');
 const ram = computed(() => (hardware.value?.ramInfo?.totalBytes ? percent(hardware.value.ramInfo.usagePercentage) : undefined));
 const runtimeRows = computed(() => {
 	const info = runtime.value?.runtimeInfo;
@@ -183,6 +190,14 @@ onScopeDispose(() => {
 								/>
 								<p>{{ text(hardware?.cpuInfo?.processorName) }}</p>
 								<p>{{ text(hardware?.cpuInfo?.physicalCoreCount) }} 核心 / {{ text(hardware?.cpuInfo?.logicalCoreCount) }} 线程</p>
+								<dl class="runtime-list server-cpu-detail">
+									<dt>处理器架构</dt>
+									<dd data-hardware-field="processorArchitecture">{{ text(hardware?.cpuInfo?.processorArchitecture) }}</dd>
+									<dt>CPU 基础频率</dt>
+									<dd data-hardware-field="baseClockSpeed">{{ hardware?.cpuInfo?.baseClockSpeed == null ? '未提供' : `${hardware.cpuInfo.baseClockSpeed} GHz` }}</dd>
+									<dt>CPU 缓存</dt>
+									<dd data-hardware-field="cacheBytes">{{ bytes(hardware?.cpuInfo?.cacheBytes) }}</dd>
+								</dl>
 							</section>
 							<section aria-label="内存使用率">
 								<h2>内存使用率</h2>
@@ -214,6 +229,10 @@ onScopeDispose(() => {
 					><dl class="runtime-list">
 						<dt>主板</dt>
 						<dd>{{ text(hardware?.boardInfo?.manufacturer) }} / {{ text(hardware?.boardInfo?.product) }}</dd>
+						<dt>主板版本</dt>
+						<dd data-board-field="version">{{ text(hardware?.boardInfo?.version) }}</dd>
+						<dt>主板序列号</dt>
+						<dd data-board-field="serialNumber">{{ text(hardware?.boardInfo?.serialNumber) }}</dd>
 						<dt>GPU</dt>
 						<dd>
 							{{ gpuNames || '未提供' }}
@@ -229,6 +248,66 @@ onScopeDispose(() => {
 						</dd>
 					</dl></Card
 				>
+				<Card title="GPU 详情" class="server-section">
+					<section v-for="(gpu, index) in hardware?.gpuInfos ?? []" :key="index" class="server-gpu-detail">
+						<h2>{{ text(gpu.name) }}</h2>
+						<dl class="runtime-list">
+							<dt>GPU 状态</dt>
+							<dd data-hardware-field="status">{{ text(gpu.status) }}</dd>
+							<dt>GPU 显存</dt>
+							<dd data-hardware-field="memoryBytes">{{ bytes(gpu.memoryBytes) }}</dd>
+							<dt>GPU 驱动版本</dt>
+							<dd data-hardware-field="driverVersion">{{ text(gpu.driverVersion) }}</dd>
+							<dt>GPU 视频模式</dt>
+							<dd data-hardware-field="videoModeDescription">{{ text(gpu.videoModeDescription) }}</dd>
+						</dl>
+					</section>
+					<Empty v-if="!hardware?.gpuInfos?.length" description="未提供 GPU 信息" :image="Empty.PRESENTED_IMAGE_SIMPLE"
+				/></Card>
+				<Card title="网络接口详情" class="server-section server-network-details"
+					><Collapse v-if="activeNetworks.length" :items="networkPanels"
+						><template #contentRender="{ item }"
+							><section class="server-network-detail">
+								<dl class="runtime-list">
+									<dt>网络状态</dt>
+									<dd>
+										<component :is="networkStatusIcon(networkByKey(item.key)?.operationalStatus)" class="inline-block" />
+										<Tag data-network-field="operationalStatus" :color="networkByKey(item.key)?.operationalStatus === 'Up' ? 'success' : 'warning'">{{
+											text(networkByKey(item.key)?.operationalStatus)
+										}}</Tag>
+									</dd>
+									<dt>网络类型</dt>
+									<dd>
+										<Tag data-network-field="type" :color="networkTypeColor(networkByKey(item.key)?.type)">{{ text(networkByKey(item.key)?.type) }}</Tag>
+									</dd>
+									<dt>网络描述</dt>
+									<dd data-network-field="description">{{ text(networkByKey(item.key)?.description) }}</dd>
+									<dt>MAC 地址</dt>
+									<dd data-network-field="physicalAddress">{{ text(networkByKey(item.key)?.physicalAddress) }}</dd>
+									<dt>链路速度</dt>
+									<dd data-network-field="speed">{{ text(networkByKey(item.key)?.speed) }}</dd>
+									<dt>IPv4 地址</dt>
+									<dd data-network-field="iPv4Addresses">
+										{{
+											networkByKey(item.key)
+												?.iPv4Addresses?.map((address) => address.address)
+												.filter(Boolean)
+												.join('、') || '未提供'
+										}}
+									</dd>
+									<dt>接收字节</dt>
+									<dd data-network-field="bytesReceived">{{ bytes(networkByKey(item.key)?.statistics?.bytesReceived) }}</dd>
+									<dt>发送字节</dt>
+									<dd data-network-field="bytesSent">{{ bytes(networkByKey(item.key)?.statistics?.bytesSent) }}</dd>
+									<dt>接收数据包</dt>
+									<dd data-network-field="packetsReceived">{{ text(networkByKey(item.key)?.statistics?.packetsReceived) }}</dd>
+									<dt>发送数据包</dt>
+									<dd data-network-field="packetsSent">{{ text(networkByKey(item.key)?.statistics?.packetsSent) }}</dd>
+								</dl>
+							</section></template
+						></Collapse
+					><Empty v-else description="未提供活跃网络接口" :image="Empty.PRESENTED_IMAGE_SIMPLE"
+				/></Card>
 				<Card title="程序集信息" class="server-section"
 					><div v-if="packages.length" class="package-list">
 						<Tag v-for="item in packages" :key="item.packageName || ''"

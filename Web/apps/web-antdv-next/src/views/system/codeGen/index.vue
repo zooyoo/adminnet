@@ -10,6 +10,7 @@ import type { CodeGenDraft, CodeGenField, CodeGenId, CodeGenOption, CodeGenQuery
 
 import { computed, onActivated, onDeactivated, onMounted, onScopeDispose, reactive, shallowRef, watch } from 'vue';
 
+import { useAccess } from '@vben/access';
 import { useUserStore } from '@vben/stores';
 
 import { Alert, Button, Checkbox, Form, FormItem, Input, InputNumber, message, Modal, Select, Switch } from 'antdv-next';
@@ -31,9 +32,12 @@ const permissions = computed(() => {
 	const allowed = Boolean(user.userInfo?.userId);
 	return { page: allowed, add: allowed, update: allowed, delete: allowed, sync: allowed, fields: allowed, saveFields: allowed };
 });
+const { hasAccessByCodes } = useAccess();
+const queryVisible = computed(() => hasAccessByCodes(['sysMenu:list']));
 const identity = computed(() => [user.userInfo?.userId, user.userInfo?.tenantId, user.userInfo?.currentTenantId, user.userInfo?.accountType].join(':'));
 const page = useAdminTable<CodeGenRow, CodeGenQuery>({ query: { tableName: '', busName: '' }, load: (query, signal) => request((tracked) => codegenApi.page(query, AbortSignal.any([signal, tracked]))) });
 const columns: NonNullable<TableProps<CodeGenRow>['columns']> = [
+	{ title: '序号', key: 'sequence', width: 55, align: 'center' }, { title: '库定位器', key: 'configId', dataIndex: 'configId', width: 175 },
 	{ title: '业务名称', key: 'busName', dataIndex: 'busName', width: 180 }, { title: '实体', key: 'tableName', dataIndex: 'tableName', width: 200 },
 	{ title: '数据库', key: 'dbNickName', dataIndex: 'dbNickName', width: 140 }, { title: '命名空间', key: 'nameSpace', dataIndex: 'nameSpace', width: 240 },
 	{ title: '作者', key: 'authorName', dataIndex: 'authorName', width: 130 }, { title: '生成方式', key: 'generateType', dataIndex: 'generateType', width: 130 },
@@ -86,6 +90,7 @@ const printOptions = shallowRef<CodeGenOption[]>([]);
 const printTemplateOptions = shallowRef<CodeGenOption[]>([]);
 const foreignOpen = shallowRef(false);
 const foreignDraft = reactive<CodeGenField>({ id: '', codeGenId: '', fkDisplayColumnList: [] });
+const foreignEffectRevisions = reactive<Record<string, number>>({});
 const foreignTables = shallowRef<TableOutput[]>([]);
 const foreignColumns = shallowRef<ColumnOuput[]>([]);
 const foreignError = shallowRef('');
@@ -98,6 +103,7 @@ let foreignGeneration = 0;
 let active = false;
 
 const databaseOptions = computed(() => databases.value.map((item) => ({ value: item.configId ?? '', label: `${item.dbNickName ?? item.configId} (${item.dbType})` })));
+const databaseTypeOptions = [{"label":"MySql","value":"0"},{"label":"SqlServer","value":"1"},{"label":"Sqlite","value":"2"},{"label":"Oracle","value":"3"},{"label":"PostgreSQL","value":"4"},{"label":"Dm","value":"5"},{"label":"Kdbndp","value":"6"},{"label":"Oscar","value":"7"},{"label":"MySqlConnector","value":"8"},{"label":"Access","value":"9"},{"label":"OpenGauss","value":"10"},{"label":"QuestDB","value":"11"},{"label":"HG","value":"12"},{"label":"ClickHouse","value":"13"},{"label":"GBase","value":"14"},{"label":"Odbc","value":"15"},{"label":"OceanBaseForOracle","value":"16"},{"label":"TDengine","value":"17"},{"label":"GaussDB","value":"18"},{"label":"OceanBase","value":"19"},{"label":"Tidb","value":"20"},{"label":"Vastbase","value":"21"},{"label":"PolarDB","value":"22"},{"label":"Doris","value":"23"},{"label":"Custom","value":"900"}];
 const tableOptions = computed(() => tables.value.map((item) => ({ value: item.entityName ?? '', label: `${item.tableName} [${item.tableComment ?? ''}] — ${item.entityName}` })));
 const entityColumnOptions = computed(() => entityColumns.value.map((item) => ({ value: item.propertyName ?? '', label: `${item.propertyName} [${item.columnComment ?? ''}]` })));
 const namespaceOptions = computed(() => namespaces.value.map((value) => ({ value, label: value })));
@@ -157,13 +163,14 @@ async function loadTables(configId: string, clear = true) {
 		if (current === tableGeneration && draft.configId === configId) tables.value = result;
 	} catch { if (current === tableGeneration && editorOpen.value) editorError.value = '实体列表加载失败，请重新选择数据库。'; }
 }
-async function chooseEntity(value: unknown) {
+async function chooseEntity(value: unknown, hydrate = false) {
 	const entityName = String(value ?? '');
+	if (!hydrate && draft.tableName && draft.tableName !== entityName) draft.tableUniqueList = [];
 	draft.tableName = entityName;
 	const table = tables.value.find((item) => item.entityName === entityName);
 	if (!table?.tableName || !draft.configId) return;
 	draft.tableComment = table.tableComment;
-	if (!draft.id) draft.busName = table.tableComment ?? entityName;
+	if (!hydrate || !draft.id) draft.busName = table.tableComment ?? entityName;
 	try {
 		const result = await request((signal) => codegenApi.columns(table.tableName ?? '', draft.configId ?? '', signal));
 		if (draft.tableName === entityName) entityColumns.value = result;
@@ -180,7 +187,7 @@ async function openEditor(row?: CodeGenRow, copy = false) {
 		if (!editorOpen.value || generation !== editorGeneration) return;
 		Object.assign(draft, detail && copy ? copyCodeGenDraft(detail) : createCodeGenDraft(detail));
 		draft.nameSpace ||= namespaces.value[0] ?? '';
-		if (draft.configId) { await loadTables(draft.configId, false); if (draft.tableName) await chooseEntity(draft.tableName); }
+		if (draft.configId) { await loadTables(draft.configId, false); if (draft.tableName) await chooseEntity(draft.tableName, true); }
 	} catch { if (editorOpen.value) editorError.value = '生成配置加载失败，请关闭后重试。'; }
 }
 async function saveEditor() {
@@ -239,7 +246,7 @@ function deleteRows(ids: CodeGenId[]) {
 	Modal.confirm({ title: '删除生成配置', content: `删除 ${ids.length} 项配置及其字段配置？`, okText: '删除配置', okButtonProps: { danger: true }, cancelText: '取消', onOk: async () => {
 		operationBusy.value = true;
 		const current = context;
-		try { await request((signal) => codegenApi.delete(ids, signal)); if (current === context) { void message.success('生成配置已删除'); await page.reload(); } }
+		try { await request((signal) => codegenApi.delete(ids, signal)); if (current === context) { page.setSelectedKeys([]); void message.success('生成配置已删除'); await page.reload(); } }
 		catch { if (current === context) void message.error('删除生成配置失败，请重试。'); }
 		finally { if (current === context) operationBusy.value = false; }
 	} });
@@ -279,6 +286,11 @@ async function chooseForeignTable(value: unknown, clear = true) {
 	} catch { if (current === foreignGeneration && foreignOpen.value) foreignError.value = '关联字段加载失败，请重试。'; }
 	finally { if (current === foreignGeneration) foreignBusy.value = false; }
 }
+function cancelForeign() {
+	foreignOpen.value = false;
+	const id = String(foreignDraft.id);
+	foreignEffectRevisions[id] = (foreignEffectRevisions[id] ?? 0) + 1;
+}
 function applyForeign() {
 	foreignError.value = validateCodeGenFields([foreignDraft]);
 	if (foreignError.value) return;
@@ -291,6 +303,7 @@ function applyForeign() {
 function closeEditor() { editorGeneration += 1; editorOpen.value = false; draft.connectionString = ''; }
 function deactivate() {
 	active = false; context += 1; tableGeneration += 1; foreignGeneration += 1;
+	for (const id of Object.keys(foreignEffectRevisions)) delete foreignEffectRevisions[id];
 	for (const controller of controllers) controller.abort();
 	controllers.clear(); fields.close(); preview.value?.close();
 	editorOpen.value = false; fieldDialog.value = false; foreignOpen.value = false;
@@ -315,9 +328,9 @@ onMounted(activate); onActivated(activate); onDeactivated(deactivate); onScopeDi
 		<Alert v-if="!permissions.page" type="warning" show-icon title="当前账号没有查询代码生成配置权限。" />
 		<template v-else>
 			<Form :model="page.query.value" layout="inline" :colon="false" :required-mark="false" class="codegen-query" @finish="page.search">
-				<FormItem label="查询实体"><Input v-model:value="page.query.value.tableName" allow-clear /></FormItem>
-				<FormItem label="查询业务名称"><Input v-model:value="page.query.value.busName" allow-clear /></FormItem>
-				<Button type="primary" html-type="submit" :auto-insert-space="false">查询配置</Button>
+				<FormItem label="查询实体"><Input v-model:value="page.query.value.tableName" allow-clear @keydown.enter.prevent @keyup.enter="page.search()" /></FormItem>
+				<FormItem label="查询业务名称"><Input v-model:value="page.query.value.busName" allow-clear @keydown.enter.prevent @keyup.enter="page.search()" /></FormItem>
+				<Button v-if="queryVisible" type="primary" html-type="submit" :auto-insert-space="false">查询配置</Button>
 				<Button :auto-insert-space="false" @click="page.reset">重置查询</Button>
 			</Form>
 			<Alert v-if="metadataError" type="warning" show-icon :title="metadataError"><template #action><Button size="small" @click="loadMetadata">重新加载选项</Button></template></Alert>
@@ -326,8 +339,9 @@ onMounted(activate); onActivated(activate); onDeactivated(deactivate); onScopeDi
 					<Button v-if="permissions.add" type="primary" :auto-insert-space="false" :disabled="operationBusy || metadataBusy || !!metadataError" @click="openEditor()">新增生成配置</Button>
 					<Button v-if="permissions.delete" danger :auto-insert-space="false" :disabled="operationBusy || !page.selectedKeys.value.length" @click="deleteRows([...page.selectedKeys.value])">删除所选配置</Button>
 				</template>
-				<template #bodyCell="{ column, record, text }">
-					<span v-if="column.key === 'generateType'">{{ generateOptions.find((item) => item.value === record.generateType)?.label ?? text }}</span>
+				<template #bodyCell="{ column, record, text, index }">
+					<span v-if="column.key === 'sequence'">{{ index + 1 }}</span>
+					<span v-else-if="column.key === 'generateType'">{{ generateOptions.find((item) => item.value === record.generateType)?.label ?? text }}</span>
 					<div v-else-if="column.key === 'actions'" class="codegen-actions">
 						<Button type="link" size="small" :auto-insert-space="false" :disabled="operationBusy" @click="preview?.show(record)">预览代码</Button>
 					<Button v-if="permissions.fields" type="link" size="small" :auto-insert-space="false" :disabled="operationBusy || metadataBusy" @click="openFields(record)">字段配置</Button>
@@ -336,7 +350,7 @@ onMounted(activate); onActivated(activate); onDeactivated(deactivate); onScopeDi
 						<Button v-if="permissions.add" type="link" size="small" :auto-insert-space="false" :disabled="operationBusy || metadataBusy" @click="openEditor(record, true)">复制配置</Button>
 						<Button v-if="permissions.delete" type="link" danger size="small" :auto-insert-space="false" :disabled="operationBusy" @click="deleteRows([record.id])">删除配置</Button>
 					</div>
-					<span v-else>{{ text }}</span>
+					<span v-else-if="column.dataIndex">{{ text }}</span>
 				</template>
 			</AdminTable>
 		</template>
@@ -352,6 +366,7 @@ onMounted(activate); onActivated(activate); onDeactivated(deactivate); onScopeDi
 				<FormItem label="业务名称"><Input aria-label="业务名称" v-model:value="draft.busName" :maxlength="100" :disabled="operationBusy" /></FormItem>
 				<FormItem label="作者"><Input aria-label="作者" v-model:value="draft.authorName" :maxlength="100" :disabled="operationBusy" /></FormItem>
 				<FormItem label="应用命名空间" html-for="codegen-namespace"><Select id="codegen-namespace" aria-label="应用命名空间" v-model:value="draft.nameSpace" :options="namespaceOptions" :disabled="operationBusy" show-search /></FormItem>
+				<FormItem label="库类型" html-for="codegen-db-type"><Select id="codegen-db-type" aria-label="库类型" :value="draft.dbType" :options="databaseTypeOptions" disabled /></FormItem>
 				<FormItem label="生成方式" html-for="codegen-generate"><Select id="codegen-generate" aria-label="生成方式" v-model:value="draft.generateType" :options="generateOptions" :disabled="operationBusy" /></FormItem>
 				<FormItem label="移除表前缀"><Input aria-label="移除表前缀" v-model:value="draft.tablePrefix" :disabled="operationBusy" /></FormItem>
 				<FormItem label="生成菜单"><Switch aria-label="生成菜单" v-model:checked="draft.generateMenu" :disabled="operationBusy" /></FormItem>
@@ -378,7 +393,7 @@ onMounted(activate); onActivated(activate); onDeactivated(deactivate); onScopeDi
 				<template #editCell="{ column, record }">
 					<Input v-if="column.key === 'columnComment'" v-model:value="record.columnComment" :aria-label="`${record.propertyName} 描述`" :maxlength="128" />
 					<div v-else-if="column.key === 'effectType'" class="codegen-effect">
-						<label class="codegen-sr-only" :for="`codegen-effect-${record.id}`">{{ record.propertyName }} 作用类型</label><Select :id="`codegen-effect-${record.id}`" :value="record.effectType" :options="effectOptions" :disabled="protectedField(record)" :aria-label="`${record.propertyName} 作用类型`" @update:value="(value) => changeEffect(record, value)" />
+						<label class="codegen-sr-only" :for="`codegen-effect-${record.id}`">{{ record.propertyName }} 作用类型</label><Select :key="`${record.id}:${foreignEffectRevisions[String(record.id)] ?? 0}`" :id="`codegen-effect-${record.id}`" :value="record.effectType" :options="effectOptions" :disabled="protectedField(record)" :aria-label="`${record.propertyName} 作用类型`" @update:value="(value) => changeEffect(record, value)" />
 						<Button v-if="FOREIGN_TYPES.includes(record.effectType ?? '')" size="small" :aria-label="`${record.propertyName} 关联配置`" @click="openForeign(record)">配置</Button>
 					</div>
 					<span v-else-if="column.key === 'dictTypeCode'"><label class="codegen-sr-only" :for="`codegen-dict-${record.id}`">{{ record.propertyName }} 字典</label><Select :id="`codegen-dict-${record.id}`" v-model:value="record.dictTypeCode" :options="dictionaryOptions(record)" allow-clear :disabled="!SELECTOR_TYPES.includes(record.effectType ?? '')" :aria-label="`${record.propertyName} 字典`" /></span>
@@ -390,7 +405,7 @@ onMounted(activate); onActivated(activate); onDeactivated(deactivate); onScopeDi
 			</AdminTable>
 			<div class="codegen-footer"><Button :auto-insert-space="false" :disabled="fieldState.busy" @click="closeFields">{{ dirtyFields ? '放弃更改并关闭' : '关闭字段配置' }}</Button><Button v-if="permissions.saveFields" type="primary" :auto-insert-space="false" :loading="fieldState.busy" @click="saveFields">保存字段配置</Button></div>
 		</Modal>
-		<Modal :open="foreignOpen" :title="foreignDraft.effectType === 'ApiTreeSelector' ? '树选择器配置' : '外键配置'" :width="650" :footer="null" destroy-on-hidden :mask-closable="false" @cancel="foreignOpen = false">
+		<Modal :open="foreignOpen" :title="foreignDraft.effectType === 'ApiTreeSelector' ? '树选择器配置' : '外键配置'" :width="650" :footer="null" destroy-on-hidden :mask-closable="false" @cancel="cancelForeign">
 			<Form :model="foreignDraft" layout="vertical" :colon="false" :required-mark="false" @finish="applyForeign">
 				<Alert v-if="foreignError" role="alert" type="error" show-icon :title="foreignError" />
 				<FormItem label="关联数据库" html-for="codegen-foreign-database"><Select id="codegen-foreign-database" aria-label="关联数据库" :value="foreignDraft.fkConfigId" :options="databaseOptions" :disabled="foreignBusy" @update:value="chooseForeignDatabase" /></FormItem>
@@ -398,7 +413,7 @@ onMounted(activate); onActivated(activate); onDeactivated(deactivate); onScopeDi
 				<FormItem label="显示字段" html-for="codegen-foreign-display"><Select id="codegen-foreign-display" aria-label="显示字段" v-model:value="foreignDraft.fkDisplayColumnList" :options="foreignColumnOptions" :disabled="foreignBusy" mode="multiple" /></FormItem>
 				<FormItem label="值字段" html-for="codegen-foreign-value"><Select id="codegen-foreign-value" aria-label="值字段" v-model:value="foreignDraft.fkLinkColumnName" :options="foreignColumnOptions" :disabled="foreignBusy" show-search /></FormItem>
 				<FormItem v-if="foreignDraft.effectType === 'ApiTreeSelector'" label="父级字段" html-for="codegen-foreign-parent"><Select id="codegen-foreign-parent" aria-label="父级字段" v-model:value="foreignDraft.pidColumn" :options="foreignColumnOptions" :disabled="foreignBusy" show-search /></FormItem>
-				<div class="codegen-footer"><Button :auto-insert-space="false" @click="foreignOpen = false">取消关联配置</Button><Button type="primary" html-type="submit" :auto-insert-space="false" :disabled="foreignBusy">应用关联配置</Button></div>
+				<div class="codegen-footer"><Button :auto-insert-space="false" @click="cancelForeign">取消关联配置</Button><Button type="primary" html-type="submit" :auto-insert-space="false" :disabled="foreignBusy">应用关联配置</Button></div>
 			</Form>
 		</Modal>
 	</div>

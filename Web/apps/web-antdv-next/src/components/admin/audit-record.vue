@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button, Descriptions, DescriptionsItem, Popover } from 'antdv-next';
-defineProps<{ record: { createUserName?: null | string; updateUserName?: null | string; createTime?: Date | null | string; updateTime?: Date | null | string } }>();
+defineProps<{ record: { createUserName?: null | string; updateUserName?: null | string; remark?: null | string; createTime?: Date | null | string; updateTime?: Date | null | string } }>();
 </script>
 
 <template>
@@ -12,6 +12,7 @@ defineProps<{ record: { createUserName?: null | string; updateUserName?: null | 
 				<DescriptionsItem label="创建时间">{{ record.createTime || '-' }}</DescriptionsItem>
 				<DescriptionsItem label="修改人">{{ record.updateUserName || '-' }}</DescriptionsItem>
 				<DescriptionsItem label="修改时间">{{ record.updateTime || '-' }}</DescriptionsItem>
+				<DescriptionsItem v-if="'remark' in record" label="备注">{{ record.remark ?? '无' }}</DescriptionsItem>
 			</Descriptions>
 		</template>
 	</Popover>

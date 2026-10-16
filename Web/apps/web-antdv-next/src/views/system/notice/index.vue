@@ -15,7 +15,7 @@ import { addNotice, deleteNotice, pageNotices, publishNotice, updateNotice } fro
 import AdminTable from '#/components/admin-table/index.vue';
 import { useAdminTable } from '#/components/admin-table/use-admin-table';
 import NoticeContent from '#/components/notice-content/index.vue';
-import { hasNoticeContent } from '#/components/notice-content/notice-html';
+import { hasNoticeContent, noticePlainText } from '#/components/notice-content/notice-html';
 import NoticeEditor from '#/components/notice-editor/index.vue';
 
 defineOptions({ name: 'SysNotice' });
@@ -54,9 +54,11 @@ const detailOpen = computed({
 });
 const columns: NonNullable<TableProps<Notice>['columns']> = [
 	{ title: '标题', dataIndex: 'title', key: 'title', width: 220 },
-	{ title: '内容', dataIndex: 'content', key: 'content', ellipsis: true },
+	{ title: '内容', dataIndex: 'content', key: 'content', width: 300, ellipsis: { showTitle: false } },
 	{ title: '类型', key: 'type', width: 90 },
 	{ title: '状态', key: 'status', width: 90 },
+	{ title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
+	{ title: '发布者', dataIndex: 'publicUserName', key: 'publicUserName', width: 130 },
 	{ title: '发布时间', dataIndex: 'publicTime', key: 'publicTime', width: 180 },
 	{ title: '操作', key: 'actions', fixed: 'right', width: 170 },
 ];
@@ -145,7 +147,11 @@ onMounted(() => {
 			</template>
 			<template #bodyCell="{ column, record }">
 				<template v-if="column.key === 'content'">
-					<Button type="link" size="small" @click="detail = record"><Eye :size="14" />查看内容</Button>
+					<div class="notice-content-cell">
+						<!-- 复用净化后的纯文本摘要，旧表格信息与详情入口同时保留。 -->
+						<Tooltip :title="noticePlainText(record.content)"><span class="notice-summary">{{ noticePlainText(record.content) }}</span></Tooltip>
+						<Button type="link" size="small" @click="detail = record"><Eye :size="14" />查看内容</Button>
+					</div>
 				</template>
 				<Tag v-else-if="column.key === 'type'" :color="record.type === 2 ? 'blue' : 'cyan'">{{ record.type === 2 ? '公告' : '通知' }}</Tag>
 				<Tag v-else-if="column.key === 'status'" :color="record.status === 1 ? 'success' : 'default'">{{ record.status === 1 ? '已发布' : '草稿' }}</Tag>
@@ -226,6 +232,18 @@ onMounted(() => {
 	white-space: pre-wrap;
 	overflow-wrap: anywhere;
 	font-family: inherit;
+}
+.notice-content-cell {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+.notice-summary {
+	display: block;
+	max-width: 260px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 .row-actions {
 	display: flex;

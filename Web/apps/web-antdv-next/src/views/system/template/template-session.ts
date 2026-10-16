@@ -1,4 +1,4 @@
-import type { TemplateApi, TemplateDraft, TemplateId, TemplateQuery, TemplateRow, TemplateType } from '#/api/system/template';
+import type { TemplateApi, TemplateDraft, TemplateId, TemplateQuery, TemplateRow, TemplateSortField, TemplateSortOrder, TemplateType } from '#/api/system/template';
 
 export type TemplateContentType = 1 | 2;
 export type TemplateEditorKind = 'add' | 'preview' | 'update';
@@ -78,6 +78,8 @@ export function createTemplateState() {
 		total: 0,
 		page: 1,
 		pageSize: 20,
+		sortField: 'orderNo' as TemplateSortField,
+		sortOrder: 'ascending' as TemplateSortOrder,
 		query: blankFilters(),
 		applied: blankFilters(),
 		pageBusy: false,
@@ -159,7 +161,7 @@ export function createTemplateSession(
 		state.pageBusy = true;
 		state.pageError = '';
 		const tenantId = deps.tenantId?.();
-		const input = { ...state.applied, page: state.page, pageSize: state.pageSize, ...(tenantId === undefined ? {} : { tenantId }) };
+		const input = { ...state.applied, field: state.sortField, order: state.sortOrder, page: state.page, pageSize: state.pageSize, ...(tenantId === undefined ? {} : { tenantId }) };
 		try {
 			const result = await deps.api.page(input, ticket.signal);
 			if (!ticket.current()) return;
@@ -244,10 +246,12 @@ export function createTemplateSession(
 		query();
 	}
 
-	function changePage(page: number, pageSize: number) {
+	function changePage(page: number, pageSize: number, field: TemplateSortField = state.sortField, order: TemplateSortOrder = state.sortOrder) {
 		if (!ready()) return;
 		state.page = pageSize === state.pageSize ? Math.max(1, page) : 1;
 		state.pageSize = pageSize;
+		state.sortField = field;
+		state.sortOrder = order;
 		void loadPage();
 	}
 

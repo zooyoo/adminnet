@@ -58,64 +58,25 @@ public static class GpuHelper
     /// <param name="gpuInfos"></param>
     private static void GetWindowsGpuInfo(List<GpuInfo> gpuInfos)
     {
-        var output = ShellHelper.Cmd("wmic", "path win32_VideoController get Name,DriverVersion,AdapterRAM,VideoModeDescription,Status /Value").Trim();
-        var lines = output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
-
-        GpuInfo? currentGpu = null;
-
-        foreach (var line in lines)
+        // 通过已有 WMI 提供器只读查询，兼容未安装 wmic 命令的 Windows。
+        using var searcher = new System.Management.ManagementObjectSearcher(
+            "SELECT Name,DriverVersion,AdapterRAM,VideoModeDescription,Status FROM Win32_VideoController");
+        using var controllers = searcher.Get();
+        foreach (System.Management.ManagementBaseObject controller in controllers)
         {
-            if (string.IsNullOrWhiteSpace(line))
+            using (controller)
             {
-                continue;
-            }
-
-            if (line.Contains('='))
-            {
-                var parts = line.Split('=', 2);
-                if (parts.Length != 2)
+                var name = controller["Name"]?.ToString();
+                if (string.IsNullOrWhiteSpace(name)) continue;
+                gpuInfos.Add(new GpuInfo
                 {
-                    continue;
-                }
-
-                var key = parts[0].Trim();
-                var value = parts[1].Trim();
-
-                switch (key)
-                {
-                    case "Name" when !string.IsNullOrEmpty(value):
-                        if (currentGpu != null)
-                        {
-                            gpuInfos.Add(currentGpu);
-                        }
-                        currentGpu = new GpuInfo
-                        {
-                            Name = value
-                        };
-                        break;
-
-                    case "DriverVersion" when currentGpu != null:
-                        currentGpu.DriverVersion = value;
-                        break;
-
-                    case "AdapterRAM" when currentGpu != null && long.TryParse(value, out var ram):
-                        currentGpu.MemoryBytes = ram;
-                        break;
-
-                    case "VideoModeDescription" when currentGpu != null:
-                        currentGpu.VideoModeDescription = value;
-                        break;
-
-                    case "Status" when currentGpu != null:
-                        currentGpu.Status = value;
-                        break;
-                }
+                    Name = name,
+                    DriverVersion = controller["DriverVersion"]?.ToString() ?? string.Empty,
+                    MemoryBytes = controller["AdapterRAM"] == null ? 0 : Convert.ToInt64(controller["AdapterRAM"]),
+                    VideoModeDescription = controller["VideoModeDescription"]?.ToString() ?? string.Empty,
+                    Status = controller["Status"]?.ToString() ?? string.Empty
+                });
             }
-        }
-
-        if (currentGpu != null)
-        {
-            gpuInfos.Add(currentGpu);
         }
     }
 

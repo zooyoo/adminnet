@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { FormInstance } from 'antdv-next';
+
 import { onScopeDispose, reactive, ref } from 'vue';
 
 import { useAccess } from '@vben/access';
@@ -12,10 +14,17 @@ import { useAuthStore } from '#/store';
 const { hasAccessByCodes } = useAccess();
 const auth = useAuthStore();
 const form = reactive({ passwordOld: '', passwordNew: '', confirm: '' });
+const passwordForm = ref<FormInstance>();
 const saving = ref(false);
 const error = ref('');
 const controller = new AbortController();
 onScopeDispose(() => controller.abort());
+
+function resetPassword() {
+	if (saving.value) return;
+	passwordForm.value?.resetFields();
+	error.value = '';
+}
 
 async function save() {
 	if (saving.value || !hasAccessByCodes(['sysUser:changePwd'])) return;
@@ -44,7 +53,7 @@ async function save() {
 	<div class="max-w-lg">
 		<Alert class="mb-4" title="修改成功后将退出登录，请使用新密码重新登录。" type="info" show-icon />
 		<Alert v-if="error" class="mb-4" :title="error" type="error" show-icon />
-		<Form :model="form" layout="vertical" @finish="save">
+		<Form ref="passwordForm" :model="form" layout="vertical" @finish="save">
 			<FormItem label="当前密码" name="passwordOld" :rules="[{ required: true, message: '请输入当前密码' }]">
 				<InputPassword v-model:value="form.passwordOld" autocomplete="current-password" :disabled="saving" />
 			</FormItem>
@@ -54,6 +63,7 @@ async function save() {
 			<FormItem label="确认密码" name="confirm" :rules="[{ required: true, message: '请再次输入新密码' }]">
 				<InputPassword v-model:value="form.confirm" autocomplete="new-password" :disabled="saving" />
 			</FormItem>
+			<Button html-type="button" :disabled="saving" @click="resetPassword">重置</Button>
 			<Button v-if="hasAccessByCodes(['sysUser:changePwd'])" type="primary" html-type="submit" :loading="saving">修改密码</Button>
 		</Form>
 	</div>

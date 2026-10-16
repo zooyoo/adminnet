@@ -10,12 +10,14 @@ import { useAccess } from '@vben/access';
 import { Copy, createIconifyIcon, Plus, Search } from '@vben/icons';
 import { useUserStore } from '@vben/stores';
 
-import { Button, Descriptions, DescriptionsItem, Form, FormItem, Input, InputNumber, message, Modal, Popconfirm, Popover, RadioGroup, Select, Table, Tag, TextArea, Tooltip } from 'antdv-next';
+import { Button, Form, FormItem, Input, InputNumber, message, Modal, Popconfirm, Popover, RadioGroup, Select, Table, Tag, TextArea, Tooltip } from 'antdv-next';
 
 import { getTenantOptionsApi } from '#/api';
 import { deletePosition, listPositions, savePosition } from '#/api/system/pos';
 import AdminTable from '#/components/admin-table/index.vue';
 import { useAdminTable } from '#/components/admin-table/use-admin-table';
+import AuditRecord from '#/components/admin/audit-record.vue';
+import { useDraggableModal } from '#/components/admin/draggable-modal';
 
 defineOptions({ name: 'SysPos' });
 const Pencil = createIconifyIcon('lucide:pencil');
@@ -52,6 +54,7 @@ const memberColumns = [
 const open = ref(false);
 const saving = ref(false);
 const title = ref('');
+const drag = useDraggableModal(open, saving);
 const formRef = ref<FormInstance>();
 const value = ref<Position>({ name: '', code: '', orderNo: 100, status: 1 });
 
@@ -125,22 +128,12 @@ onMounted(async () => {
 			<template #bodyCell="{ column, record, index }">
 				<template v-if="column.key === 'index'">{{ index + 1 }}</template>
 				<template v-else-if="column.key === 'count'">{{ record.userList?.length ?? 0 }}</template>
-				<Popover v-else-if="column.key === 'users' && record.userList?.length" trigger="click" placement="bottom">
+				<Popover v-else-if="column.key === 'users' && record.userList?.length" :trigger="['hover', 'click', 'focus']" :mouse-enter-delay="0.6" placement="bottom">
 					<Button type="link" size="small">人员明细</Button>
 					<template #content><Table :data-source="record.userList" :columns="memberColumns" row-key="id" :pagination="false" size="small" /></template>
 				</Popover>
 				<Tag v-else-if="column.key === 'status'" :color="record.status === 1 ? 'success' : 'default'">{{ record.status === 1 ? '启用' : '禁用' }}</Tag>
-				<Popover v-else-if="column.key === 'audit'" trigger="click">
-					<Button type="link" size="small">修改记录</Button>
-					<template #content>
-						<Descriptions :column="1" size="small">
-							<DescriptionsItem label="创建人">{{ record.createUserName }}</DescriptionsItem>
-							<DescriptionsItem label="创建时间">{{ record.createTime }}</DescriptionsItem>
-							<DescriptionsItem label="修改人">{{ record.updateUserName }}</DescriptionsItem>
-							<DescriptionsItem label="修改时间">{{ record.updateTime }}</DescriptionsItem>
-						</Descriptions>
-					</template>
-				</Popover>
+				<AuditRecord v-else-if="column.key === 'audit'" :record="record" />
 				<div v-else-if="column.key === 'actions'" class="row-actions">
 					<Tooltip v-if="can('update')" title="编辑"
 						><Button type="text" size="small" aria-label="编辑职位" @click="edit(record)"><Pencil :size="16" /></Button
@@ -154,7 +147,8 @@ onMounted(async () => {
 				</div>
 			</template>
 		</AdminTable>
-		<Modal v-model:open="open" :title="title" :confirm-loading="saving" :mask-closable="false" :width="640" @ok="save">
+		<Modal v-model:open="open" :modal-render="drag.render" :confirm-loading="saving" :mask-closable="false" :width="640" @ok="save">
+				<template #title><div role="button" tabindex="0" :aria-label="title" :style="{ cursor: saving ? 'default' : 'move', touchAction: 'none', userSelect: 'none' }" @pointerdown="drag.start" @pointermove="drag.move" @pointerup="drag.finish" @pointercancel="drag.finish" @keydown="drag.keyboard">{{ title }}</div></template>
 			<Form ref="formRef" name="position-editor" :model="value" layout="vertical">
 				<FormItem label="职位名称" name="name" :rules="[{ required: true, message: '请输入职位名称' }]"><Input v-model:value="value.name" /></FormItem>
 				<FormItem label="职位编码" name="code" :rules="[{ required: true, message: '请输入职位编码' }]"><Input v-model:value="value.code" /></FormItem>

@@ -12,6 +12,7 @@ import { Alert, Button, DatePicker, Divider, Form, FormItem, Input, InputNumber,
 
 import { sessionBoundary } from '#/api/session';
 import { saveUser, userAssignments, userEditorOptions } from '#/api/system/user';
+import { useDraggableModal } from '#/components/admin/draggable-modal';
 import { useReferenceStore } from '#/store/reference';
 import { treeOptions } from '#/utils/admin-tree';
 
@@ -27,6 +28,7 @@ const saving = ref(false);
 const loadError = ref('');
 const validationError = ref('');
 const title = ref('');
+const drag = useDraggableModal(open, saving);
 const activeTab = ref('base');
 const form = ref<FormInstance>();
 const value = ref<UserDraft>(createUserDraft());
@@ -114,7 +116,7 @@ defineExpose({ show });
 <template>
 	<Modal
 		v-model:open="open"
-		:title="title"
+		:modal-render="drag.render"
 		:width="780"
 		centered
 		:styles="{ body: { maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto' } }"
@@ -127,6 +129,7 @@ defineExpose({ show });
 		@ok="save"
 		@cancel="generation++"
 	>
+			<template #title><div role="button" tabindex="0" :aria-label="title" :style="{ cursor: saving ? 'default' : 'move', touchAction: 'none', userSelect: 'none' }" @pointerdown="drag.start" @pointermove="drag.move" @pointerup="drag.finish" @pointercancel="drag.finish" @keydown="drag.keyboard">{{ title }}</div></template>
 		<Alert v-if="loadError || validationError" :message="loadError || validationError" type="error" show-icon class="mb-3" />
 		<Spin :spinning="loading">
 			<Form ref="form" name="user-editor" :model="value" layout="vertical">

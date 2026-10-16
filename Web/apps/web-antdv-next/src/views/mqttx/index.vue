@@ -76,7 +76,12 @@ const session = new MqttSession(mqtt.connect, {
 		messages.value = [...messages.value.slice(-199), safe(`${new Date().toLocaleTimeString()}  ${topic}\n${text}`).slice(0, 4096)];
 	},
 });
+const channelCooldown = ref<string[]>([]);
+const channelTimers = new Map<string, ReturnType<typeof setTimeout>>();
 function disconnect(clear = false) {
+	for (const timer of channelTimers.values()) clearTimeout(timer);
+	channelTimers.clear();
+	channelCooldown.value = [];
 	generation++;
 	session.disconnect();
 	if (boundary) sessionBoundary.release(boundary);
@@ -173,6 +178,18 @@ function unsubscribe() {
 			subscriptions.value = [];
 		}
 	);
+}
+function publishChannel(command: string) {
+	if (device.value.online !== true || status.value !== 'connected' || busy.value || channelCooldown.value.includes(command)) return;
+	channelCooldown.value = [...channelCooldown.value, command];
+	channelTimers.set(
+		command,
+		setTimeout(() => {
+			channelCooldown.value = channelCooldown.value.filter((value) => value !== command);
+			channelTimers.delete(command);
+		}, 2000)
+	);
+	publish(command, true);
 }
 function publish(command = payload.value, deviceCommand = false) {
 	const body = raw.value && !deviceCommand ? command : createDevicePayload(snapshot, command);
@@ -275,11 +292,22 @@ onScopeDispose(() => disconnect(true));
 						设备：{{ device.online === null ? '未知' : device.online ? '在线' : '离线' }} · 强电：{{ device.isAC === null ? '未知' : device.isAC ? '是' : '否' }} · 温度
 						{{ device.temperature ?? '—' }} ℃ · 湿度 {{ device.humidity ?? '—' }} % · 运行 {{ device.runSeconds ?? '—' }} 秒
 					</p>
+					<div class="mb-3 flex gap-2" aria-label="设备全部控制">
+						<Button :disabled="device.online !== true || status !== 'connected' || !!busy" @click="publish('55 AA AA AA AA 81 A4 01', true)">全开</Button>
+						<Button :disabled="device.online !== true || status !== 'connected' || !!busy" @click="publish('55 AA AA AA AA 81 A4 00', true)">全关</Button>
+					</div>
 					<div class="flex flex-wrap gap-3">
 						<div v-for="(channel, index) in device.channels" :key="index" class="flex items-center gap-2">
 							<span>{{ index + 1 }} 路：{{ channel ? '开' : '关' }}</span
-							><Button :disabled="status !== 'connected' || !!busy" @click="publish(`55 AA AA AA AA 81 0${index + 1} 01`, true)">打开</Button
-							><Button :disabled="status !== 'connected' || !!busy" @click="publish(`55 AA AA AA AA 81 0${index + 1} 00`, true)">关闭</Button>
+							><Button
+								:disabled="status !== 'connected' || !!busy || channelCooldown.includes(`55 AA AA AA AA 81 0${index + 1} 01`)"
+								@click="publishChannel(`55 AA AA AA AA 81 0${index + 1} 01`)"
+								>打开</Button
+							><Button
+								:disabled="status !== 'connected' || !!busy || channelCooldown.includes(`55 AA AA AA AA 81 0${index + 1} 00`)"
+								@click="publishChannel(`55 AA AA AA AA 81 0${index + 1} 00`)"
+								>关闭</Button
+							>
 						</div>
 					</div>
 					<p v-if="device.time" class="text-muted-foreground mt-3">更新时间：{{ device.time }}</p>

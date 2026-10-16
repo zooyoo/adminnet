@@ -21,6 +21,15 @@ let alive = true;
 let attempt = 0;
 let userEditing = false;
 let applying = false;
+let failedModuleUrl: string | undefined;
+
+async function loadEditorEngine(): Promise<typeof import('@wangeditor-next/editor')> {
+	if (!failedModuleUrl) return import('@wangeditor-next/editor');
+	// 浏览器会缓存失败的模块请求；显式重试同源原生产资源以避开失败缓存。
+	const url = new URL(failedModuleUrl);
+	url.searchParams.set('editorRetry', String(attempt));
+	return import(/* @vite-ignore */ url.href);
+}
 
 function destroy() {
 	attempt++;
@@ -55,7 +64,7 @@ async function initialize() {
 	loading.value = true;
 	error.value = '';
 	try {
-		const [engine] = await Promise.all([import('@wangeditor-next/editor'), import('@wangeditor-next/editor/dist/css/style.css')]);
+		const [engine] = await Promise.all([loadEditorEngine(), import('@wangeditor-next/editor/dist/css/style.css')]);
 		await nextTick();
 		if (!alive || current !== attempt || source.value || !container.value || !toolbarContainer.value) return;
 		applying = true;
@@ -115,7 +124,16 @@ async function initialize() {
 			},
 		});
 		syncEditableAccessibility();
-	} catch {
+	} catch (cause) {
+		const match = cause instanceof Error ? /https?:\/\/[^\s]+\.js(?:\?[^\s]*)?/u.exec(cause.message) : undefined;
+		if (match) {
+			try {
+				const url = new URL(match[0]);
+				if (url.origin === window.location.origin && !url.username && !url.password && !url.hash && url.pathname.endsWith('.js')) failedModuleUrl = url.href;
+			} catch {
+				// 无法定位同源模块时，保留源码模式和原文。
+			}
+		}
 		if (alive && current === attempt) {
 			destroy();
 			error.value = '富文本编辑器加载失败，可重试或切换到源码编辑。原文已保留。';
@@ -151,6 +169,9 @@ defineExpose({ insertParameter });
 watch(
 	() => props.value,
 	(value) => {
+		const current = editor.value;
+		// 本地逐字编辑的父组件回传不打断尚未完成的占位符；外来复杂原文仍走源码模式。
+		if (current && userEditing && current.getHtml() === value) return;
 		if (!canEditTemplateVisually(value)) {
 			source.value = true;
 			destroy();

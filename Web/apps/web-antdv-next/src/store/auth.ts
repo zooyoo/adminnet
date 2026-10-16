@@ -1,6 +1,6 @@
 import type { AuthApi } from '#/api/core/auth';
 
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { LOGIN_PATH } from '@vben/constants';
@@ -28,11 +28,19 @@ export const useAuthStore = defineStore(
 		let expiryTask: Promise<void> | undefined;
 
 		function clearSession() {
-			onlineSession.disconnect();
+			const stopped = onlineSession.disconnect();
 			sessionBoundary.invalidate();
 			resetRoutes();
 			resetAllStores();
 			updatePreferences({ app: { watermarkContent: '', watermark: false } });
+			return stopped;
+		}
+
+		async function reauthorize() {
+			await clearSession();
+			window.sessionStorage.clear();
+			await nextTick();
+			window.location.reload();
 		}
 
 		async function completeLogin(result: AuthApi.LoginResult, version: number, onSuccess?: () => Promise<void> | void, preparedUser?: Awaited<ReturnType<typeof getUserInfoApi>>) {
@@ -55,13 +63,24 @@ export const useAuthStore = defineStore(
 			return { userInfo };
 		}
 
+		function assertLoginMenus(menus: Awaited<ReturnType<typeof getAllMenusApi>>) {
+			if (menus.length === 0) throw new Error('抱歉，您没有登录权限');
+		}
+
 		async function authenticate(login: () => Promise<AuthApi.LoginResult>, onSuccess?: () => Promise<void> | void) {
 			if (loginLoading.value) return;
 			clearSession();
 			const version = sessionBoundary.version;
 			loginLoading.value = true;
 			try {
-				return await completeLogin(await login(), version, onSuccess);
+				const result = await login();
+				if (version !== sessionBoundary.version) return;
+				if (!result.accessToken || !result.refreshToken) throw new Error('登录响应缺少令牌');
+				const [userInfo, menus] = await Promise.all([getUserInfoApi(result), getAllMenusApi(result)]);
+				if (version !== sessionBoundary.version) return;
+				assertLoginMenus(menus);
+				prepareSessionMenus(menus, version);
+				return await completeLogin(result, version, onSuccess, userInfo);
 			} catch (error) {
 				if (version === sessionBoundary.version) clearSession();
 				throw error;
@@ -101,6 +120,7 @@ export const useAuthStore = defineStore(
 				if (!result.accessToken || !result.refreshToken) throw new Error('登录响应缺少令牌');
 				const [userInfo, menus] = await Promise.all([getUserInfoApi(result, signal), getAllMenusApi(result, signal)]);
 				if (version !== sessionBoundary.version || signal.aborted) return;
+				assertLoginMenus(menus);
 				clearSession();
 				adopted = true;
 				version = sessionBoundary.version;
@@ -165,6 +185,7 @@ export const useAuthStore = defineStore(
 				// 当前页面及连接继续使用原身份，候选身份验证失败时不丢失原会话。
 				const [userInfo, menus] = await Promise.all([getUserInfoApi(result, signal), getAllMenusApi(result, signal)]);
 				if (version !== sessionBoundary.version || signal?.aborted) return;
+				assertLoginMenus(menus);
 				clearSession();
 				adopted = true;
 				version = sessionBoundary.version;
@@ -207,7 +228,7 @@ export const useAuthStore = defineStore(
 			homePath.value = '';
 		}
 
-		return { $reset, authLogin, authPhoneLogin, authTokenLogin, changeTenant, expireSession, fetchUserInfo, homePath, lockScreen, loginLoading, logout, unlockScreen };
+		return { $reset, authLogin, authPhoneLogin, authTokenLogin, changeTenant, expireSession, fetchUserInfo, homePath, lockScreen, loginLoading, logout, reauthorize, unlockScreen };
 	},
 	{ persist: { pick: ['homePath'] } }
 );

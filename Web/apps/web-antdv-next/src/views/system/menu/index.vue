@@ -26,7 +26,7 @@ const Trash = createIconifyIcon('lucide:trash-2');
 const Reset = createIconifyIcon('lucide:rotate-ccw');
 const user = useUserStore();
 const { hasAccessByCodes } = useAccess();
-const can = (action: string) => hasAccessByCodes([`sysMenu:${action}`]);
+const can = (action: string) => hasAccessByCodes(action === 'setStatus' ? ['sysMenu:setStatus', 'sysUser:setStatus'] : [`sysMenu:${action}`]);
 const filters = reactive({ title: '', type: undefined as number | undefined, tenantId: user.userInfo?.accountType === 999 ? Number(user.userInfo?.currentTenantId) || undefined : undefined });
 const table = useAdminTable<MenuRecord, typeof filters>({
 	query: { ...filters },

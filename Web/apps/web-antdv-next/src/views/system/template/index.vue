@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { TableProps } from 'antdv-next';
+import type { TableEmits, TableProps } from 'antdv-next';
 
-import type { TemplateRow } from '#/api/system/template';
+import type { TemplateRow, TemplateSortField } from '#/api/system/template';
 
 import { computed, onActivated, onDeactivated, onMounted, onScopeDispose, reactive, shallowRef, watch } from 'vue';
 
@@ -12,6 +12,7 @@ import { Alert, AutoComplete, Button, Form, FormItem, Input, InputNumber, messag
 
 import { sessionBoundary } from '#/api/session';
 import { templateApi } from '#/api/system/template';
+import AuditRecord from '#/components/admin/audit-record.vue';
 import TemplateEditor from '#/components/template-editor/index.vue';
 import { templatePreviewDocument } from '#/components/template-editor/template-display';
 
@@ -56,18 +57,22 @@ const pagination = computed(() => ({
 	pageSizeOptions: ['10', '20', '50', '100'],
 	showTotal: (total: number) => '共 ' + String(total) + ' 条',
 }));
-const columns: NonNullable<TableProps<TemplateRow>['columns']> = [
-	{ title: '模板名称', dataIndex: 'name', key: 'name', width: 180 },
-	{ title: '模板编码', dataIndex: 'code', key: 'code', width: 180 },
-	{ title: '分组', dataIndex: 'groupName', key: 'groupName', width: 130 },
-	{ title: '类型', dataIndex: 'type', key: 'type', width: 110 },
-	{ title: '排序', dataIndex: 'orderNo', key: 'orderNo', width: 90 },
+const columns = computed<NonNullable<TableProps<TemplateRow>['columns']>>(() => [
+	{ title: '模板名称', dataIndex: 'name', key: 'name', width: 180, sorter: true, sortOrder: state.sortField === 'name' ? (state.sortOrder === 'ascending' ? 'ascend' : 'descend') : null },
+	{ title: '模板编码', dataIndex: 'code', key: 'code', width: 180, sorter: true, sortOrder: state.sortField === 'code' ? (state.sortOrder === 'ascending' ? 'ascend' : 'descend') : null },
+	{ title: '分组', dataIndex: 'groupName', key: 'groupName', width: 130, sorter: true, sortOrder: state.sortField === 'groupName' ? (state.sortOrder === 'ascending' ? 'ascend' : 'descend') : null },
+	{ title: '类型', dataIndex: 'type', key: 'type', width: 110, sorter: true, sortOrder: state.sortField === 'type' ? (state.sortOrder === 'ascending' ? 'ascend' : 'descend') : null },
+	{ title: '排序', dataIndex: 'orderNo', key: 'orderNo', width: 90, sorter: true, sortOrder: state.sortField === 'orderNo' ? (state.sortOrder === 'ascending' ? 'ascend' : 'descend') : null },
 	{ title: '备注', dataIndex: 'remark', key: 'remark', width: 200 },
+	{ title: '修改记录', key: 'audit', width: 120 },
 	{ title: '操作', key: 'actions', fixed: 'right', width: 235 },
-];
+]);
 const typeName = (value: number) => TEMPLATE_TYPES.find((type) => type.value === value)?.label ?? String(value);
-const tableChanged = (page: { current?: number; pageSize?: number }) => {
-	session.changePage(page.current ?? 1, page.pageSize ?? 20);
+const tableChanged: TableEmits<TemplateRow>['change'] = (page, _filters, sorter) => {
+	const item = Array.isArray(sorter) ? sorter[0] : sorter;
+	const field = String(item?.columnKey ?? 'orderNo');
+	const valid = ['code', 'groupName', 'name', 'orderNo', 'type'].includes(field);
+	session.changePage(page.current ?? 1, page.pageSize ?? 20, valid && item?.order ? (field as TemplateSortField) : 'orderNo', item?.order === 'descend' ? 'descending' : 'ascending');
 };
 function openEditor(kind: 'add' | 'preview' | 'update', row?: TemplateRow) {
 	activeTab.value = 'basic';
@@ -138,9 +143,10 @@ onScopeDispose(() => {
 				<Button v-if="permissions.add" type="primary" :auto-insert-space="false" :disabled="state.saveBusy || state.deleteBusy" @click="openEditor('add')">新增模板</Button>
 				<Button :auto-insert-space="false" :loading="state.pageBusy || state.groupsBusy" @click="session.refresh">刷新模板列表</Button>
 			</div>
-			<Table :columns="columns" :data-source="state.items" row-key="id" :loading="state.pageBusy" :pagination="pagination" :scroll="{ x: 1150 }" @change="tableChanged">
+			<Table :columns="columns" :data-source="state.items" row-key="id" :loading="state.pageBusy" :pagination="pagination" :scroll="{ x: 1270 }" @change="tableChanged">
 				<template #bodyCell="{ column, record }">
 					<span v-if="column.key === 'type'">{{ typeName(record.type) }}</span>
+					<AuditRecord v-else-if="column.key === 'audit'" :record="record" />
 					<div v-else-if="column.key === 'actions'" class="template-actions">
 						<Button v-if="permissions.update" type="link" size="small" :auto-insert-space="false" @click="openEditor('update', record)">编辑模板</Button>
 						<Button v-if="permissions.preview" type="link" size="small" :auto-insert-space="false" @click="openEditor('preview', record)">预览模板</Button>

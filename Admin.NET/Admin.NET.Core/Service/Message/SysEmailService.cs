@@ -25,6 +25,14 @@ public class SysEmailService : IDynamicApiController, ITransient
     }
 
     /// <summary>
+    /// 通过 JSON 正文发送邮件，保留 HTML 与百分号原始内容
+    /// </summary>
+    [DisplayName("发送完整邮件正文"), HttpPost]
+    public async Task SendEmailBody([FromBody] SendEmailBodyInput input)
+    {
+        await SendEmail(input.Content, input.Title, input.ToEmail);
+    }
+    /// <summary>
     /// 发送邮件 📧
     /// </summary>
     /// <param name="content"></param>
@@ -59,4 +67,16 @@ public class SysEmailService : IDynamicApiController, ITransient
 
         await Task.CompletedTask;
     }
+}
+/// <summary>
+/// 邮件 JSON 正文输入
+/// </summary>
+public sealed class SendEmailBodyInput
+{
+    [Required(ErrorMessage = "邮件内容不能为空")]
+    public string Content { get; set; } = string.Empty;
+
+    public string Title { get; set; } = string.Empty;
+
+    public string ToEmail { get; set; } = string.Empty;
 }

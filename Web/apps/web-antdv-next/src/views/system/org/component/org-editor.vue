@@ -10,6 +10,7 @@ import { Alert, Form, FormItem, Input, InputNumber, Modal, RadioGroup, Select, S
 
 import { sessionBoundary } from '#/api/session';
 import { orgList, saveOrg } from '#/api/system/access-admin';
+import { useDraggableModal } from '#/components/admin/draggable-modal';
 import { useReferenceStore } from '#/store/reference';
 import { treeOptions } from '#/utils/admin-tree';
 
@@ -20,6 +21,7 @@ const loading = ref(false);
 const saving = ref(false);
 const error = ref('');
 const title = ref('');
+const drag = useDraggableModal(open, saving);
 const form = ref<FormInstance>();
 const parents = ref<TreeOption[]>([]);
 const value = ref<UpdateOrgInput>({ name: '', code: '', status: 1, orderNo: 100 });
@@ -95,7 +97,7 @@ defineExpose({ show });
 <template>
 	<Modal
 		v-model:open="open"
-		:title="title"
+		:modal-render="drag.render"
 		:width="640"
 		centered
 		:styles="{ body: { maxHeight: 'calc(100dvh - 180px)', overflowY: 'auto' } }"
@@ -108,6 +110,7 @@ defineExpose({ show });
 		@ok="save"
 		@cancel="generation++"
 	>
+			<template #title><div role="button" tabindex="0" :aria-label="title" :style="{ cursor: saving ? 'default' : 'move', touchAction: 'none', userSelect: 'none' }" @pointerdown="drag.start" @pointermove="drag.move" @pointerup="drag.finish" @pointercancel="drag.finish" @keydown="drag.keyboard">{{ title }}</div></template>
 		<Alert v-if="error" :message="error" type="error" show-icon />
 		<Spin :spinning="loading">
 			<Form ref="form" name="org-editor" :model="value" layout="vertical">

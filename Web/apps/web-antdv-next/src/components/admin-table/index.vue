@@ -16,6 +16,7 @@ import { sessionBoundary } from '#/api/session';
 
 import { canMoveColumnSetting, columnSettings, configuredColumns, moveColumnSetting } from './column-settings';
 import { exportTablePdf, exportWorkbook, printTable, tableMatrix } from './table-output';
+import { controlledSortColumns, sorterState } from './table-sort';
 
 const props = withDefaults(
 	defineProps<{
@@ -53,9 +54,15 @@ const Download = createIconifyIcon('lucide:download');
 const Printer = createIconifyIcon('lucide:printer');
 const orderedKeys = ref<string[]>([]);
 const fixedColumns = ref<Record<string, ColumnFixed>>({});
-const fixedOptions = [{ value: 'none', label: '不固定' }, { value: 'start', label: '固定左侧' }, { value: 'end', label: '固定右侧' }];
+const fixedOptions = [
+	{ value: 'none', label: '不固定' },
+	{ value: 'start', label: '固定左侧' },
+	{ value: 'end', label: '固定右侧' },
+];
 const columnOptions = computed(() => columnSettings(configuredColumns(props.columns, [], orderedKeys.value, fixedColumns.value)));
-const visibleColumns = computed(() => configuredColumns(props.columns, hiddenKeys.value, orderedKeys.value, fixedColumns.value));
+const visibleColumns = computed(() =>
+	controlledSortColumns(configuredColumns(props.columns, hiddenKeys.value, orderedKeys.value, fixedColumns.value), props.controller.field.value, props.controller.order.value)
+);
 const pager = computed(() =>
 	props.pagination
 		? {
@@ -132,9 +139,8 @@ function change(
 	_filters: unknown,
 	sorter: Array<{ field?: unknown; columnKey?: unknown; order?: 'ascend' | 'descend' | null }> | { field?: unknown; columnKey?: unknown; order?: 'ascend' | 'descend' | null }
 ) {
-	const sort = Array.isArray(sorter) ? sorter[0] : sorter;
-	const field = sort?.field ?? sort?.columnKey;
-	void props.controller.change(pagination.current ?? 1, pagination.pageSize ?? props.controller.pageSize.value, typeof field === 'string' ? field : undefined, sort?.order);
+	const sort = sorterState(sorter);
+	void props.controller.change(pagination.current ?? 1, pagination.pageSize ?? props.controller.pageSize.value, sort.field, sort.order);
 }
 </script>
 
@@ -172,9 +178,21 @@ function change(
 					<template #content>
 						<div v-for="(item, index) in columnOptions" :key="item.key" class="column-option">
 							<Checkbox :checked="!hiddenKeys.includes(item.key)" @change="toggleColumn(item.key)">{{ item.label }}</Checkbox>
-							<label class="column-control-label" :for="`${columnControlId}-${item.key}`">固定{{ item.label }}</label><Select :id="`${columnControlId}-${item.key}`" :value="item.fixed || 'none'" :options="fixedOptions" size="small" :aria-label="`固定${item.label}`" @update:value="(value) => setFixed(item.key, value)" />
-							<Button type="text" size="small" :disabled="!canMoveColumnSetting(columnOptions, index, -1)" :aria-label="`上移${item.label}`" @click="moveColumn(item.key, -1)"><ArrowUp :size="14" /></Button>
-							<Button type="text" size="small" :disabled="!canMoveColumnSetting(columnOptions, index, 1)" :aria-label="`下移${item.label}`" @click="moveColumn(item.key, 1)"><ArrowDown :size="14" /></Button>
+							<label class="column-control-label" :for="`${columnControlId}-${item.key}`">固定{{ item.label }}</label
+							><Select
+								:id="`${columnControlId}-${item.key}`"
+								:value="item.fixed || 'none'"
+								:options="fixedOptions"
+								size="small"
+								:aria-label="`固定${item.label}`"
+								@update:value="(value) => setFixed(item.key, value)"
+							/>
+							<Button type="text" size="small" :disabled="!canMoveColumnSetting(columnOptions, index, -1)" :aria-label="`上移${item.label}`" @click="moveColumn(item.key, -1)"
+								><ArrowUp :size="14"
+							/></Button>
+							<Button type="text" size="small" :disabled="!canMoveColumnSetting(columnOptions, index, 1)" :aria-label="`下移${item.label}`" @click="moveColumn(item.key, 1)"
+								><ArrowDown :size="14"
+							/></Button>
 						</div>
 					</template>
 				</Popover>

@@ -26,5 +26,9 @@ export function applySiteBrand(value: SiteBrand = {}) {
 	}
 	siteBrand.value = brand;
 	const logo = siteLogoUrl(brand.logo);
+	const favicon = document.querySelector<HTMLLinkElement>('link[rel~="icon"]') ?? document.createElement('link');
+	favicon.rel = 'icon';
+	favicon.href = brand.logo ? logo : 'data:;base64,=';
+	if (!favicon.isConnected) document.head.append(favicon);
 	updatePreferences({ app: { name: brand.title || 'Admin.NET' }, logo: { source: logo, sourceDark: logo } });
 }

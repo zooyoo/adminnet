@@ -23,6 +23,12 @@ const fallbackNotFoundRoute: RouteRecordRaw = {
 /** 基本路由，这些路由是必须存在的 */
 const coreRoutes: RouteRecordRaw[] = [
   {
+    name: 'LegacyUnauthorized',
+    path: '/401',
+    component: () => import('#/views/_core/fallback/forbidden.vue'),
+    meta: { title: '权限不足', requiresAuth: true, hideInMenu: true, hideInTab: true },
+  },
+  {
     name: 'CallTel',
     path: '/$callTel',
     component: () => import('#/views/_core/call-tel/index.vue'),

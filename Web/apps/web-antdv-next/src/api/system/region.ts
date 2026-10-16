@@ -51,6 +51,7 @@ export interface RegionApi {
 	add(input: RegionDraft, signal: AbortSignal): Promise<RegionId>;
 	update(input: RegionDraft, signal: AbortSignal): Promise<void>;
 	delete(id: RegionId, signal: AbortSignal): Promise<void>;
+	sync?(signal: AbortSignal): Promise<void>;
 }
 
 const prefix = '/api/sysRegion';
@@ -62,4 +63,5 @@ export const regionApi: RegionApi = {
 	add: (input, signal) => requestClient.post(`${prefix}/add`, input, options(signal)),
 	update: (input, signal) => requestClient.post(`${prefix}/update`, input, options(signal)),
 	delete: (id, signal) => requestClient.post(`${prefix}/delete`, { id }, options(signal)),
+	sync: (signal) => requestClient.post(`${prefix}/sync`, undefined, { ...options(signal), timeout: 0 }),
 };

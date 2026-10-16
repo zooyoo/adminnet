@@ -56,3 +56,51 @@ export function scheduleValidation(value: { content: string; scheduleTime: strin
 	if (!time.test(value.startTime) || !time.test(value.endTime) || value.endTime <= value.startTime) return '结束时间须晚于开始时间';
 	return '';
 }
+
+const lunarDateFormatter = new Intl.DateTimeFormat('zh-CN-u-ca-chinese', { month: 'long', day: 'numeric', timeZone: 'UTC' });
+const lunarDayNames = [
+	'初一',
+	'初二',
+	'初三',
+	'初四',
+	'初五',
+	'初六',
+	'初七',
+	'初八',
+	'初九',
+	'初十',
+	'十一',
+	'十二',
+	'十三',
+	'十四',
+	'十五',
+	'十六',
+	'十七',
+	'十八',
+	'十九',
+	'二十',
+	'廿一',
+	'廿二',
+	'廿三',
+	'廿四',
+	'廿五',
+	'廿六',
+	'廿七',
+	'廿八',
+	'廿九',
+	'三十',
+];
+
+// 以日期本身而非浏览器时区换算，保留旧日历格的农历月和中文日。
+export function scheduleLunarLabel(value: string) {
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return '';
+	const date = new Date(value + 'T12:00:00Z');
+	if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) return '';
+	const parts = lunarDateFormatter.formatToParts(date);
+	const month = parts
+		.find((part) => part.type === 'month')
+		?.value.replace('十一月', '冬月')
+		.replace('十二月', '腊月');
+	const day = lunarDayNames[Number(parts.find((part) => part.type === 'day')?.value) - 1];
+	return month && day ? month + day : '';
+}

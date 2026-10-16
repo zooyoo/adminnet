@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import type { ColumnDraft } from '../database-form';
 
+import { watch } from 'vue';
+
 import { Checkbox, Input, InputNumber, Select } from 'antdv-next';
+
+import { updateColumnType } from '../database-form';
 
 defineProps<{ types: string[]; prefix: string; existing?: boolean; disabled?: boolean }>();
 const draft = defineModel<ColumnDraft>({ required: true });
+watch(
+	() => draft.value.dataType,
+	() => updateColumnType(draft.value),
+	{ flush: 'sync' }
+);
 </script>
 
 <template>

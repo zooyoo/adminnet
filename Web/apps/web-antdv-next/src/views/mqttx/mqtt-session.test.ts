@@ -17,6 +17,14 @@ class TestClient extends EventEmitter {
 	publish = vi.fn((_topic: string, _payload: string, _options: object, done: (error?: Error | null) => void) => {
 		this.publishDone = done;
 	});
+	removeOutgoingMessage = vi.fn((messageId: number) => {
+		const message = this.outgoing[messageId];
+		if (message) {
+			delete this.outgoing[messageId];
+			message.cb(new Error('Message removed'));
+		}
+		return this;
+	});
 	subscribeDone?: (error: Error | null, grants?: { qos: number; topic: string }[]) => void;
 	subscribe = vi.fn((_topics: string[], _options: object, done: NonNullable<TestClient['subscribeDone']>) => {
 		this.subscribeDone = done;
@@ -53,21 +61,31 @@ describe('MQTT 会话边界', () => {
 		expect(events.status).toHaveBeenLastCalledWith('disconnected');
 	});
 
-	it('未确认操作断开时强制结束且拒绝旧回执', async () => {
+	it('在线未确认发布断开时取消待确认消息并发送 DISCONNECT，旧回执无效', async () => {
 		const { session, client } = fixture();
 		const pending = session.publish('fixture/probe', 'pending', 1, false);
+		client.outgoing[1] = {
+			volatile: false,
+			cmd: 'publish',
+			cb: (error) => client.publishDone?.(error),
+		};
 		const refusal = expect(pending).rejects.toThrow('连接已结束');
 		session.disconnect();
 		await refusal;
 		client.publishDone?.();
-		expect(client.end).toHaveBeenCalledWith(true, {}, expect.any(Function));
+		expect(client.removeOutgoingMessage).toHaveBeenCalledWith(1);
+		expect(client.outgoing).toEqual({});
+		expect(client.end).toHaveBeenCalledWith(false, {}, expect.any(Function));
 	});
 
-	it('客户端仍持有协议待确认消息时强制结束，避免等待 outgoingEmpty', () => {
+	it('取消客户端协议待确认消息后正常结束，避免等待 outgoingEmpty', () => {
 		const { session, client } = fixture();
-		client.outgoing[1] = { volatile: false, cmd: 'publish', cb: vi.fn() };
+		const callback = vi.fn();
+		client.outgoing[1] = { volatile: false, cmd: 'publish', cb: callback };
 		session.disconnect();
-		expect(client.end).toHaveBeenCalledWith(true, {}, expect.any(Function));
+		expect(callback).toHaveBeenCalledWith(expect.objectContaining({ message: 'Message removed' }));
+		expect(client.outgoing).toEqual({});
+		expect(client.end).toHaveBeenCalledWith(false, {}, expect.any(Function));
 	});
 
 	it('强制结束连接中与离线客户端并移除认证信息和监听器', () => {
@@ -168,5 +186,88 @@ describe('MQTT 会话边界', () => {
 		client.emit('error', new Error(`broker rejected ${profile.password}`));
 		expect(events.error).toHaveBeenLastCalledWith('MQTT 连接或操作失败，请检查地址、认证及 broker 权限');
 		session.disconnect();
+	});
+
+	it('相同 QoS 的已确认重复订阅接受 MQTT.js 空授予且保留连接', async () => {
+		const { session, client } = fixture();
+		const first = session.subscribe(['fixture/known'], 1);
+		client.subscribeDone?.(null, [{ topic: 'fixture/known', qos: 1 }]);
+		await first;
+		const repeat = session.subscribe(['fixture/known'], 1);
+		client.subscribeDone?.(null, []);
+		await expect(repeat).resolves.toBeUndefined();
+		expect(client.end).not.toHaveBeenCalled();
+		session.disconnect();
+	});
+
+	it('首次空授予不伪造成功且关闭 clean session', async () => {
+		const { session, client } = fixture();
+		const pending = session.subscribe(['fixture/unknown'], 1);
+		const refused = expect(pending).rejects.toThrow('订阅被拒绝');
+		client.subscribeDone?.(null, []);
+		await refused;
+		expect(client.end).toHaveBeenCalledOnce();
+	});
+
+	it('有效部分授予不能补齐首次未知主题', async () => {
+		const { session, client } = fixture();
+		const pending = session.subscribe(['fixture/one', 'fixture/two'], 1);
+		const refused = expect(pending).rejects.toThrow('订阅被拒绝');
+		client.subscribeDone?.(null, [{ topic: 'fixture/one', qos: 1 }]);
+		await refused;
+		expect(client.end).toHaveBeenCalledOnce();
+	});
+
+	it('已确认的低 QoS 不能补齐更高 QoS 的空回执', async () => {
+		const { session, client } = fixture();
+		const first = session.subscribe(['fixture/known'], 0);
+		client.subscribeDone?.(null, [{ topic: 'fixture/known', qos: 0 }]);
+		await first;
+		const pending = session.subscribe(['fixture/known'], 1);
+		const refused = expect(pending).rejects.toThrow('订阅被拒绝');
+		client.subscribeDone?.(null, []);
+		await refused;
+		expect(client.end).toHaveBeenCalledOnce();
+	});
+
+	it('成功取消订阅清除确认缓存，重新空授予被拒绝', async () => {
+		const { session, client } = fixture();
+		const first = session.subscribe(['fixture/known'], 1);
+		client.subscribeDone?.(null, [{ topic: 'fixture/known', qos: 1 }]);
+		await first;
+		await session.unsubscribe(['fixture/known']);
+		const pending = session.subscribe(['fixture/known'], 1);
+		const refused = expect(pending).rejects.toThrow('订阅被拒绝');
+		client.subscribeDone?.(null, []);
+		await refused;
+	});
+
+	it('换客户端不继承旧确认缓存', async () => {
+		const { session, client, clients, profile } = fixture();
+		const first = session.subscribe(['fixture/known'], 1);
+		client.subscribeDone?.(null, [{ topic: 'fixture/known', qos: 1 }]);
+		await first;
+		session.connect({ ...profile, clientId: 'next-client' });
+		const pending = session.subscribe(['fixture/known'], 1);
+		const refused = expect(pending).rejects.toThrow('订阅被拒绝');
+		clients[1]!.subscribeDone?.(null, []);
+		await refused;
+	});
+
+	it('待确认订阅移除协议消息后发送 DISCONNECT，迟到授予失效', async () => {
+		const { session, client } = fixture();
+		const pending = session.subscribe(['fixture/pending'], 1);
+		const refused = expect(pending).rejects.toThrow('连接已结束');
+		client.outgoing[2] = {
+			volatile: true,
+			cmd: 'subscribe',
+			cb: (error) => client.subscribeDone?.(error ?? null),
+		};
+		session.disconnect();
+		await refused;
+		client.subscribeDone?.(null, [{ topic: 'fixture/pending', qos: 1 }]);
+		expect(client.removeOutgoingMessage).toHaveBeenCalledWith(2);
+		expect(client.outgoing).toEqual({});
+		expect(client.end).toHaveBeenCalledExactlyOnceWith(false, {}, expect.any(Function));
 	});
 });

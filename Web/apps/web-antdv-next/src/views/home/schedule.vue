@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ScheduleRecord } from '#/api/system/home';
 
-import { computed, onMounted, onScopeDispose, reactive, ref, shallowRef, watch } from 'vue';
+import { computed, onMounted, onScopeDispose, reactive, ref, shallowRef } from 'vue';
 
 import { Alert, Button, Calendar, Form, FormItem, Input, Modal, Tag } from 'antdv-next';
 import dayjs from 'dayjs';
@@ -9,7 +9,7 @@ import dayjs from 'dayjs';
 import { sessionBoundary } from '#/api/session';
 import { deleteSchedule, listSchedules, saveSchedule, setScheduleStatus } from '#/api/system/home';
 
-import { scheduleValidation } from './workbench';
+import { scheduleLunarLabel, scheduleValidation } from './workbench';
 
 const date = shallowRef(dayjs());
 const lunarFormatter = new Intl.DateTimeFormat('zh-CN-u-ca-chinese', { month: 'long', day: 'numeric' });
@@ -57,7 +57,8 @@ async function load() {
 }
 function edit(record?: ScheduleRecord) {
 	if (busy.value) return;
-	Object.assign(draft, record ?? { id: undefined, content: '', scheduleTime: date.value.format('YYYY-MM-DD'), startTime: '09:00', endTime: '10:00', status: 0 });
+	const lateNight = new Date().getHours() === 23;
+	Object.assign(draft, record ?? { id: undefined, content: '', scheduleTime: date.value.format('YYYY-MM-DD'), startTime: lateNight ? '23:00' : '09:00', endTime: lateNight ? '23:45' : '10:00', status: 0 });
 	draft.scheduleTime = draft.scheduleTime.slice(0, 10);
 	formError.value = '';
 	open.value = true;
@@ -88,6 +89,11 @@ async function mutate(record: ScheduleRecord, remove = false) {
 		else await setScheduleStatus(record.id, record.status === 1 ? 0 : 1, controller.signal);
 		if (!current()) return;
 		deleting.value = undefined;
+		if (remove && draft.id === record.id) {
+			open.value = false;
+			Object.assign(draft, { id: undefined, content: '', scheduleTime: '', startTime: '', endTime: '', status: 0 });
+			formError.value = '';
+		}
 		await load();
 	} catch (cause) {
 		if (current()) error.value = cause instanceof Error ? cause.message : '日程操作失败';
@@ -95,10 +101,11 @@ async function mutate(record: ScheduleRecord, remove = false) {
 		if (current()) busy.value = false;
 	}
 }
-watch(
-	() => date.value.format('YYYY-MM'),
-	() => void load()
-);
+function selectDate(value: ReturnType<typeof dayjs>) {
+	if (busy.value || !current()) return;
+	date.value = value;
+	void load();
+}
 onMounted(() => void load());
 onScopeDispose(() => {
 	active = false;
@@ -111,13 +118,16 @@ onScopeDispose(() => {
 		<div class="schedule-toolbar">
 			<Button type="primary" :disabled="loading || busy || !!error" @click="edit()">添加日程</Button>
 			<Button :loading="loading" :disabled="busy" @click="load">刷新日程</Button>
-			<Button :disabled="busy" @click="date = date.subtract(1, 'month')">上个月</Button>
-			<Button :disabled="busy" @click="date = dayjs()">今天</Button>
-			<Button :disabled="busy" @click="date = date.add(1, 'month')">下个月</Button>
+			<Button :disabled="busy" @click="selectDate(date.subtract(1, 'month'))">上个月</Button>
+			<Button :disabled="busy" @click="selectDate(dayjs())">今天</Button>
+			<Button :disabled="busy" @click="selectDate(date.add(1, 'month'))">下个月</Button>
 		</div>
 		<Alert v-if="error" type="error" :title="error" show-icon />
-		<Calendar v-model:value="date" :fullscreen="false">
+		<Calendar :value="date" :fullscreen="false" @select="selectDate">
 			<template #cellRender="{ date: cellDate, info }">
+				<span v-if="info.type === 'date'" class="schedule-lunar" :aria-label="scheduleLunarLabel(cellDate.format('YYYY-MM-DD'))"
+					><span v-for="(part, index) in scheduleLunarLabel(cellDate.format('YYYY-MM-DD')).split('月')" :key="index">{{ part }}{{ index === 0 ? '月' : '' }}</span></span
+				>
 				<span v-if="info.type === 'date' && counts[cellDate.format('YYYY-MM-DD')]" class="schedule-dot" :aria-label="`${counts[cellDate.format('YYYY-MM-DD')]} 条日程`">•</span>
 			</template>
 		</Calendar>
@@ -161,6 +171,7 @@ onScopeDispose(() => {
 				</div>
 				<FormItem label="日程内容" required><Input.TextArea v-model:value="draft.content" aria-label="日程内容" :maxlength="256" :rows="4" show-count /></FormItem>
 			</Form>
+			<Button v-if="draft.id" danger :disabled="busy" @click="deleting = { ...draft }">删除日程</Button>
 		</Modal>
 		<Modal
 			:open="!!deleting"
@@ -204,6 +215,14 @@ onScopeDispose(() => {
 	white-space: pre-wrap;
 	overflow-wrap: anywhere;
 	margin: 10px 0;
+}
+.schedule-lunar {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	font-size: 10px;
+	line-height: 1.1;
+	color: hsl(var(--muted-foreground));
 }
 .schedule-dot {
 	color: hsl(var(--primary));

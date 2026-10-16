@@ -107,6 +107,16 @@ export function validateStressTest(form: StressTestForm, policy: StressTestPolic
 		}
 		return encodeURIComponent(value);
 	});
+	// 预览也合并真实 Query 覆盖结果；请求 DTO 保留原地址与四组参数，交由服务端再次校验。
+	const preview = absoluteHttpUrl(previewUri);
+	if (preview && !/[{}]/.test(previewUri)) {
+		for (const pair of form.queryParameters) {
+			const existing = [...preview.searchParams.keys()].filter((key) => key.toLowerCase() === pair.key.toLowerCase());
+			for (const key of existing) preview.searchParams.delete(key);
+			preview.searchParams.set(existing[0] ?? pair.key, pair.value);
+		}
+		previewUri = preview.href;
+	}
 	if (!previewUri || !absoluteHttpUrl(previewUri) || /[{}]/.test(previewUri)) issues.push({ field: 'requestUri', message: '请输入有效的完整 HTTP(S) 请求地址，并填写所有 Path 参数' });
 	else if (target && (!isWithinStressTarget(form.requestUri.trim(), target) || !isWithinStressTarget(previewUri, target)))
 		issues.push({ field: 'requestUri', message: '请求地址须位于当前授权目标的 URI 前缀内' });

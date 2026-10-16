@@ -8,6 +8,7 @@ import { Alert, Form, FormItem, Input, Modal, Select, Switch } from 'antdv-next'
 import { sessionBoundary } from '#/api/session';
 import { saveJob } from '#/api/system/job';
 
+import CodeEditor from '../../plugin/code-editor.vue';
 import { httpFields, jobDraft, jobPayload } from '../job-form';
 
 const props = defineProps<{ record?: SysJobDetail; open: boolean }>();
@@ -114,7 +115,7 @@ onScopeDispose(() => {
 					/></FormItem>
 				</div>
 				<FormItem v-if="httpJob" label="请求正文"><Input.TextArea v-model:value="http.body" aria-label="请求正文" :rows="3" /></FormItem>
-				<FormItem v-if="draft.createType === 1" label="C# 脚本" required><Input.TextArea v-model:value="draft.scriptCode" aria-label="C# 脚本" :rows="10" class="font-mono" /></FormItem>
+				<FormItem v-if="open && draft.createType === 1" label="C# 脚本" required><CodeEditor :value="draft.scriptCode ?? ''" :disabled="saving" @update:value="draft.scriptCode = $event" /></FormItem>
 				<FormItem label="任务参数 JSON"><Input.TextArea v-model:value="draft.properties" aria-label="任务参数 JSON" :rows="4" class="font-mono" /></FormItem>
 				<div class="job-fields">
 					<FormItem label="允许并行"><Switch v-model:checked="draft.concurrent" aria-label="允许并行" /></FormItem>

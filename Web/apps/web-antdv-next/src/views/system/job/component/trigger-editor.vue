@@ -80,6 +80,12 @@ function setField(index: number, value: string) {
 	values[index] = value || '*';
 	expression.value = values.join(' ');
 }
+const cronMacros = [{"value":"@secondly","label":"@secondly 每秒 .0000000"},{"value":"@minutely","label":"@minutely 每分钟 00"},{"value":"@hourly","label":"@hourly 每小时 00:00"},{"value":"@daily","label":"@daily 每天 00:00:00"},{"value":"@monthly","label":"@monthly 每月 1 号 00:00:00"},{"value":"@weekly","label":"@weekly 每周日 00:00:00"},{"value":"@yearly","label":"@yearly 每年 1 月 1 号 00:00:00"},{"value":"@workday","label":"@workday 每周一至周五 00:00:00"}];
+function selectMacro(value: unknown) {
+	if (typeof value !== 'string' || !cronMacros.some((item) => item.value === value)) return;
+	format.value = 0;
+	expression.value = value;
+}
 function preset(value: string) {
 	format.value = 2;
 	expression.value = value;
@@ -154,6 +160,7 @@ onScopeDispose(() => {
 				<template v-if="isCron">
 					<FormItem name="cronFormat" label="Cron 格式"><Select v-model:value="format" aria-label="Cron 格式" :options="cronFormats" /></FormItem>
 					<FormItem label="Cron 表达式" required><Input v-model:value="expression" aria-label="Cron 表达式" :maxlength="120" class="font-mono" /></FormItem>
+					<FormItem name="cronMacro" label="Cron 宏快捷"><Select aria-label="Cron 宏快捷" :value="expression.startsWith('@') ? expression : undefined" :options="cronMacros" :disabled="busy" @select="selectMacro" /></FormItem>
 					<div class="cron-presets">
 						<Button @click="preset('*/10 * * * * *')">每 10 秒</Button><Button @click="preset('0 */5 * * * *')">每 5 分钟</Button><Button @click="preset('0 0 9 * * *')">每天 9 点</Button
 						><Button

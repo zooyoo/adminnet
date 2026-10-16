@@ -6,7 +6,7 @@ import { JsonViewer } from '@vben/common-ui';
 import { createIconifyIcon } from '@vben/icons';
 import { usePreferences } from '@vben/preferences';
 
-import { Alert, Button, Empty, Input, Modal, Spin, Tooltip, Tree } from 'antdv-next';
+import { Alert, Button, Empty, Input, Modal, Spin, Splitter, SplitterPanel, Tooltip, Tree } from 'antdv-next';
 import { isCancel } from 'axios';
 
 import { cacheKeys, cacheValue, clearCache, removeCache } from '#/api/system/cache';
@@ -124,7 +124,7 @@ onBeforeUnmount(() => {
 
 <template>
 	<div class="cache-page">
-		<aside class="cache-navigation">
+		<Splitter class="cache-splitter" aria-label="缓存面板分隔" style="min-height: 480px"><SplitterPanel default-size="20%" :min="200"><aside class="cache-navigation">
 			<header>
 				<h1>缓存列表</h1>
 				<div class="actions">
@@ -137,7 +137,7 @@ onBeforeUnmount(() => {
 			<Input v-model:value="search" placeholder="缓存键" aria-label="筛选缓存键" allow-clear />
 			<Alert v-if="error" :message="error" type="error" show-icon />
 			<Spin :spinning="loading"><Tree v-model:expanded-keys="expanded" :tree-data="tree" :selected-keys="selected" block-node @select="select" /></Spin>
-		</aside>
+		</aside></SplitterPanel><SplitterPanel :min="200">
 		<main class="cache-detail">
 			<header>
 				<h2>{{ selectedKey === undefined ? '缓存数据' : selectedKey }}</h2>
@@ -146,12 +146,12 @@ onBeforeUnmount(() => {
 			<Alert v-if="detailError" :message="detailError" type="error" show-icon />
 			<Spin :spinning="detailLoading">
 				<template v-if="selectedKey !== undefined && !detailError && !detailLoading">
-					<JsonViewer v-if="content !== null && typeof content === 'object'" :value="content" :theme="isDark ? 'dark' : 'light'" :expand-depth="3" copyable :show-double-quotes="true" />
+					<JsonViewer v-if="content !== null && typeof content === 'object'" :value="content" :theme="isDark ? 'dark' : 'light'" :expand-depth="3" :show-line-number="true" :show-select-controller="true" copyable :show-double-quotes="true" />
 					<pre v-else class="cache-scalar">{{ content === undefined ? '' : String(content) }}</pre>
 				</template>
 				<Empty v-else-if="selectedKey === undefined" description="未选择缓存" />
 			</Spin>
-		</main>
+		</main></SplitterPanel></Splitter>
 		<Modal
 			v-model:open="confirmationOpen"
 			:title="confirmation?.key === undefined ? '确定清空所有缓存？' : `确定删除缓存“${confirmation.key}”？`"
@@ -168,8 +168,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .cache-page {
-	display: grid;
-	grid-template-columns: minmax(250px, 28%) minmax(0, 1fr);
+	display: block;
 }
 .cache-navigation {
 	border-right: 1px solid var(--ant-color-border);

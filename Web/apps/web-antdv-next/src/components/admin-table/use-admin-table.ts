@@ -102,10 +102,11 @@ export function useAdminTable<T, Q extends Record<string, unknown>>(options: Adm
 
 	function change(current: number, size: number, sortField?: string, sortOrder?: 'ascend' | 'descend' | null) {
 		const nextOrder = sortOrder === 'ascend' ? 'ascending' : sortOrder === 'descend' ? 'descending' : undefined;
-		const sortChanged = sortField !== field.value || nextOrder !== order.value;
+		const nextField = nextOrder ? sortField : undefined;
+		const sortChanged = nextField !== field.value || nextOrder !== order.value;
 		page.value = size !== pageSize.value || sortChanged ? 1 : current;
 		pageSize.value = size;
-		field.value = nextOrder ? sortField : undefined;
+		field.value = nextField;
 		order.value = nextOrder;
 		return reload();
 	}

@@ -123,13 +123,25 @@ public static class TemplateContracts
 
     public static ISugarQueryable<SysTemplate> PageQuery(ISugarQueryable<SysTemplate> query, PageTemplateInput input, bool superAdmin, long tenantId)
     {
-        return ScopeQuery(query, superAdmin, tenantId)
+        var filtered = ScopeQuery(query, superAdmin, tenantId)
             .WhereIF(!string.IsNullOrWhiteSpace(input.GroupName), template => template.GroupName.Contains(input.GroupName))
             .WhereIF(superAdmin && input.TenantId > 0, template => template.TenantId == input.TenantId)
             .WhereIF(!string.IsNullOrWhiteSpace(input.Name), template => template.Name.Contains(input.Name))
             .WhereIF(!string.IsNullOrWhiteSpace(input.Code), template => template.Code.Contains(input.Code))
             .WhereIF(input.Type.HasValue, template => template.Type == input.Type)
-            .OrderBy(template => new { template.OrderNo, template.Id });
+            ;
+        var order = string.Equals(input.Order, "descending", StringComparison.OrdinalIgnoreCase) ? OrderByType.Desc : OrderByType.Asc;
+        // 仅允许旧模板列表的五个公开排序字段，默认仍按排序号升序。
+        var sorted = input.Field?.Trim().ToLowerInvariant() switch
+        {
+            "name" => filtered.OrderBy(template => template.Name, order),
+            "code" => filtered.OrderBy(template => template.Code, order),
+            "type" => filtered.OrderBy(template => template.Type, order),
+            "groupname" => filtered.OrderBy(template => template.GroupName, order),
+            "orderno" => filtered.OrderBy(template => template.OrderNo, order),
+            _ => filtered.OrderBy(template => template.OrderNo, OrderByType.Asc)
+        };
+        return sorted.OrderBy(template => template.Id);
     }
 
     public static Expression<Func<SysTemplate, bool>> IdPredicate(long id, bool superAdmin, long tenantId)

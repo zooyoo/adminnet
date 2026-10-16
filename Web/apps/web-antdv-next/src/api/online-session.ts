@@ -100,8 +100,9 @@ export class OnlineSession {
 		if (this.retry !== undefined) clearTimeout(this.retry);
 		this.retry = undefined;
 		active?.cleanup();
-		if (active) void active.connection.stop().catch(() => {});
+		const stopped = active ? active.connection.stop().catch(() => {}) : Promise.resolve();
 		this.onStatus('disconnected');
+		return stopped;
 	}
 
 	subscribe(event: OnlineEvent, listener: (data: unknown) => void) {

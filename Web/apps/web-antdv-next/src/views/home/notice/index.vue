@@ -15,6 +15,7 @@ import { pageReceivedNotices, setNoticeRead } from '#/api/system/notice';
 import AdminTable from '#/components/admin-table/index.vue';
 import { useAdminTable } from '#/components/admin-table/use-admin-table';
 import NoticeContent from '#/components/notice-content/index.vue';
+import { noticePlainText } from '#/components/notice-content/notice-html';
 import { noticeReadKey } from '#/components/notice-content/notice-read';
 
 defineOptions({ name: 'ReceivedNotices' });
@@ -23,7 +24,10 @@ const Eye = createIconifyIcon('lucide:eye');
 const Search = createIconifyIcon('lucide:search');
 const Refresh = createIconifyIcon('lucide:rotate-ccw');
 const filters = reactive<NoticeQuery>({ title: '', type: undefined });
-const table = useAdminTable<NoticeRecipient, NoticeQuery>({ query: { ...filters }, load: pageReceivedNotices });
+const table = useAdminTable<NoticeRecipient, NoticeQuery>({
+	query: { ...filters },
+	load: pageReceivedNotices,
+});
 const detail = ref<Notice>();
 const readError = ref('');
 const reading = ref(false);
@@ -34,11 +38,38 @@ const open = computed({
 	},
 });
 const columns: NonNullable<TableProps<NoticeRecipient>['columns']> = [
-	{ title: '标题', dataIndex: ['sysNotice', 'title'], key: 'title', width: 240 },
+	{
+		title: '标题',
+		dataIndex: ['sysNotice', 'title'],
+		key: 'title',
+		width: 240,
+	},
+	{
+		title: '内容',
+		dataIndex: ['sysNotice', 'content'],
+		key: 'content',
+		width: 280,
+	},
 	{ title: '类型', key: 'type', width: 90 },
+	{
+		title: '创建时间',
+		dataIndex: ['sysNotice', 'createTime'],
+		key: 'createTime',
+		width: 180,
+	},
 	{ title: '阅读状态', key: 'readStatus', width: 110 },
-	{ title: '发布者', dataIndex: ['sysNotice', 'publicUserName'], key: 'publisher', width: 130 },
-	{ title: '发布时间', dataIndex: ['sysNotice', 'publicTime'], key: 'time', width: 180 },
+	{
+		title: '发布者',
+		dataIndex: ['sysNotice', 'publicUserName'],
+		key: 'publisher',
+		width: 130,
+	},
+	{
+		title: '发布时间',
+		dataIndex: ['sysNotice', 'publicTime'],
+		key: 'time',
+		width: 180,
+	},
 	{ title: '操作', key: 'actions', fixed: 'right', width: 70 },
 ];
 async function viewDetail(record: NoticeRecipient) {
@@ -100,16 +131,25 @@ onScopeDispose(unsubscribe);
 				></Tooltip>
 			</div>
 		</Form>
-		<AdminTable :controller="table" :columns="columns">
+		<AdminTable :controller="table" :columns="columns" :row-class-name="(record: NoticeRecipient) => record.readStatus === 1 ? 'info-row' : ''">
 			<template #bodyCell="{ column, record }">
 				<Tag v-if="column.key === 'readStatus'" :color="record.readStatus === 1 ? 'default' : 'processing'">{{ record.readStatus === 1 ? '已读' : '未读' }}</Tag>
+				<template v-else-if="column.key === 'content'">{{ noticePlainText(record.sysNotice?.content ?? '') }}</template>
 				<template v-else-if="column.key === 'type'">{{ record.sysNotice?.type === 2 ? '公告' : '通知' }}</template>
 				<Button v-else-if="column.key === 'actions'" type="text" :disabled="!record.sysNotice || reading" :aria-label="`查看通知 ${record.sysNotice?.title ?? ''}`" @click="viewDetail(record)"
 					><Eye :size="16"
 				/></Button>
 			</template>
 		</AdminTable>
-		<Modal v-model:open="open" title="通知详情" :footer="null" centered :styles="{ body: { maxHeight: 'calc(100dvh - 160px)', overflowY: 'auto' } }">
+		<Modal
+			v-model:open="open"
+			title="通知详情"
+			:footer="null"
+			centered
+			:styles="{
+				body: { maxHeight: 'calc(100dvh - 160px)', overflowY: 'auto' },
+			}"
+		>
 			<Alert v-if="readError" :message="readError" type="error" show-icon />
 			<template v-if="detail">
 				<h3>{{ detail.title }}</h3>

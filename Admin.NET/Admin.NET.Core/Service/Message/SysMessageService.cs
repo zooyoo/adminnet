@@ -16,12 +16,18 @@ public class SysMessageService : IDynamicApiController, ITransient
 {
     private readonly SysCacheService _sysCacheService;
     private readonly IHubContext<OnlineUserHub, IOnlineUserHub> _chatHubContext;
+    private readonly UserManager _userManager;
+    private readonly SysMenuService _sysMenuService;
 
     public SysMessageService(SysCacheService sysCacheService,
-        IHubContext<OnlineUserHub, IOnlineUserHub> chatHubContext)
+        IHubContext<OnlineUserHub, IOnlineUserHub> chatHubContext,
+        UserManager userManager,
+        SysMenuService sysMenuService)
     {
         _sysCacheService = sysCacheService;
         _chatHubContext = chatHubContext;
+        _userManager = userManager;
+        _sysMenuService = sysMenuService;
     }
 
     /// <summary>
@@ -32,6 +38,7 @@ public class SysMessageService : IDynamicApiController, ITransient
     [DisplayName("发送消息给所有人")]
     public async Task SendAllUser(MessageInput input)
     {
+        await PrepareMessage(input, "sysMessage:sendAllUser");
         await _chatHubContext.Clients.All.ReceiveMessage(input);
     }
 
@@ -43,6 +50,7 @@ public class SysMessageService : IDynamicApiController, ITransient
     [DisplayName("发送消息给除了发送人的其他人")]
     public async Task SendOtherUser(MessageInput input)
     {
+        await PrepareMessage(input, "sysMessage:sendOtherUser");
         var hashKey = _sysCacheService.HashGetAll<SysOnlineUser>(CacheConst.KeyUserOnline);
         var exceptReceiveUsers = hashKey.Where(u => u.UserId == input.ReceiveUserId).Select(u => u).ToList();
         await _chatHubContext.Clients.AllExcept(exceptReceiveUsers.Select(t => t.ConnectionId)).ReceiveMessage(input);
@@ -56,6 +64,7 @@ public class SysMessageService : IDynamicApiController, ITransient
     [DisplayName("发送消息给某个人")]
     public async Task SendUser(MessageInput input)
     {
+        await PrepareMessage(input, "sysMessage:sendUser");
         var hashKey = _sysCacheService.HashGetAll<SysOnlineUser>(CacheConst.KeyUserOnline);
         var receiveUser = hashKey.Where(u => u.UserId == input.ReceiveUserId).Select(u => u).FirstOrDefault();
         // 发送消息
@@ -70,6 +79,7 @@ public class SysMessageService : IDynamicApiController, ITransient
     [DisplayName("发送消息给某些人")]
     public async Task SendUsers(MessageInput input)
     {
+        await PrepareMessage(input, "sysMessage:sendUsers");
         var hashKey = _sysCacheService.HashGetAll<SysOnlineUser>(CacheConst.KeyUserOnline);
         var receiveUsers = hashKey.Where(u => input.UserIds.Any(a => a == u.UserId)).Select(u => u).ToList();
         foreach (var receiveUser in receiveUsers)
@@ -78,4 +88,20 @@ public class SysMessageService : IDynamicApiController, ITransient
             await _chatHubContext.Clients.Client(receiveUser.ConnectionId ?? "").ReceiveMessage(input);
         }
     }
+    /// <summary>
+    /// REST 与 Hub 共用发送权限及可信发送者，收件连接选择沿用原行为
+    /// </summary>
+    private async Task PrepareMessage(MessageInput input, string permission)
+    {
+        if (_userManager.UserId <= 0) throw Oops.Oh("请先登录").StatusCode(401);
+        if (!_userManager.SuperAdmin && !(await _sysMenuService.GetOwnBtnPermList())
+            .Any(code => string.Equals(code, permission, StringComparison.OrdinalIgnoreCase)))
+            throw Oops.Oh("无权发送系统消息").StatusCode(403);
+        if (input == null) throw Oops.Oh("消息不能为空");
+
+        input.SendUserId = _userManager.UserId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        input.SendUserName = _userManager.RealName;
+        input.SendTime = DateTime.Now;
+    }
+
 }

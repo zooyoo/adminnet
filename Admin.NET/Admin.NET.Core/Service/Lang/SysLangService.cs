@@ -35,6 +35,7 @@ public partial class SysLangService : IDynamicApiController, ITransient
             .WhereIF(!string.IsNullOrWhiteSpace(input.Code), u => u.Code.Contains(input.Code.Trim()))
             .WhereIF(!string.IsNullOrWhiteSpace(input.IsoCode), u => u.IsoCode.Contains(input.IsoCode.Trim()))
             .WhereIF(!string.IsNullOrWhiteSpace(input.UrlCode), u => u.UrlCode.Contains(input.UrlCode.Trim()))
+            .WhereIF(input.Active.HasValue, u => u.Active == input.Active.Value)
             .Select<SysLangOutput>();
         return await query.OrderBuilder(input).ToPagedListAsync(input.Page, input.PageSize);
     }

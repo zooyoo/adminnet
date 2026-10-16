@@ -13,7 +13,7 @@ import { Alert, Button, Form, FormItem, Input, Modal, Tooltip } from 'antdv-next
 import { sessionBoundary } from '#/api/session';
 import { databaseActions } from '#/api/system/database';
 
-import { columnDraft, validateColumns } from '../database-form';
+import { columnDraft, fieldTemplates, moveDraftFields, validateColumns } from '../database-form';
 import ColumnFields from './column-fields.vue';
 
 const props = defineProps<{
@@ -88,11 +88,11 @@ watch(
 function addField(primary = false) {
 	fields.value.push({ key: ++sequence, draft: columnDraft(primary) });
 }
+function addTemplate(kind: 'base' | 'delete' | 'org' | 'tenant') {
+	for (const draft of fieldTemplates(kind, props.types)) fields.value.push({ key: ++sequence, draft });
+}
 function move(index: number, delta: number) {
-	const next = index + delta;
-	if (next < 0 || next >= fields.value.length) return;
-	const item = fields.value.splice(index, 1)[0]!;
-	fields.value.splice(next, 0, item);
+	fields.value = moveDraftFields(fields.value, index, delta);
 }
 function prepare() {
 	if (saving.value) return;
@@ -191,14 +191,18 @@ onScopeDispose(() => {
 					<legend>字段 {{ index + 1 }}</legend>
 					<ColumnFields v-model="field.draft" :types="types" :prefix="`字段 ${index + 1} `" :existing="mode === 'updateColumn'" :disabled="saving" />
 					<div v-if="mode === 'addTable'" class="field-actions">
-						<Tooltip title="上移字段"><Button :icon="icons['arrow-up']" :aria-label="`上移字段 ${index + 1}`" :disabled="saving || index === 0" @click="move(index, -1)" /></Tooltip>
-						<Tooltip title="下移字段"><Button :icon="icons['arrow-down']" :aria-label="`下移字段 ${index + 1}`" :disabled="saving || index === fields.length - 1" @click="move(index, 1)" /></Tooltip>
+						<Tooltip title="上移字段"><Button :icon="icons['arrow-up']" :aria-label="`上移字段 ${index + 1}`" :disabled="saving || fields.length < 2" @click="move(index, -1)" /></Tooltip>
+						<Tooltip title="下移字段"><Button :icon="icons['arrow-down']" :aria-label="`下移字段 ${index + 1}`" :disabled="saving || fields.length < 2" @click="move(index, 1)" /></Tooltip>
 						<Tooltip title="移除字段"><Button :icon="icons['trash-2']" :aria-label="`移除字段 ${index + 1}`" :disabled="saving" danger @click="fields.splice(index, 1)" /></Tooltip>
 					</div>
 				</fieldset>
 				<div v-if="mode === 'addTable'" class="field-actions">
 					<Button :icon="icons.plus" :disabled="saving" @click="addField(true)">新增主键字段</Button>
 					<Button :icon="icons.plus" :disabled="saving" @click="addField()">新增普通字段</Button>
+					<Button :icon="icons.plus" :disabled="saving" @click="addTemplate('tenant')">新增租户字段</Button>
+					<Button :icon="icons.plus" :disabled="saving" @click="addTemplate('org')">新增机构字段</Button>
+					<Button :icon="icons.plus" :disabled="saving" @click="addTemplate('base')">新增基础字段</Button>
+					<Button :icon="icons.plus" :disabled="saving" @click="addTemplate('delete')">新增软删除字段</Button>
 				</div>
 			</template>
 		</div>

@@ -24,6 +24,7 @@ const permissions = computed(() => ({
 	add: hasAccessByCodes(['sysRegion:add']),
 	update: hasAccessByCodes(['sysRegion:update']),
 	delete: hasAccessByCodes(['sysRegion:delete']),
+	sync: hasAccessByCodes(['sysRegion:sync']),
 }));
 const identity = computed(() => {
 	const user = userStore.userInfo;
@@ -64,7 +65,7 @@ const currentPath = computed(() =>
 				.map((row) => row.name)
 				.join(' / ')
 );
-const writeBusy = computed(() => state.saveBusy || state.deleteBusy);
+const writeBusy = computed(() => state.saveBusy || state.deleteBusy || state.syncBusy);
 // 分页接口返回的是平铺记录；树 children 仍保存在会话中供无损编辑使用。
 const tableRows = computed(() => state.items.map((row) => ({ ...row, children: undefined })));
 const columns = computed<TableProps<RegionRow>['columns']>(() => [
@@ -80,7 +81,7 @@ const pagination = computed(() => ({
 	pageSize: state.pageSize,
 	total: state.total,
 	showSizeChanger: true,
-	pageSizeOptions: ['20', '50', '100'],
+	pageSizeOptions: ['10', '20', '50', '100'],
 	showTotal: (total: number) => '共 ' + total + ' 条',
 }));
 const onTableChange = (page: { current?: number; pageSize?: number }) => session.changePage(page.current ?? 1, page.pageSize ?? 50);
@@ -137,6 +138,9 @@ function onTreeExpand(keys: readonly (number | string)[]) {
 					</div>
 				</Form>
 				<div class="region-list-toolbar">
+					<Button v-if="permissions.sync" :auto-insert-space="false" :disabled="writeBusy || state.editorOpen || !!state.deleteTarget" :loading="state.syncBusy" @click="session.requestSync"
+						>同步国家统计局</Button
+					>
 					<Button v-if="permissions.add" type="primary" :auto-insert-space="false" :disabled="writeBusy" @click="session.openAdd">新增区域</Button>
 					<Button :auto-insert-space="false" :loading="state.pageBusy" :disabled="writeBusy" @click="session.loadPage">刷新区域列表</Button>
 				</div>
@@ -162,6 +166,15 @@ function onTreeExpand(keys: readonly (number | string)[]) {
 				</section>
 			</Card>
 		</div>
+
+		<Modal :open="state.syncOpen" title="同步国家统计局" :mask="{ closable: false }" :closable="!state.syncBusy" :keyboard="!state.syncBusy" destroy-on-hidden @cancel="session.cancelSync">
+			<p>同步将替换现有行政区域数据。是否确认同步国家统计局数据？</p>
+			<Alert v-if="state.syncError" :title="state.syncError" type="error" show-icon class="mt-4" />
+			<template #footer>
+				<Button :auto-insert-space="false" :disabled="state.syncBusy" @click="session.cancelSync">取消</Button>
+				<Button type="primary" :auto-insert-space="false" :loading="state.syncBusy" :disabled="state.syncBusy" @click="session.confirmSync">确认同步</Button>
+			</template>
+		</Modal>
 
 		<Modal
 			:open="state.editorOpen"

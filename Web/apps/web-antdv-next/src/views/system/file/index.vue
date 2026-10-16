@@ -3,7 +3,8 @@ import type { TableProps } from 'antdv-next';
 
 import type { FileQuery, FileRecord } from '#/api/system/file';
 
-import { onDeactivated, onMounted, onScopeDispose, reactive, ref, shallowRef } from 'vue';
+import { onActivated, onDeactivated, onMounted, onScopeDispose, reactive, ref, shallowRef, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { useAccess } from '@vben/access';
 import { useUserStore } from '@vben/stores';
@@ -53,6 +54,9 @@ let generation = 0;
 let editorSession = 0;
 let controller: AbortController | undefined;
 let alive = true;
+let visible = true;
+let viewGeneration = 0;
+let viewRequest = new AbortController();
 const lifetime = new AbortController();
 sessionBoundary.track(lifetime);
 lifetime.signal.addEventListener('abort', () => {
@@ -104,21 +108,24 @@ async function save() {
 }
 async function download(record: FileRecord) {
 	const version = sessionBoundary.version;
+	const currentView = viewGeneration;
+	const signal = AbortSignal.any([lifetime.signal, viewRequest.signal]);
 	try {
-		const result = await readFile(record, lifetime.signal);
-		if (alive && version === sessionBoundary.version) downloadFile(result);
+		const result = await readFile(record, signal);
+		if (alive && visible && currentView === viewGeneration && version === sessionBoundary.version) downloadFile(result);
 	} catch {
 		/* 二进制错误由请求层统一处理。 */
 	}
 }
 function remove(record: FileRecord) {
 	const version = sessionBoundary.version;
+	const currentView = viewGeneration;
 	Modal.confirm({
 		title: `确定删除文件“${record.fileName}”？`,
 		async onOk() {
-			if (!alive || version !== sessionBoundary.version || !record.id) return;
-			await removeFile(record.id, lifetime.signal);
-			if (alive && version === sessionBoundary.version) {
+			if (!alive || !visible || currentView !== viewGeneration || version !== sessionBoundary.version || !record.id) return;
+			await removeFile(record.id, AbortSignal.any([lifetime.signal, viewRequest.signal]));
+			if (alive && visible && currentView === viewGeneration && version === sessionBoundary.version) {
 				message.success('删除成功');
 				await table.reload();
 			}
@@ -129,13 +136,41 @@ function reset() {
 	Object.assign(filters, { fileName: '', startTime: undefined, endTime: undefined });
 	void table.search({ ...filters });
 }
+const fileViewRouter = useRouter();
+const fileViewPath = fileViewRouter.currentRoute.value.path;
+watch(() => fileViewRouter.currentRoute.value.path === fileViewPath, (active, previous) => {
+	if (!active) {
+		visible = false;
+		viewGeneration++;
+		viewRequest.abort();
+		close();
+		preview.value?.close();
+	} else {
+		visible = true;
+		if (viewRequest.signal.aborted) viewRequest = new AbortController();
+		if (!previous && can('page')) void table.reload();
+	}
+}, { flush: 'sync' });
 onMounted(table.reload);
+let previouslyActivated = false;
+onActivated(() => {
+	visible = true;
+	if (viewRequest.signal.aborted) viewRequest = new AbortController();
+	if (previouslyActivated && can('page')) void table.reload();
+	previouslyActivated = true;
+});
 onDeactivated(() => {
+	visible = false;
+	viewGeneration++;
+	viewRequest.abort();
 	close();
 	preview.value?.close();
 });
 onScopeDispose(() => {
 	alive = false;
+	visible = false;
+	viewGeneration++;
+	viewRequest.abort();
 	close();
 	lifetime.abort();
 	sessionBoundary.release(lifetime);

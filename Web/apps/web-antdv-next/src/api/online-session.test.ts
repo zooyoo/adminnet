@@ -143,6 +143,31 @@ describe('online session lifecycle', () => {
 		expect(transport.stop).toHaveBeenCalled();
 	});
 
+	it('awaits the old transport stop without retaining its credentials or replacing a new identity', async () => {
+		const state = fixture();
+		state.connect();
+		await Promise.resolve();
+		const old = state.transports[0]!;
+		let finishStop!: () => void;
+		vi.mocked(old.stop).mockReturnValueOnce(new Promise<void>((resolve) => { finishStop = resolve; }));
+		let stopped = false;
+		const pending = state.session.disconnect().then(() => { stopped = true; });
+		await Promise.resolve();
+		expect(stopped).toBe(false);
+		expect(old.events.size).toBe(0);
+		expect(await old.token()).toBe('');
+		state.changeIdentity();
+		state.connect();
+		await Promise.resolve();
+		expect(await state.transports[1]!.token()).toBe('first-token');
+		finishStop();
+		await pending;
+		expect(stopped).toBe(true);
+		expect(state.status).toHaveBeenLastCalledWith('connected');
+		expect(state.transports[1]!.stop).not.toHaveBeenCalled();
+		await state.session.disconnect();
+	});
+
 	it('retries a failed initial handshake without duplicating event handlers', async () => {
 		vi.useFakeTimers();
 		const state = fixture(true);

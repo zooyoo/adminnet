@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MetadataGroup, MetadataOperation } from './stress-metadata';
 import type { StressTestIssue, StressTestState } from './stress-test';
 
 import type { StressTestPair } from '#/api/system/stress-test';
@@ -14,7 +15,8 @@ import { Alert, Button, Card, Empty, Form, FormItem, Input, InputNumber, Select,
 import { sessionBoundary } from '#/api/session';
 import { getStressTestTargets, runStressTest } from '#/api/system/stress-test';
 
-import { createStressTestForm, parameterGroups, StressTestSession, validateStressTest } from './stress-test';
+import { getMetadataDocument, getMetadataGroups, metadataOperations } from './stress-metadata';
+import { createStressTestForm, isWithinStressTarget, parameterGroups, StressTestSession, validateStressTest } from './stress-test';
 
 const userStore = useUserStore();
 const { hasAccessByCodes } = useAccess();
@@ -74,6 +76,98 @@ const percentiles = [
 	{ key: 'percentile999ResponseTime', label: 'P99.9' },
 ] as const;
 
+const metadataGroups = ref<MetadataGroup[]>([]);
+const metadataGroup = ref('');
+const metadataKeyword = ref('');
+const metadataDocument = shallowRef<Record<string, unknown>>();
+const metadataError = ref('');
+const metadataBusy = ref(false);
+const metadataSelection = shallowRef<MetadataOperation>();
+let metadataActive = false;
+let metadataSequence = 0;
+let metadataRequest: AbortController | undefined;
+const metadataRows = computed(() => metadataOperations(metadataDocument.value));
+const metadataTree = computed(() => {
+	const keyword = metadataKeyword.value.trim().toLowerCase();
+	const tags = new Map<string, { key: string; title: string; children: MetadataOperation[] }>();
+	for (const row of metadataRows.value) {
+		if (keyword && !row.summary.toLowerCase().includes(keyword)) continue;
+		const tag = tags.get(row.tag) ?? { key: row.tag, title: row.tagTitle, children: [] };
+		tag.children.push(row);
+		tags.set(row.tag, tag);
+	}
+	return [...tags.values()];
+});
+const metadataCopyBlocked = computed(() => blocked.value || !metadataSelection.value || !['DELETE', 'GET', 'POST', 'PUT'].includes(metadataSelection.value.method));
+const metadataCanUseAddress = computed(
+	() => !!metadataSelection.value && !!selectedTarget.value && isWithinStressTarget(new URL(metadataSelection.value.path, window.location.origin).href, selectedTarget.value)
+);
+function stopMetadata() {
+	metadataActive = false;
+	metadataSequence++;
+	metadataRequest?.abort();
+	metadataGroups.value = [];
+	metadataGroup.value = '';
+	metadataDocument.value = undefined;
+	metadataSelection.value = undefined;
+	metadataKeyword.value = '';
+	metadataBusy.value = false;
+	metadataError.value = '';
+}
+async function loadMetadataGroups() {
+	if (!metadataActive || !allowed.value) return;
+	metadataRequest?.abort();
+	const controller = (metadataRequest = new AbortController());
+	sessionBoundary.track(controller);
+	const current = ++metadataSequence;
+	const version = sessionBoundary.version;
+	metadataBusy.value = true;
+	metadataError.value = '';
+	try {
+		const groups = await getMetadataGroups(controller.signal);
+		if (!metadataActive || current !== metadataSequence || version !== sessionBoundary.version || controller.signal.aborted) return;
+		metadataGroups.value = groups;
+		metadataGroup.value = groups.find((group) => group.name === 'Default')?.url ?? groups[0]?.url ?? '';
+	} catch (error) {
+		if (metadataActive && current === metadataSequence && !controller.signal.aborted) metadataError.value = error instanceof Error ? error.message : 'Swagger 分组加载失败';
+	} finally {
+		if (current === metadataSequence) metadataBusy.value = false;
+	}
+	if (metadataGroup.value) await loadMetadataDocument();
+}
+async function loadMetadataDocument() {
+	if (!metadataActive || !allowed.value || !metadataGroup.value) return;
+	metadataRequest?.abort();
+	const controller = (metadataRequest = new AbortController());
+	sessionBoundary.track(controller);
+	const current = ++metadataSequence;
+	const version = sessionBoundary.version;
+	metadataBusy.value = true;
+	metadataError.value = '';
+	metadataSelection.value = undefined;
+	try {
+		const document = await getMetadataDocument(metadataGroup.value, controller.signal);
+		if (metadataActive && current === metadataSequence && version === sessionBoundary.version && !controller.signal.aborted) metadataDocument.value = document;
+	} catch (error) {
+		if (metadataActive && current === metadataSequence && !controller.signal.aborted) metadataError.value = error instanceof Error ? error.message : 'Swagger 接口加载失败';
+	} finally {
+		if (current === metadataSequence) metadataBusy.value = false;
+	}
+}
+function activateMetadata() {
+	if (metadataActive || !allowed.value) return;
+	metadataActive = true;
+	void loadMetadataGroups();
+}
+function copyMetadata() {
+	const row = metadataSelection.value;
+	if (!row || metadataCopyBlocked.value) return;
+	form.requestMethod = row.method;
+	for (const group of parameterGroups) form[group.key] = row[group.key].map((pair) => ({ ...pair }));
+	if (metadataCanUseAddress.value) form.requestUri = new URL(row.path, window.location.origin).href;
+	attempted.value = false;
+}
+
 function fieldError(field: StressTestIssue['field']) {
 	return (
 		issues.value
@@ -124,24 +218,90 @@ watch(
 		}
 	}
 );
-watch(identity, () => session.invalidateIdentity());
+watch(identity, () => {
+	session.invalidateIdentity();
+	const active = metadataActive;
+	stopMetadata();
+	if (active) activateMetadata();
+});
 watch(allowed, (value) => {
-	if (!value) session.deactivate();
+	if (!value) {
+		session.deactivate();
+		stopMetadata();
+	}
 });
 onMounted(() => {
 	void session.activate();
+	activateMetadata();
 });
 onActivated(() => {
 	void session.activate();
+	activateMetadata();
 });
-onDeactivated(() => session.deactivate());
-onScopeDispose(() => session.dispose());
+onDeactivated(() => {
+	session.deactivate();
+	stopMetadata();
+});
+onScopeDispose(() => {
+	session.dispose();
+	stopMetadata();
+});
 </script>
 
 <template>
 	<Page title="受控接口压测" description="仅超级管理员可对服务端授权的目标执行压测。所有限制由服务端最终检查。" class="stress-page" content-class="space-y-4">
 		<Alert v-if="!allowed" title="当前账号不可执行压测" description="需要超级管理员身份和 sysCommon:stressTest 权限。" type="warning" show-icon />
 		<template v-else>
+			<Card title="Swagger 接口" class="stress-metadata"
+				><Alert v-if="metadataError" :title="metadataError" type="error" show-icon />
+				<div class="mb-3 flex flex-wrap gap-3">
+					<Select
+						v-model:value="metadataGroup"
+						aria-label="Swagger 分组"
+						:options="metadataGroups.map((group) => ({ label: group.name, value: group.url }))"
+						:disabled="metadataBusy || running"
+						style="min-width: 180px"
+						@change="loadMetadataDocument"
+					/><Input v-model:value="metadataKeyword" aria-label="接口摘要搜索" placeholder="按接口摘要搜索" allow-clear style="max-width: 320px" /><Button
+						:loading="metadataBusy"
+						:disabled="running"
+						@click="loadMetadataGroups"
+						>刷新 Swagger 接口</Button
+					>
+				</div>
+				<div v-if="metadataBusy" role="status">正在读取 Swagger 接口…</div>
+				<div v-else class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+					<ul role="tree" aria-label="Swagger 接口树" class="stress-metadata-tree max-h-96 overflow-auto">
+						<li v-for="tag in metadataTree" :key="tag.key" role="treeitem">
+							<details>
+								<summary class="cursor-pointer py-2 font-medium">{{ tag.title }}</summary>
+								<ul role="group">
+									<li v-for="operation in tag.children" :key="operation.key" role="treeitem">
+										<Button type="text" :aria-label="`选择接口 ${operation.summary} ${operation.method}`" :disabled="running" @click="metadataSelection = operation"
+											><Tag>{{ operation.method }}</Tag
+											>{{ operation.summary }}</Button
+										>
+									</li>
+								</ul>
+							</details>
+						</li>
+					</ul>
+					<section aria-label="接口详情">
+						<template v-if="metadataSelection"
+							><h3>{{ metadataSelection.summary }}</h3>
+							<p class="my-2 break-all font-mono">{{ metadataSelection.method }} {{ metadataSelection.path }}</p>
+							<p>
+								Headers {{ metadataSelection.headers.length }} · Body {{ metadataSelection.requestParameters.length }} · Path {{ metadataSelection.pathParameters.length }} · Query
+								{{ metadataSelection.queryParameters.length }}
+							</p>
+							<p v-if="!metadataCanUseAddress" class="my-2 text-muted-foreground">此接口地址不在当前授权目标内。仅复制请求方式和参数；执行地址继续使用当前授权目标。</p>
+							<Button :disabled="metadataCopyBlocked" @click="copyMetadata">使用接口参数</Button></template
+						><Empty v-else description="选择接口查看参数" :image="Empty.PRESENTED_IMAGE_SIMPLE" />
+					</section>
+				</div>
+				<Empty v-if="!metadataBusy && !metadataTree.length" description="暂无匹配接口" :image="Empty.PRESENTED_IMAGE_SIMPLE"
+			/></Card>
+
 			<Card title="请求配置" :aria-busy="running" class="stress-config">
 				<template #extra>
 					<Tag v-if="running" color="processing">执行中</Tag>
@@ -155,14 +315,7 @@ onScopeDispose(() => session.dispose());
 						<FormItem label="压测目标" name="target" :help="fieldError('target')" :validate-status="fieldError('target') ? 'error' : undefined" required>
 							<Select :value="targetUri || undefined" :options="targetOptions" placeholder="请选择服务端授权目标" aria-label="压测目标" :disabled="blocked" @change="selectTarget" />
 						</FormItem>
-						<FormItem
-							label="请求地址"
-							name="requestUri"
-							:help="fieldError('requestUri')"
-							:validate-status="fieldError('requestUri') ? 'error' : undefined"
-							required
-							class="xl:col-span-2"
-						>
+						<FormItem label="请求地址" name="requestUri" :help="fieldError('requestUri')" :validate-status="fieldError('requestUri') ? 'error' : undefined" required class="xl:col-span-2">
 							<Input v-model:value="form.requestUri" aria-label="请求地址" :disabled="blocked" placeholder="先选择授权目标，再编辑前缀内路径，例如 /path/{key}" autocomplete="off" />
 						</FormItem>
 					</div>
@@ -173,20 +326,9 @@ onScopeDispose(() => session.dispose());
 					</div>
 					<div class="grid grid-cols-2 gap-x-5 xl:grid-cols-4">
 						<FormItem label="请求方式" name="requestMethod" :help="fieldError('requestMethod')" :validate-status="fieldError('requestMethod') ? 'error' : undefined">
-							<Select
-								v-model:value="form.requestMethod"
-								:options="['GET', 'POST', 'PUT', 'DELETE'].map((value) => ({ label: value, value }))"
-								aria-label="请求方式"
-								:disabled="blocked"
-							/>
+							<Select v-model:value="form.requestMethod" :options="['GET', 'POST', 'PUT', 'DELETE'].map((value) => ({ label: value, value }))" aria-label="请求方式" :disabled="blocked" />
 						</FormItem>
-						<FormItem
-							label="每轮请求量"
-							name="numberOfRequests"
-							:help="fieldError('numberOfRequests')"
-							:validate-status="fieldError('numberOfRequests') ? 'error' : undefined"
-							required
-						>
+						<FormItem label="每轮请求量" name="numberOfRequests" :help="fieldError('numberOfRequests')" :validate-status="fieldError('numberOfRequests') ? 'error' : undefined" required>
 							<InputNumber v-model:value="form.numberOfRequests" :min="1" :max="state.policy?.maxRequestsPerRound" aria-label="每轮请求量" :disabled="blocked" class="w-full" />
 						</FormItem>
 						<FormItem label="压测轮数" name="numberOfRounds" :help="fieldError('numberOfRounds')" :validate-status="fieldError('numberOfRounds') ? 'error' : undefined" required>

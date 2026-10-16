@@ -76,6 +76,28 @@ onScopeDispose(() => {
 	releaseCrop();
 });
 
+async function editCurrentAvatar() {
+	if (props.disabled || busy.value || !hasAccessByCodes(['sysFile:uploadAvatar'])) return;
+	const currentUrl = siteLogoUrl(props.profile.avatar ?? undefined);
+	if (!currentUrl) return;
+	const version = sessionBoundary.version;
+	busy.value = true;
+	error.value = '';
+	try {
+		const response = await fetch(currentUrl, { signal: controller.signal });
+		if (!response.ok) throw new Error('当前头像加载失败，请选择图片');
+		const blob = await response.blob();
+		if (!alive || version !== sessionBoundary.version) return;
+		releaseCrop();
+		cropUrl.value = URL.createObjectURL(blob);
+		cropOpen.value = true;
+	} catch (cause) {
+		if (alive && version === sessionBoundary.version && !controller.signal.aborted) error.value = cause instanceof Error ? cause.message : '当前头像加载失败';
+	} finally {
+		busy.value = false;
+	}
+}
+
 function selectAvatar(file: File) {
 	if (props.disabled || busy.value) return false;
 	releaseCrop();
@@ -163,7 +185,7 @@ async function saveSignature() {
 <template>
 	<Alert v-if="error && !cropOpen && !signOpen" class="mb-4" :title="error" type="error" show-icon />
 	<div class="flex items-center gap-4">
-		<Image :src="siteLogoUrl(profile.avatar ?? undefined)" :width="80" :height="80" alt="个人头像" />
+		<button v-if="hasAccessByCodes(['sysFile:uploadAvatar'])" type="button" class="profile-avatar-edit" aria-label="裁剪当前头像" :disabled="disabled || busy" @click="editCurrentAvatar"><Image :src="siteLogoUrl(profile.avatar ?? undefined)" :width="80" :height="80" alt="个人头像" :preview="false" /><span class="profile-avatar-edit-hint" aria-hidden="true">更换头像</span></button><Image v-else :src="siteLogoUrl(profile.avatar ?? undefined)" :width="80" :height="80" alt="个人头像" />
 		<Upload v-if="hasAccessByCodes(['sysFile:uploadAvatar'])" :before-upload="selectAvatar" :show-upload-list="false" accept="image/*">
 			<Button :disabled="disabled || busy">更换头像</Button>
 		</Upload>
@@ -217,3 +239,11 @@ async function saveSignature() {
 		</div>
 	</Modal>
 </template>
+
+<style scoped>
+.profile-avatar-edit { position: relative; display: block; width: 80px; height: 80px; padding: 0; overflow: hidden; border: 0; border-radius: 50%; cursor: pointer; }
+.profile-avatar-edit-hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgb(0 0 0 / 45%); color: #fff; opacity: 0; pointer-events: none; }
+.profile-avatar-edit:hover .profile-avatar-edit-hint, .profile-avatar-edit:focus-visible .profile-avatar-edit-hint { opacity: 1; }
+.profile-avatar-edit:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.profile-avatar-edit:disabled { cursor: not-allowed; }
+</style>

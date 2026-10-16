@@ -5,6 +5,7 @@ export interface RegionPermissions {
 	add: boolean;
 	update: boolean;
 	delete: boolean;
+	sync?: boolean;
 }
 
 export interface RegionBoundary {
@@ -74,6 +75,9 @@ export function createRegionState() {
 		deleteTarget: undefined as RegionRow | undefined,
 		deleteError: '',
 		deleteBusy: false,
+		syncOpen: false,
+		syncBusy: false,
+		syncError: '',
 	};
 }
 
@@ -99,7 +103,7 @@ export function createRegionSession(
 	let context = '';
 	let lifetime: AbortController | undefined;
 	const contextKey = () => JSON.stringify([deps.identity(), deps.boundary.version, deps.permissions()]);
-	const permitted = (action: Action) => deps.permissions().page && deps.permissions()[action];
+	const permitted = (action: Action) => deps.permissions().page && deps.permissions()[action] === true;
 	const ready = (action: Action = 'page') => active && !disposed && !!lifetime && !lifetime.signal.aborted && context === contextKey() && permitted(action);
 
 	function cancel(operation: Operation) {
@@ -228,7 +232,7 @@ export function createRegionSession(
 	}
 
 	function selectRegion(id: RegionId | undefined) {
-		if (!ready() || state.saveBusy || state.deleteBusy) return;
+		if (!ready() || state.saveBusy || state.deleteBusy || state.syncBusy) return;
 		const row = id === undefined ? undefined : findRegionPath(state.tree, id).at(-1);
 		clearSelection();
 		state.selectedId = row?.id;
@@ -236,7 +240,7 @@ export function createRegionSession(
 	}
 
 	function reset() {
-		if (!ready() || state.saveBusy || state.deleteBusy) return;
+		if (!ready() || state.saveBusy || state.deleteBusy || state.syncBusy) return;
 		clearSelection();
 		state.treeFilter = '';
 		void loadPage();
@@ -257,7 +261,7 @@ export function createRegionSession(
 	}
 
 	function openAdd() {
-		if (!ready('add') || state.saveBusy || state.deleteBusy) return;
+		if (!ready('add') || state.saveBusy || state.deleteBusy || state.syncBusy) return;
 		state.editorKind = 'add';
 		state.draft = newRegionDraft(state.selectedId ?? 0);
 		state.editorParent = parentLabel(state.draft.pid);
@@ -266,7 +270,7 @@ export function createRegionSession(
 	}
 
 	function openEdit(row: RegionRow) {
-		if (!ready('update') || state.saveBusy || state.deleteBusy) return;
+		if (!ready('update') || state.saveBusy || state.deleteBusy || state.syncBusy) return;
 		const original = state.items.find((item) => sameRegion(item.id, row.id)) ?? row;
 		state.editorKind = 'update';
 		state.draft = {
@@ -291,7 +295,7 @@ export function createRegionSession(
 	}
 
 	async function save() {
-		if (!state.editorOpen || state.saveBusy || state.deleteBusy || !ready(state.editorKind)) return;
+		if (!state.editorOpen || state.saveBusy || state.deleteBusy || state.syncBusy || !ready(state.editorKind)) return;
 		const payload = { ...state.draft, name: state.draft.name.trim(), code: state.draft.code.trim() };
 		if (!payload.name) {
 			state.editorError = '请输入行政名称。';
@@ -326,7 +330,7 @@ export function createRegionSession(
 	}
 
 	function requestDelete(row: RegionRow) {
-		if (!ready('delete') || state.saveBusy || state.deleteBusy) return;
+		if (!ready('delete') || state.saveBusy || state.deleteBusy || state.syncBusy) return;
 		state.deleteTarget = { ...row };
 		state.deleteError = '';
 	}
@@ -338,7 +342,7 @@ export function createRegionSession(
 	}
 
 	async function confirmDelete() {
-		if (!state.deleteTarget || state.deleteBusy || state.saveBusy) return;
+		if (!state.deleteTarget || state.deleteBusy || state.saveBusy || state.syncBusy) return;
 		const ticket = start('write', 'delete');
 		if (!ticket) return;
 		const target = state.deleteTarget;
@@ -360,7 +364,45 @@ export function createRegionSession(
 		}
 	}
 
+	function requestSync() {
+		if (!ready('sync') || state.syncBusy || state.saveBusy || state.deleteBusy || state.editorOpen || state.deleteTarget) return;
+		state.syncOpen = true;
+		state.syncError = '';
+	}
+	function cancelSync() {
+		if (state.syncBusy) return;
+		state.syncOpen = false;
+		state.syncError = '';
+	}
+	async function confirmSync() {
+		if (!state.syncOpen || state.syncBusy || state.saveBusy || state.deleteBusy) return;
+		const ticket = start('write', 'sync');
+		if (!ticket) return;
+		state.syncBusy = true;
+		state.syncError = '';
+		try {
+			if (!deps.api.sync) throw new Error('Region sync API is unavailable');
+			await deps.api.sync(ticket.signal);
+			if (!ticket.current()) return;
+			state.syncOpen = false;
+			state.syncBusy = false;
+			clearSelection();
+			state.treeFilter = '';
+			state.expandedKeys = [];
+			deps.notify?.('同步行政区域成功');
+			await refresh();
+		} catch {
+			if (ticket.current()) state.syncError = '同步失败，请检查网络后重试。';
+		} finally {
+			if (ticket.current()) state.syncBusy = false;
+			ticket.finish();
+		}
+	}
+
 	return {
+		requestSync,
+		cancelSync,
+		confirmSync,
 		activate,
 		deactivate,
 		contextChanged,

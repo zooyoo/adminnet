@@ -52,6 +52,7 @@ async function initialize() {
 			automaticLayout: true,
 			minimap: { enabled: false },
 			wordWrap: 'on',
+			formatOnPaste: true,
 			scrollBeyondLastLine: false,
 			ariaLabel: 'C# 代码',
 			tabIndex: 0,

@@ -252,6 +252,13 @@ function handleSubmitLock(lockScreenPassword: string) {
 }
 
 function handleLogout() {
+  const popupZIndex = Number.parseInt(
+    getComputedStyle(document.documentElement).getPropertyValue('--popup-z-index'),
+    10,
+  );
+  if (Number.isFinite(popupZIndex)) {
+    logoutModalApi.setState({ zIndex: popupZIndex + 1 });
+  }
   logoutModalApi.open();
   openPopover.value = false;
 }

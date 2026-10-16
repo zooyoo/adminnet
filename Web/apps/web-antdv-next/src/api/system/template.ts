@@ -2,6 +2,8 @@ import { requestClient } from '#/api/request';
 
 export type TemplateId = number | string;
 export type TemplateType = 1 | 2 | 3 | 4 | 7;
+export type TemplateSortField = 'code' | 'groupName' | 'name' | 'orderNo' | 'type';
+export type TemplateSortOrder = 'ascending' | 'descending';
 
 export interface TemplateRow extends Record<string, unknown> {
 	id: TemplateId;

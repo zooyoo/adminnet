@@ -173,15 +173,22 @@ public class SysCodeGenService : IDynamicApiController, ITransient
     {
         if (inputs == null || inputs.Count < 1) return;
 
-        var codeGenConfigTaskList = new List<Task>();
-        inputs.ForEach(u =>
+        var ids = inputs.Select(input => input.Id).Distinct().ToList();
+        var provider = _db.AsTenant().GetConnectionScope(SqlSugarConst.MainConfigId);
+        var ownsTransaction = provider.Ado.Transaction == null;
+        if (ownsTransaction) await provider.Ado.BeginTranAsync();
+        try
         {
-            _db.Deleteable<SysCodeGen>().In(u.Id).ExecuteCommand();
-
-            // 删除配置表
-            codeGenConfigTaskList.Add(_codeGenConfigService.DeleteCodeGenConfig(u.Id));
-        });
-        await Task.WhenAll(codeGenConfigTaskList);
+            // 同一主库连接先删字段再删主配置；整批成功才提交，不与未完成的异步命令并发。
+            await provider.Deleteable<SysCodeGenConfig>().Where(field => ids.Contains(field.CodeGenId)).ExecuteCommandAsync();
+            await provider.Deleteable<SysCodeGen>().In(ids).ExecuteCommandAsync();
+            if (ownsTransaction) await provider.Ado.CommitTranAsync();
+        }
+        catch
+        {
+            if (ownsTransaction) await provider.Ado.RollbackTranAsync();
+            throw;
+        }
     }
 
     /// <summary>

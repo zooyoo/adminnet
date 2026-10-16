@@ -139,7 +139,7 @@ describe('模板会话与独立权限', () => {
 	it('默认分页 20，分组和四种筛选包含类型与租户', async () => {
 		const env = setup();
 		await activate(env);
-		expect(env.api.page).toHaveBeenLastCalledWith({ name: '', code: '', groupName: '', type: undefined, page: 1, pageSize: 20, tenantId: '1' }, expect.any(AbortSignal));
+		expect(env.api.page).toHaveBeenLastCalledWith({ name: '', code: '', groupName: '', type: undefined, page: 1, pageSize: 20, tenantId: '1', field: 'orderNo', order: 'ascending' }, expect.any(AbortSignal));
 		expect(env.state.groups).toEqual(['业务']);
 		env.state.query = { name: '通知', code: 'wel', groupName: '业', type: 7 };
 		env.session.query();

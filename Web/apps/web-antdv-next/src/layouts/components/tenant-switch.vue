@@ -16,6 +16,7 @@ const user = useUserStore();
 const open = ref(false);
 const loading = ref(false);
 const error = ref('');
+const changeError = ref('');
 const selected = ref<number>();
 const options = ref<Array<{ value: number; label: string }>>([]);
 let generation = 0;
@@ -32,6 +33,7 @@ async function show() {
 	open.value = true;
 	loading.value = true;
 	error.value = '';
+	changeError.value = '';
 	selected.value = Number(user.userInfo?.currentTenantId) || undefined;
 	try {
 		const loaded = await getTenantOptionsApi();
@@ -48,11 +50,12 @@ async function change() {
 	const current = generation;
 	const controller = new AbortController();
 	pending = controller;
+	changeError.value = '';
 	try {
 		await auth.changeTenant(selected.value, false, controller.signal);
 		if (current === generation) open.value = false;
-	} catch {
-		/* 请求层提示错误，原会话保留。 */
+	} catch (cause) {
+		if (current === generation) changeError.value = cause instanceof Error ? cause.message : '租户切换失败';
 	} finally {
 		if (pending === controller) pending = undefined;
 	}
@@ -72,10 +75,10 @@ async function change() {
 		@ok="change"
 		@cancel="cancel"
 	>
-		<Alert v-if="error" :message="error" type="error" show-icon />
+		<Alert v-if="error || changeError" :title="error || changeError" type="error" show-icon />
 		<Form layout="vertical"
 			><FormItem label="租户" html-for="switch-tenant"
-				><Select id="switch-tenant" v-model:value="selected" :options="options" :loading="loading" show-search option-filter-prop="label" :virtual="false" /></FormItem
+				><Select id="switch-tenant" v-model:value="selected" :options="options" @change="changeError = ''" :loading="loading" show-search option-filter-prop="label" :virtual="false" /></FormItem
 		></Form>
 	</Modal>
 </template>

@@ -151,6 +151,8 @@ public class SysRegionService : IDynamicApiController, ITransient
     /// <param name="syncLevel"></param>
     private async Task SyncByMap(int syncLevel)
     {
+        // 民政部地图响应为 GBK，.NET 需注册现有代码页提供器。
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
         var client = new HttpClient();
         client.DefaultRequestHeaders.Add("Referer", "http://xzqh.mca.gov.cn/map");
         var html = await client.GetStringAsync("http://xzqh.mca.gov.cn/map");

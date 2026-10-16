@@ -1,0 +1,66 @@
+{
+  "kind": "proposal46-final-acceptance-index",
+  "status": "completed-with-user-waivers",
+  "acceptedAt": "2026-10-16T01:13:08.390Z",
+  "productionAuthorized": false,
+  "coverage": {
+    "originalUniqueIds": 1752,
+    "groups": 56,
+    "newMandatoryIds": 0,
+    "actualRegistryEntries": 1752,
+    "identityPreserved": true
+  },
+  "originalAuthority": {
+    "path": "D:/tmp/adminnet-coverage46-reconciliation-9bf5d4e5467842ec8bc2b99724445874/coverage46-final-behavior-reconciliation.json",
+    "sha256": "0e04ae230a07ca54c2298eac81df681d8cd1328d1aa1d04e78acece3261b313a",
+    "bytes": 31330156
+  },
+  "inheritedLedger": {
+    "path": "D:/tmp/coverage46-closeout-29c7c5bac63f4796830401da9333a3ed/inherited-final-behavior-ledger.json",
+    "sha256": "509ea4057fc683061c127a17d09835aeba04d11ec1e7929127555f27add39a50",
+    "bytes": 31374730
+  },
+  "businessReview": {
+    "path": "D:/tmp/coverage46-closeout-29c7c5bac63f4796830401da9333a3ed/business-review.json",
+    "sha256": "f6fbc58190f46397c5528f57df74e6d9f558b58805166f3fb13cc036156e56c7",
+    "bytes": 7298
+  },
+  "candidate": {
+    "report": {
+      "path": "D:/tmp/qualification82-0b8a2d31c4a5/report.json",
+      "sha256": "f38d8ef2a3c14b12cc4aadf9b9b812271df8531c86feb5f8ae4732df20467dfe",
+      "bytes": 89646
+    },
+    "patch": {
+      "path": "D:/tmp/qualification82-0b8a2d31c4a5/qualified-task-only.patch",
+      "sha256": "6da0ef6aeae561c3e91a4a0b093741b8573c2e58673304ae85f7df7580eb7ca7",
+      "bytes": 355109
+    },
+    "manifest": {
+      "path": "D:/tmp/qualification82-0b8a2d31c4a5/qualified82-manifest.json",
+      "sha256": "e418aeba398611c7d7e227401696f07eb1a9e2eed7d680e1aeb5624d0a69fcb9",
+      "bytes": 33281
+    },
+    "tree": "34f6695de55e6d26d84084c5792dbf5748e3ea46",
+    "paths": 82,
+    "defaultUnitPassed": false,
+    "fullUnitUsesDAdapter": true
+  },
+  "waiver": {
+    "path": "E:/pri/Admin.NET/.scratch/frontend-vben-migration/coverage46-user-native-waiver-20261016.json",
+    "sha256": "da0cae127369b0567c54c2b033b8abb7c7e0acdd7caf036e75aec212efcd2489",
+    "bytes": 871
+  },
+  "reviewOverlay": {
+    "tests": 44,
+    "adds": 20,
+    "inverseDeepEqual": true
+  },
+  "limits": [
+    "三项Native豁免passed=false，原41实播豁免保留。",
+    "原跨模块cleanup=false保留，同PG恢复补充闭合。",
+    "默认unit原失败保留，完整通过使用D环境适配与独立Node测试。",
+    "两张已覆盖旧截图不计通过；9张当前图片已实际read_image。",
+    "生产发布未授权。"
+  ]
+}

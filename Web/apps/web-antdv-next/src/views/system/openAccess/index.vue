@@ -13,6 +13,7 @@ import { Alert, Button, Card, Form, FormItem, Input, Modal, Select, Table } from
 
 import { sessionBoundary } from '#/api/session';
 import { openAccessApi } from '#/api/system/open-access';
+import AuditRecord from '#/components/admin/audit-record.vue';
 
 import HelpView from './help-view.vue';
 import { createOpenAccessState, OPEN_ACCESS_METHODS, OpenAccessSession, randomNonce, timestampSeconds } from './open-access';
@@ -92,10 +93,6 @@ function getNonce() {
 		state.signatureError = '随机数生成失败，请重试';
 	}
 }
-function modification(row: OpenAccessRow) {
-	const parts = [row.updateUserName || row.createUserName, row.updateTime || row.createTime].filter(Boolean);
-	return parts.join(' / ') || '—';
-}
 </script>
 
 <template>
@@ -120,7 +117,7 @@ function modification(row: OpenAccessRow) {
 			<Table :columns="columns" :data-source="state.items" row-key="id" :loading="state.listBusy" :pagination="pagination" :scroll="{ x: 1270 }" @change="changePage">
 				<template #bodyCell="{ column, record, index }">
 					<template v-if="column.key === 'sequence'">{{ (state.page - 1) * state.pageSize + index + 1 }}</template>
-					<template v-else-if="column.key === 'modification'">{{ modification(record) }}</template>
+					<AuditRecord v-else-if="column.key === 'modification'" :record="record" />
 					<template v-else-if="column.key === 'actions'">
 						<div class="open-access-actions">
 							<Button v-if="permissions.update" type="link" size="small" :auto-insert-space="false" :disabled="record.status === 1" @click="session.openEditor(record)">编辑</Button>

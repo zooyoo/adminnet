@@ -1,15 +1,32 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from "vue-router";
 
-import { Alert, Button } from 'antdv-next';
+import { Button, QRCode } from "antdv-next";
 
+const route = useRoute();
 const router = useRouter();
+const projectUrl = "https://gitee.com/zuohuaijun/Admin.NET";
+function returnToAccount() {
+  const query = { ...route.query };
+  delete query.wayid;
+  void router.replace({ path: "/auth/login", query });
+}
 </script>
 
 <template>
-	<section class="mx-auto w-full max-w-md">
-		<h1 class="mb-6 text-2xl font-semibold">扫码登录</h1>
-		<Alert title="当前站点未开通扫码登录，请使用账号或手机验证码登录。" type="info" show-icon />
-		<Button class="mt-6" @click="router.replace('/auth/login')">返回账号登录</Button>
-	</section>
+  <section class="project-qrcode mx-auto w-full max-w-md">
+    <h1 class="mb-6 text-2xl font-semibold">项目二维码</h1>
+    <div class="flex justify-center">
+      <QRCode :value="projectUrl" type="svg" :size="260" error-level="M" />
+    </div>
+    <p class="mt-4 text-center">扫描二维码查看 Admin.NET 项目。</p>
+    <a
+      :href="projectUrl"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="mt-2 block text-center"
+      >Admin.NET 项目</a
+    >
+    <Button class="mt-6" @click="returnToAccount">返回账号登录</Button>
+  </section>
 </template>

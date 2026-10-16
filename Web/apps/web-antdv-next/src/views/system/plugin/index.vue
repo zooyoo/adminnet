@@ -14,6 +14,7 @@ import { Alert, Button, Card, Form, FormItem, Input, InputNumber, Modal, Select,
 import { getTenantOptionsApi } from '#/api/core/auth';
 import { sessionBoundary } from '#/api/session';
 import { pluginApi } from '#/api/system/plugin';
+import AuditRecord from '#/components/admin/audit-record.vue';
 
 import CodeEditor from './code-editor.vue';
 import { createPluginState, PluginSession } from './plugin-session';
@@ -144,7 +145,7 @@ function chooseOrder(value: unknown) {
 			<Table :columns="columns" :data-source="state.items" row-key="id" :loading="state.listBusy" :pagination="pagination" :scroll="{ x: 1000 }" @change="changePage">
 				<template #bodyCell="{ column, record }">
 					<template v-if="column.key === 'status'">{{ record.status === 1 ? '启用' : '禁用' }}</template>
-					<template v-else-if="column.key === 'modified'">{{ [record.updateUserName || record.createUserName, record.updateTime || record.createTime].filter(Boolean).join(' / ') || '—' }}</template>
+					<AuditRecord v-else-if="column.key === 'modified'" :record="record" />
 					<template v-else-if="column.key === 'actions'"
 						><div class="plugin-actions">
 							<Button v-if="permissions.update" type="link" :auto-insert-space="false" :disabled="state.saveBusy" @click="session.openEditor(record)">编辑</Button>

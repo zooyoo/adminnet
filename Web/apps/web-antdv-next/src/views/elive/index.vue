@@ -5,7 +5,7 @@ import { computed, onDeactivated, onScopeDispose, reactive, ref, watch } from 'v
 
 import { useUserStore } from '@vben/stores';
 
-import { Alert, Button, Input } from 'antdv-next';
+import { Alert, Button, Input, Tree } from 'antdv-next';
 
 import { sessionBoundary } from '#/api/session';
 
@@ -14,6 +14,26 @@ import { LiveSession } from './live-session';
 
 defineOptions({ name: 'Elive' });
 const user = useUserStore();
+const deviceTree = [
+	{ title: '节点A', key: 'live-0', children: [{ title: '菜单A-1', key: 'live-0-0', children: [{ title: '菜单A-1-1', key: 'live-0-0-0' }] }] },
+	{
+		title: '节点B',
+		key: 'live-1',
+		children: [
+			{ title: '菜单B-1', key: 'live-1-0', children: [{ title: '菜单B-1-1', key: 'live-1-0-0' }] },
+			{ title: '菜单B-2', key: 'live-1-1', children: [{ title: '菜单B-2-1', key: 'live-1-1-0' }] },
+		],
+	},
+	{
+		title: '节点C',
+		key: 'live-2',
+		children: [
+			{ title: '菜单C-1', key: 'live-2-0', children: [{ title: '菜单C-1-1', key: 'live-2-0-0' }] },
+			{ title: '菜单C-2', key: 'live-2-1', children: [{ title: '菜单C-2-1', key: 'live-2-1-0' }] },
+		],
+	},
+];
+const selectedDevices = ref<string[]>([]);
 const profile = reactive({ accessToken: '', url: '' });
 const phase = ref<LivePhase>('idle');
 const error = ref('');
@@ -22,13 +42,16 @@ const locked = computed(() => phase.value === 'loading' || phase.value === 'play
 const phaseLabel = computed(() => ({ error: '播放失败', idle: '未播放', loading: '正在打开', playing: '已打开' })[phase.value]);
 let boundary: AbortController | undefined;
 let resizeObserver: ResizeObserver | undefined;
-const session = new LiveSession((snapshot, events, signal) => {
-	if (!container.value) return Promise.reject(new Error('播放容器未就绪'));
-	return createLivePlayer(container.value, snapshot, events, signal);
-}, (next, message) => {
-	phase.value = next;
-	error.value = message;
-});
+const session = new LiveSession(
+	(snapshot, events, signal) => {
+		if (!container.value) return Promise.reject(new Error('播放容器未就绪'));
+		return createLivePlayer(container.value, snapshot, events, signal);
+	},
+	(next, message) => {
+		phase.value = next;
+		error.value = message;
+	}
+);
 
 function stop(clear = false) {
 	session.stop();
@@ -54,7 +77,10 @@ function start() {
 	}
 	void session.start(profile);
 }
-watch(() => [user.userInfo?.userId, user.userInfo?.tenantId, user.userInfo?.currentTenantId], () => stop(true));
+watch(
+	() => [user.userInfo?.userId, user.userInfo?.tenantId, user.userInfo?.currentTenantId],
+	() => stop(true)
+);
 onDeactivated(() => stop(true));
 onScopeDispose(() => stop(true));
 </script>
@@ -69,10 +95,17 @@ onScopeDispose(() => stop(true));
 			<span role="status" aria-live="polite">播放器状态：{{ phaseLabel }}</span>
 		</header>
 		<Alert v-if="error" class="mb-4" type="error" show-icon role="alert" :title="error" />
+		<aside class="bg-card mb-4 rounded-lg border p-4" aria-label="设备树"><Tree v-model:selected-keys="selectedDevices" :tree-data="deviceTree" /></aside>
 		<section class="bg-card mb-4 rounded-lg border p-4" aria-label="直播配置">
 			<div class="live-fields">
-				<label for="live-token"><span class="mb-2 block font-medium">访问 Token</span><Input id="live-token" v-model:value="profile.accessToken" type="password" autocomplete="off" :disabled="locked" placeholder="输入已授权的访问 Token" /></label>
-				<label for="live-url"><span class="mb-2 block font-medium">视频地址</span><Input id="live-url" v-model:value="profile.url" autocomplete="off" :disabled="locked" placeholder="ezopen://open.ys7.com/设备序列号/1.live" /></label>
+				<label for="live-token"
+					><span class="mb-2 block font-medium">访问 Token</span
+					><Input id="live-token" v-model:value="profile.accessToken" @press-enter="start" type="password" autocomplete="off" :disabled="locked" placeholder="输入已授权的访问 Token"
+				/></label>
+				<label for="live-url"
+					><span class="mb-2 block font-medium">视频地址</span
+					><Input id="live-url" v-model:value="profile.url" @press-enter="start" autocomplete="off" :disabled="locked" placeholder="ezopen://open.ys7.com/设备序列号/1.live"
+				/></label>
 			</div>
 			<div class="mt-4 flex flex-wrap gap-2">
 				<Button type="primary" :auto-insert-space="false" :loading="phase === 'loading'" :disabled="locked" @click="start">{{ phase === 'error' ? '重试播放' : '打开视频' }}</Button>
@@ -92,12 +125,51 @@ onScopeDispose(() => stop(true));
 </template>
 
 <style scoped>
-.live-page { min-width: 0; }
-.live-fields { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(300px, 2fr); gap: 16px; }
-.live-fields > label { min-width: 0; }
-.live-stage { position: relative; width: 100%; height: min(62vh, 640px); min-height: 320px; overflow: hidden; border-radius: 6px; background: #111; }
-.live-container { width: 100%; height: 100%; }
-.live-placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: #ccc; pointer-events: none; }
-.live-loading { position: absolute; top: 12px; left: 12px; padding: 6px 12px; border-radius: 4px; color: #fff; background: rgb(0 0 0 / 70%); pointer-events: none; }
-@media (width <= 900px) { .live-fields { grid-template-columns: minmax(0, 1fr); } }
+.live-page {
+	min-width: 0;
+}
+.live-fields {
+	display: grid;
+	grid-template-columns: minmax(220px, 1fr) minmax(300px, 2fr);
+	gap: 16px;
+}
+.live-fields > label {
+	min-width: 0;
+}
+.live-stage {
+	position: relative;
+	width: 100%;
+	height: min(62vh, 640px);
+	min-height: 320px;
+	overflow: hidden;
+	border-radius: 6px;
+	background: #111;
+}
+.live-container {
+	width: 100%;
+	height: 100%;
+}
+.live-placeholder {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	color: #ccc;
+	pointer-events: none;
+}
+.live-loading {
+	position: absolute;
+	top: 12px;
+	left: 12px;
+	padding: 6px 12px;
+	border-radius: 4px;
+	color: #fff;
+	background: rgb(0 0 0 / 70%);
+	pointer-events: none;
+}
+@media (width <= 900px) {
+	.live-fields {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
 </style>

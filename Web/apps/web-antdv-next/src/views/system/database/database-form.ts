@@ -9,13 +9,13 @@ export type ColumnDraft = {
 export function columnDraft(primary = false): ColumnDraft {
 	return {
 		dbColumnName: primary ? 'Id' : '',
-		dataType: primary ? 'bigint' : 'varchar',
-		length: primary ? 0 : 64,
+		dataType: primary ? 'bigint' : '',
+		length: 0,
 		decimalDigits: 0,
 		isPrimarykey: primary ? 1 : 0,
 		isIdentity: 0,
-		isNullable: 0,
-		columnDescription: '',
+		isNullable: primary ? 0 : 1,
+		columnDescription: primary ? '主键Id' : '',
 		defaultValue: '',
 	};
 }
@@ -35,4 +35,46 @@ export function moveColumnInput(target: DatabaseTarget, columns: DbColumnOutput[
 	const next = direction === 'up' ? index - 1 : index + 1;
 	if (index < 0 || next < 0 || next >= columns.length) throw new Error('字段已在边界位置');
 	return { ...target, columnName: columns[index]!.dbColumnName, afterColumnName: direction === 'up' ? (columns[index - 2]?.dbColumnName ?? '') : columns[next]!.dbColumnName };
+}
+
+export function fieldTemplates(kind: 'base' | 'delete' | 'org' | 'tenant', types: string[]): ColumnDraft[] {
+	const type = (name: string, fallback: string) => (types.includes(name) ? name : fallback);
+	const draft = (name: string, dataType: string, description: string, length = 0, nullable = 1): ColumnDraft => ({
+		...columnDraft(),
+		dbColumnName: name,
+		dataType,
+		length,
+		isNullable: nullable,
+		columnDescription: description,
+	});
+	switch (kind) {
+		case 'tenant':
+			return [draft('TenantId', 'bigint', '租户Id')];
+		case 'org':
+			return [draft('OrgId', 'bigint', '机构Id')];
+		case 'delete':
+			return [draft('IsDelete', type('bit', 'boolean'), '软删除', 0, 0)];
+		case 'base':
+			return [
+				draft('CreateTime', type('datetime', 'timestamp'), '创建时间'),
+				draft('UpdateTime', type('datetime', 'timestamp'), '更新时间'),
+				draft('CreateUserId', 'bigint', '创建者Id'),
+				draft('CreateUserName', 'varchar', '创建者姓名', 64),
+				draft('UpdateUserId', 'bigint', '修改者Id'),
+				draft('UpdateUserName', 'varchar', '修改者姓名', 64),
+			];
+	}
+}
+export function updateColumnType(draft: ColumnDraft) {
+	if (['char', 'nchar', 'nvarchar', 'varchar'].includes(draft.dataType)) {
+		if (!draft.length) draft.length = 32;
+	} else draft.length = 0;
+}
+
+export function moveDraftFields<T>(fields: T[], index: number, delta: number): T[] {
+	if (fields.length < 2 || index < 0 || index >= fields.length) return fields;
+	const next = (index + delta + fields.length) % fields.length;
+	const result = [...fields];
+	[result[index], result[next]] = [result[next]!, result[index]!];
+	return result;
 }

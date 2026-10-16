@@ -144,6 +144,8 @@ onBeforeUnmount(() => {
 				<FormItem name="viceDesc" label="系统描述"><Input v-model:value="value.viceDesc" /></FormItem>
 				<FormItem name="watermark" label="水印内容"><Input v-model:value="value.watermark" allow-clear /></FormItem>
 				<FormItem name="copyright" label="版权说明"><Input v-model:value="value.copyright" /></FormItem>
+				<FormItem name="captcha" label="验证码"><RadioGroup v-model:value="value.captcha" :options="[{ label: '启用', value: 1 }, { label: '禁用', value: 2 }]" /></FormItem>
+				<FormItem name="secondVer" label="二次验证"><RadioGroup v-model:value="value.secondVer" :options="[{ label: '启用', value: 1 }, { label: '禁用', value: 2 }]" /></FormItem>
 				<FormItem name="enableReg" label="用户注册"
 					><RadioGroup
 						v-model:value="value.enableReg"
