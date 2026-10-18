@@ -1,125 +1,40 @@
-[根目录](../../../../CLAUDE.md) > [Admin.NET](../../../) > [Plugins](../../) > **Admin.NET.Plugin.WorkWeixin**
-
 # Admin.NET.Plugin.WorkWeixin
 
-## 变更记录 (Changelog)
+本文件补充[仓库规则](../../../AGENTS.md)，适用于企业微信的出站 HTTP 集成。
 
-| 日期 | 说明 |
-|------|------|
-| 2026-03-01 | 补扫：所有 HTTP 代理接口完整方法（Auth/Department/AppChat/Tag）、配置项详情 |
-| 2026-03-01 | 初始生成 |
+## 职责与接入
 
----
+[项目文件](Admin.NET.Plugin.WorkWeixin.csproj) 引用 Core，目标框架为 `net8.0;net10.0`。插件提供凭证获取、部门、标签与群聊会话的 HTTP 代理，没有独立持久化实体。当前 API 入口的项目引用链未接入本插件，启用前需确认宿主引用和 Furion 的代理发现。
 
-## 模块职责
+[Startup.cs](Startup.cs) 当前只绑定 [WorkWeixinOptions](Option/WorkWeixinOptions.cs)，请求管道方法为空。新增代理不能仅以这里存在 `Startup` 为由认定已完成注册、配置或验收。
 
-企业微信集成插件，提供：
-- 企业微信 access_token 获取
-- 部门管理（创建/修改/删除/查询）
-- 标签管理
-- 群聊会话管理与应用消息推送
+## 接口与调用方责任
 
----
+| 入口 | 维护范围 |
+| --- | --- |
+| [IWorkWeixinAuthHttp](Proxy/Auth/IWorkWeixinAuthHttp.cs) | `GetToken` 请求与认证响应 |
+| [IDepartmentHttp](Proxy/Department/IDepartmentHttp.cs) | 部门创建、更新、删除、列表与详情 |
+| [ITagHttp](Proxy/Tag/ITagHttp.cs) | 标签及标签成员操作 |
+| [IWorkWeixinAppChatHttp](Proxy/AppChat/IWorkWeixinAppChatHttp.cs) | 群聊创建、更新、查询与消息发送 |
+| [BaseHttpOutput.cs](Utils/BaseHttpOutput.cs) | 公共响应类型 `BaseWorkOutput`、`BaseWorkIdOutput` |
 
-## 入口与启动
+这些接口继承 `IHttpDeclarative`，不是本地 Controller。HTTP 方法、完整路由、Query 参数名和 Body 序列化以具体声明为准；目录名不一定等于命名空间，引用类型时核对声明。
 
-```csharp
-public class Startup : AppStartup { }
+- `GetToken` 当前声明为 `POST`，凭据通过 Query 参数发送。这是现有实现事实，不能据此保证符合目标企业微信接口要求；调整或接入时需核验官方契约和实际响应。
+- `CorpId`、`CorpSecret` 来自选项，业务调用需提供 `accessToken`。代理本身不实现集中缓存、刷新和并发协调；调用方按认证响应中的有效期管理 Token，不把固定秒数写成永久约定。
+- HTTP 成功不等于业务成功，需检查 `ErrCode`、`ErrMsg` 和业务结果。保持 Newtonsoft.Json 与 System.Text.Json 的字段名映射一致。
+- 部门、标签、群聊及消息操作有外部副作用，重试需结合错误码和业务幂等性。日志不得输出凭据、Token 或带认证参数的完整 URL。
+
+## 构建与验收
+
+从 `Admin.NET/` 执行：
+
+```powershell
+$ErrorActionPreference = 'Stop'
+dotnet build Plugins/Admin.NET.Plugin.WorkWeixin/Admin.NET.Plugin.WorkWeixin.csproj -c Debug
+if ($LASTEXITCODE -ne 0) { throw 'WorkWeixin 插件构建失败' }
 ```
 
-配置选项：`Option/WorkWeixinOptions.cs`
+`Admin.NET.Test` 当前未直接引用本插件。新增自动化测试时先接入被测项目，用标准 HTTP Mock 验证路由、参数、序列化与错误响应；Mock 通过不能记作企业微信联调通过。
 
-```csharp
-public class WorkWeixinOptions : IConfigurableOptions
-{
-    public string CorpId { get; set; }      // 企业ID
-    public string CorpSecret { get; set; }  // 企业微信凭证密钥
-}
-```
-
----
-
-## 对外接口
-
-所有接口均为 HTTP 代理（Furion `IHttpDeclarative`），直接调用企业微信 OpenAPI。
-
-### IWorkWeixinAuthHttp
-
-文件：`Proxy/Auth/IWorkWeixinAuthHttp.cs`
-
-| 方法 | HTTP | URL | 说明 |
-|------|------|-----|------|
-| `GetToken(corpId, corpSecret)` | POST | `https://qyapi.weixin.qq.com/cgi-bin/gettoken` | 获取企业微信接口凭证（access_token） |
-
-### IDepartmentHttp
-
-文件：`Proxy/Department/IDepartmentHttp.cs`
-
-| 方法 | HTTP | 说明 |
-|------|------|------|
-| `Create(accessToken, body)` | POST | 创建部门，返回新部门 ID |
-| `Update(accessToken, body)` | POST | 修改部门信息 |
-| `Delete(accessToken, id)` | GET | 删除部门 |
-| `SimpleList(accessToken, id)` | GET | 获取部门 ID 列表 |
-| `Get(accessToken, id)` | GET | 获取部门详情 |
-
-### IWorkWeixinAppChatHttp
-
-文件：`Proxy/AppChat/IWorkWeixinAppChatHttp.cs`
-
-| 方法 | HTTP | 说明 |
-|------|------|------|
-| `Create(accessToken, body)` | POST | 创建群聊会话 |
-| `Update(accessToken, body)` | POST | 修改群聊会话 |
-| `Get(accessToken, chatId)` | GET | 获取群聊会话详情 |
-| `Send(accessToken, body)` | POST | 应用推送消息到群聊 |
-
-### ITagHttp
-
-文件：`Proxy/Tag/ITagHttp.cs`
-
-标签相关操作（创建/修改/删除/查询标签及成员）。
-
----
-
-## 数据模型
-
-无独立实体，通过 HTTP 代理与企业微信 API 交互。
-
-基础响应：`Utils/BaseHttpOutput.cs`（`ErrCode`、`ErrMsg`）
-
----
-
-## 常见问题 (FAQ)
-
-**Q: access_token 如何管理？**
-当前插件不内置 Token 缓存，调用方需自行缓存 `GetToken()` 返回的 access_token（企业微信 Token 有效期 7200 秒）。
-
-**Q: 如何扩展新的企业微信 API？**
-在 `Proxy/` 下新建对应目录，定义继承 `IHttpDeclarative` 的接口，在 `Startup.cs` 中注册即可。
-
----
-
-## 相关文件清单
-
-```
-Admin.NET.Plugin.WorkWeixin/
-├── Const/WorkWeixinConst.cs
-├── Option/WorkWeixinOptions.cs         # CorpId + CorpSecret
-├── Proxy/
-│   ├── Auth/
-│   │   ├── IWorkWeixinAuthHttp.cs      # 获取 access_token
-│   │   └── Dto/WorkWeixinAuthHttpOutput.cs
-│   ├── Department/
-│   │   ├── IDepartmentHttp.cs          # 部门 CRUD
-│   │   └── Dto/
-│   ├── AppChat/
-│   │   ├── IWorkWeixinAppChatHttp.cs   # 群聊 + 消息推送
-│   │   └── Dto/
-│   └── Tag/
-│       ├── ITagHttp.cs                 # 标签管理
-│       └── Dto/
-├── Utils/BaseHttpOutput.cs
-├── GlobalUsings.cs
-└── Startup.cs
-```
+真实验收需在已接入插件的宿主和独立企业微信测试应用中核验 Token 获取、目标操作及失败响应。创建、删除、更新和消息发送仅使用明确的测试部门、标签或群聊，记录实际业务状态，避免重复发送消息。

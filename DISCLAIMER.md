@@ -27,9 +27,9 @@
 
 Admin.NET 是一个基于 .NET 构建的开源通用权限开发框架，我们采用了双重授权条款，您可以在 Apache 许可证（版本 2.0）或 MIT 许可证的条款下自由地使用、复制、分发、修改和贡献此项目。这意味着您可以根据自身需求和法律要求选择更适合您的许可条款：
 
-1. **Apache 许可证（版本 2.0）**：您可以通过访问 [LICENSE-APACHE](https://gitee.com/zuohuaijun/Admin.NET/blob/next/LICENSE-APACHE) 获取详细信息，并遵照其条款使用本框架。
+1. **Apache 许可证（版本 2.0）**：您可以通过访问 [LICENSE-APACHE](./LICENSE-APACHE) 获取详细信息，并遵照其条款使用本框架。
 
-2. **MIT 许可证**：另一种选择是遵循 MIT 许可协议，详情参见 [LICENSE-MIT](https://gitee.com/zuohuaijun/Admin.NET/blob/next/LICENSE-MIT)。
+2. **MIT 许可证**：另一种选择是遵循 MIT 许可协议，详情参见 [LICENSE-MIT](./LICENSE-MIT)。
 
 
 **责任限制**

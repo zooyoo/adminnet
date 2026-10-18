@@ -1,31 +1,23 @@
-# Issue tracker：本地 Markdown
+# 任务跟踪约定
 
-本仓库的规格和任务以本地 Markdown 为准，不自动同步到 GitHub、GitLab 或 Gitee。
+## 确认当前后端
 
-## 文件约定
+使用会话中实际可调用的 deck 插件管理 Issue / map 时，先调用一次 `deck_context`，以返回的 workspace 和 backend 为准。不要从 Git remote、历史文档或 `.scratch/` 推断当前后端；工具返回与仓库旧说明冲突时，以工具结果为准。
 
-- 每个功能一个目录：`.scratch/<feature-slug>/`，目录标识采用英文 kebab-case。
-- 规格：`.scratch/<feature-slug>/spec.md`。
-- 实施任务：`.scratch/<feature-slug>/issues/<NN>-<slug>.md`，从 `01` 开始编号，每个任务独立一个文件。
-- 规格和任务的 triage 标签记录在顶部 `Status:` 行，取值见 `docs/agents/triage-labels.md`。
-- 评论和讨论历史追加到文末 `## Comments` 下，保留已有内容。
-- 普通任务编号在功能目录内唯一；读取时结合所属功能定位。
+- 工具返回没有 workspace 或未选择 backend 时，停止调用其他 deck 工具，并说明需要用户选择后端。
+- 预检发现对应 CLI、认证或连接不可用时，报告实际限制；不自行改换 backend 或创建一套本地任务记录来伪装同步成功。
+- 工具未加载时，保留当前任务上下文，可直接完成用户已授权且不依赖 tracker 的工作；需要读写 Issue 时再说明缺少的能力。
 
-## 技能操作映射
+## Issue 与 map 操作
 
-- “发布到 Issue tracker”：在对应功能目录创建规格或任务文件，不调用远程 Issue API。
-- “读取相关任务”：读取用户指定的本地文件；按编号查找时限定到对应功能目录。
-- “应用 triage 标签”：更新对应文件顶部的 `Status:` 行。
-- 生成任务时检查现有编号，继续使用未占用的编号，保留已有文件及讨论。
+按目标选择 `deck_issue_get`、`deck_issue_list`、`deck_issue_create`、`deck_issue_patch` 或 map 工具，不把正文中的链接当作已写入真实依赖边。需要任务全量关系时读取完整关系；仅查单张票且不需要反向阻塞边时，可按工具支持使用 `blocking=false`。
 
-## Wayfinding 操作
+开始处理、切换或完成已有 Issue 时，按插件要求调用 `deck_issue_report`。关闭正文或状态使用 `deck_issue_patch`，关闭动作不替代完成上报。所有操作核对返回结果，不因请求已发出就宣称成功。
 
-本节仅在使用 `wayfinder` 时适用。此类探索任务使用独立的生命周期状态，不改变普通任务的 triage 标签含义。
+## 本地资料边界
 
-- 总览：`.scratch/<effort>/map.md`，记录 Notes、Decisions-so-far 和 Fog。
-- 子任务：`.scratch/<effort>/issues/<NN>-<slug>.md`，每个问题一个文件，从 `01` 编号。
-- `Type:` 记录 `research`、`prototype`、`grilling` 或 `task`。
-- `Status:` 记录 `open`、`claimed` 或 `resolved`，新任务为 `open`。
-- `Blocked by:` 记录同一功能目录内的依赖编号；所有依赖均为 `resolved` 时才解除阻塞。
-- 选择任务时按编号寻找 `open` 且无阻塞的任务；开始工作前写入 `Status: claimed`。
-- 完成后在 `## Answer` 追加结果，改为 `Status: resolved`，并在总览的 Decisions-so-far 追加结论摘要与任务链接。
+`.scratch/<feature>/` 仅用于临时调查、草稿和测试产物，不固定规格文件名、任务编号或生命周期格式。只有当前后端明确选择本地 Markdown 时，才遵循该后端返回的文件与编号约定。
+
+阶段交接和本地旧任务表不是远程 Issue 状态的权威来源。完成任务后把可复用的配置、契约和决策整理到 `docs/` 或模块说明，再按 [维护约定](../maintenance.md) 清理临时资料。
+
+任务标签的含义见 [分流标签](triage-labels.md)，领域资料的入口见 [领域文档](domain.md)。

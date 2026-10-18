@@ -1,6 +1,8 @@
 # Cache 模块
 
-基于**策略模式**的异步存储管理方案，支持多种存储后端（localStorage、IndexedDB、Memory），提供统一的 API 接口。
+基于策略模式的异步存储管理方案，支持 localStorage、sessionStorage、IndexedDB 和 Memory，公开入口为 `@vben-core/shared/cache`。具体实现见 [storage-manager.ts](storage-manager.ts)，应用使用时沿用现有命名空间，不在本模块接入业务接口。
+
+默认驱动按环境选择：可访问浏览器 `window.localStorage` 时使用 `LocalStorageDriver`，否则使用 `MemoryStorageDriver`。使用持久化驱动时明确设置非空 `prefix`；空前缀下的 `keys()`、`clear()` 会覆盖该驱动的全部键。
 
 ## 架构设计
 
@@ -31,7 +33,7 @@
 
 ## 快速开始
 
-### 基本使用（默认 localStorage）
+### 基本使用（浏览器默认 localStorage）
 
 ```typescript
 import { StorageManager } from '@vben-core/shared/cache';
@@ -113,7 +115,7 @@ const sessionCache = new StorageManager({
 - 同步 API 用 async 包装，保持接口统一
 - 自动处理 JSON 序列化/反序列化
 - 数据损坏时自动清除并返回 null
-- 存储上限约 5-10MB（视浏览器而定）
+- 容量与可用性由浏览器配额、隐私模式和当前来源决定，不承诺固定容量
 
 **适用场景：** 用户偏好设置、小型配置数据、Token 存储
 
@@ -140,16 +142,16 @@ await cache.setItem('table-data', largeDataArray);
 
 // 存储二进制友好的结构（IndexedDB 原生支持）
 await cache.setItem('config', {
-  columns: [...],
-  filters: [...],
-  pagination: {page: 1, size: 20},
+  columns: ['name', 'status'],
+  filters: [{ field: 'status', value: 'enabled' }],
+  pagination: { page: 1, size: 20 },
 });
 ```
 
 **特点：**
 
 - 懒初始化：首次操作时自动打开数据库，无需手动调用 `init()`
-- 存储容量大（通常数百 MB 到 GB 级别）
+- 可用容量由浏览器和来源配额决定，调用方处理配额或权限错误
 - 支持结构化克隆（可存储 Date、RegExp、Blob 等复杂类型）
 - 天然异步，不阻塞主线程
 
@@ -192,7 +194,7 @@ new StorageManager(options?: StorageManagerOptions)
 
 | 参数 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `driver` | `IStorageDriver` | `new LocalStorageDriver()` | 存储驱动实例 |
+| `driver` | `IStorageDriver` | 按环境选择 | localStorage 可访问时使用 `LocalStorageDriver`，否则使用 `MemoryStorageDriver` |
 | `prefix` | `string` | `''` | 键前缀，用于命名空间隔离 |
 
 #### 方法
@@ -200,7 +202,8 @@ new StorageManager(options?: StorageManagerOptions)
 | 方法 | 签名 | 说明 |
 | --- | --- | --- |
 | `getItem` | `getItem<T>(key: string, defaultValue?: T \| null): Promise<T \| null>` | 获取存储项，过期或不存在返回默认值 |
-| `setItem` | `setItem<T>(key: string, value: T, ttl?: number): Promise<void>` | 设置存储项，可选 TTL（毫秒） |
+| `setItem` | `setItem(key: string, value: unknown, ttl?: number): Promise<void>` | 设置存储项，可选 TTL（毫秒） |
+| `keys` | `keys(): Promise<string[]>` | 返回当前命名空间的键，去除前缀；不自动过滤过期项 |
 | `removeItem` | `removeItem(key: string): Promise<void>` | 删除指定存储项 |
 | `clear` | `clear(): Promise<void>` | 清除当前前缀下所有存储项 |
 | `clearExpiredItems` | `clearExpiredItems(): Promise<void>` | 主动清理所有过期项 |
@@ -230,6 +233,8 @@ interface IStorageDriver {
 ## 高级用法
 
 ### 自定义 Driver
+
+以下是接口实现示意，Cookie 辅助函数需要由调用方提供；本模块不提供 Cookie 驱动或这些函数。真正实现时处理序列化、解析错误与 Cookie 作用域。
 
 ```typescript
 import type { IStorageDriver } from '@vben-core/shared/cache';
@@ -364,42 +369,22 @@ interface StorageItem<T> {
 
 ## 各 Driver 对比
 
-| 特性       | LocalStorageDriver  | IndexedDBDriver  | MemoryStorageDriver |
-| ---------- | ------------------- | ---------------- | ------------------- |
-| 持久化     | ✅                  | ✅               | ❌                  |
-| 容量       | 5-10 MB             | 数百 MB+         | 受内存限制          |
-| 速度       | 快（同步）          | 中等（异步 I/O） | 最快                |
-| 数据类型   | 仅 JSON 可序列化    | 结构化克隆       | 任意 JS 对象        |
-| 浏览器支持 | 所有现代浏览器      | 所有现代浏览器   | 任意环境            |
-| 阻塞主线程 | 是                  | 否               | 否                  |
-| 适用场景   | 配置、Token、小数据 | 离线缓存、大数据 | 测试、SSR           |
+| 特性 | LocalStorageDriver | IndexedDBDriver | MemoryStorageDriver |
+| --- | --- | --- | --- |
+| 数据生命周期 | localStorage 或 sessionStorage 的生命周期 | 浏览器 IndexedDB 的生命周期 | 当前驱动实例的生命周期 |
+| 容量 | 浏览器配额 | 浏览器与来源配额 | 可用内存 |
+| 底层机制 | 同步 Web Storage，包装为异步接口 | 异步事务 | 内存 Map，包装为异步接口 |
+| 数据类型 | JSON 可序列化值 | 结构化克隆支持的值 | JavaScript 值 |
+| 环境前提 | 可访问 Web Storage | 可访问 IndexedDB | 不依赖浏览器存储 |
+| 适用场景 | 偏好、小型配置 | 离线与结构化缓存 | 测试、SSR、临时缓存 |
 
 ---
 
 ## 在项目中的使用
 
-本项目中 `StorageManager` 主要被 `PreferenceManager` 消费，用于持久化用户偏好设置：
+本项目的 `PreferenceManager` 消费 `StorageManager`，初始化时设置应用命名空间并加载偏好。具体驱动、初始化顺序、兼容处理和异常处理以 [preferences.ts](../../../../preferences/src/preferences.ts) 为准，修改时同步核对调用方及相关测试。
 
-```typescript
-// packages/@core/preferences/src/preferences.ts
-class PreferenceManager {
-  private cache: StorageManager;
-
-  constructor() {
-    this.cache = new StorageManager();
-    this.state = reactive<Preferences>({ ...defaultPreferences });
-  }
-
-  initPreferences = async ({ namespace }) => {
-    // 用应用命名空间重新初始化
-    this.cache = new StorageManager({ prefix: namespace });
-
-    // 从缓存加载偏好设置
-    const cached = await this.cache.getItem<Preferences>('preferences');
-    // ...
-  };
-}
-```
+纯逻辑测试可以显式注入 `MemoryStorageDriver`；它验证存储管理逻辑，不代表真实浏览器持久化行为已通过。应用环境与验证边界见[前端说明](../../../../../../README.md)。
 
 ---
 
@@ -411,7 +396,7 @@ class PreferenceManager {
 
 3. **IndexedDB 懒初始化** — 不需要手动调用 `init()` 或 `open()`，首次操作时自动打开数据库连接并复用。
 
-4. **前缀隔离是逻辑隔离** — `clear()` 只清除当前前缀下的数据，不影响其他前缀或无前缀的数据。
+4. **前缀隔离是逻辑隔离** — 非空前缀按 `${prefix}-` 匹配；前缀有包含关系时可能命中同一组键，设计命名空间时避免交叠。空前缀匹配驱动中的全部键。
 
 5. **错误处理** — LocalStorageDriver 在 JSON 解析失败时自动清除损坏数据； `PreferenceManager.saveToCache` 内部 try-catch 防止未捕获异常。
 

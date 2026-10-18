@@ -1,13 +1,13 @@
-# Triage 标签
+# 分流标签
 
-工程技能使用以下默认映射。本地规格和任务在顶部 `Status:` 行保存对应标签。
+以下名称用于描述任务分流角色，不强制替代当前 tracker 的原生状态或必备标签。执行前按 [任务跟踪约定](issue-tracker.md) 确认 workspace 和 backend，并保留该后端要求的标签。
 
-| 标准角色 | 本仓库标签 | 含义 |
+| 分流角色 | 常用标签 | 含义 |
 | --- | --- | --- |
-| `needs-triage` | `needs-triage` | 等待维护者评估 |
-| `needs-info` | `needs-info` | 等待补充信息 |
-| `ready-for-agent` | `ready-for-agent` | 规格充分，适合代理独立实施 |
-| `ready-for-human` | `ready-for-human` | 需要人工实施 |
-| `wontfix` | `wontfix` | 不予实施 |
+| 等待评估 | `needs-triage` | 问题或范围尚待评估 |
+| 等待信息 | `needs-info` | 缺少复现、环境或业务资料 |
+| 可由代理实施 | `ready-for-agent` | 范围、前提与验收标准充分 |
+| 需要人工处理 | `ready-for-human` | 需要人工决策、凭据、设备或实施 |
+| 不予实施 | `wontfix` | 经明确决定不处理，并记录原因 |
 
-技能要求应用某个标准角色时，使用本表的对应标签。Wayfinding 的认领与完成状态另按 `issue-tracker.md` 处理。
+这些标签不表达“处理中”“已完成”或依赖解除。任务状态、认领和阻塞关系使用实际 tracker 提供的字段及边，不通过修改本地 `Status:` 行模拟。标签已存在时沿用实际映射；未配置时不要仅因本表自动批量创建远程标签。

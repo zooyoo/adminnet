@@ -1,6 +1,6 @@
 # <a href="https://gitee.com/lyt-top/vue-next-admin" target="_blank">vue-next-admin 更新日志</a>
 
-🎉🎉🔥 `vue-next-admin` 基于 vue3.x 、Typescript、vite、Element plus 等，适配手机、平板、pc 的后台开源免费模板库（vue2.x 请切换 vue-prev-admin 分支）
+本文件保留旧 `vue-next-admin` 前端的历史版本记录。下文的 Element Plus、目录与依赖描述仅对应历史版本；当前 Admin.NET 前端位于 `apps/web-antdv-next/`，开发与构建方法见 [README.md](README.md)。不在本记录中补造移植版本或改写历史条目。
 
 ## 2.4.33
 

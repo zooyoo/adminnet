@@ -2,7 +2,7 @@
 
 发布包包含 html/、两份 Nginx 配置、发布工具和 release-manifest.json。清单逐文件记录大小与 SHA256，包含源代码提交号和实际外置配置文件名。打包只读取 Web/dist，不包含后端数据库配置、生产证书或浏览器登录状态。
 
-本地发布候选通过不等于生产发布授权。正式切换前按当前提案状态完成依赖，并取得针对发布环境的独立授权；外部服务的未验业务不能由清理和发布流程静默关闭。
+切换前按本次交付范围核对构建、清单、目标环境和用户授权。发布工具负责静态文件完整性与目录切换；真实 API、数据库、外部服务和业务验收仍需按目标场景完成。开发与验证前提见[开发和验证](../../../docs/development.md)。
 
 ## 创建与核对发布包
 
@@ -26,7 +26,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Release verification failed' }
 
 ```powershell
 $ErrorActionPreference = 'Stop'
-node C:/releases/adminnet-candidate/deploy/frontend-release.mjs activate --release C:/releases/adminnet-candidate --target C:/sites/adminnet/current --sha <核对后的清单SHA256> --replace
+$manifestSha256 = '替换为已核对的清单SHA256'
+node C:/releases/adminnet-candidate/deploy/frontend-release.mjs activate --release C:/releases/adminnet-candidate --target C:/sites/adminnet/current --sha $manifestSha256 --replace
 if ($LASTEXITCODE -ne 0) { throw 'Release activation failed' }
 ```
 
@@ -42,4 +43,4 @@ Nginx 的 root 指向 current/html。Docker 应挂载 current 的父目录，避
 
 切换后核验访问地址：站点根 /#/auth/login、已授权业务深链、/prod-api/api/sysConfig/sysInfo，以及业务页面打开的 /schedule/。检查 HTML 和 _app-config 为 no-store、带哈希资源为 immutable，真实登录、图片上传预览下载、在线用户 Hub 和调度看板独立认证与 SSE。正式域名、证书和后端权限必须在获批环境中验证。
 
-本仓库第 48 项本地验收的地址、发布包路径和哈希记录在 .scratch/frontend-vben-migration/release48-acceptance.json。自动化完成后会关闭自有测试站点；文档中的本地历史地址不作为持续在线服务。
+按本次发布保存候选包路径、源提交号、清单哈希、现场配置与验证结果。自动化创建的测试站点随夹具结束关闭，不作为持续在线服务；访问地址以当前部署环境为准。长期说明和临时资料的维护边界见[维护说明](../../../docs/maintenance.md)。

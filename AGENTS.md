@@ -1,136 +1,74 @@
 # 仓库指南
 
-## 项目结构与模块组织
+## 适用范围与事实来源
 
-本仓库由 ASP.NET Core 后端和 Vue 3 前端组成。后端代码位于 `Admin.NET/`：`Admin.NET.Core` 包含领域模型与共享基础设施，`Admin.NET.Application` 实现应用服务，`Admin.NET.Web.Core` 承载 Web 层通用能力，`Admin.NET.Web.Entry` 是可执行的 API 项目。测试位于 `Admin.NET/Admin.NET.Test`，可选集成模块独立放在 `Admin.NET/Plugins/`。
+本文件提供全仓通用约定。修改目标目录前，读取该路径上适用的 `AGENTS.md` 和最近的 `CLAUDE.md`；子目录规则补充本层约定。用户当前要求和会话中的工具权限优先。以磁盘源码、项目配置和 `git diff` 为事实依据，文档或检索索引与源码冲突时先核对并修正文档。
 
-前端位于 `Web/`。应用代码放在 `Web/src/`，静态资源放在 `Web/public/`，构建产物放在 `Web/dist/`。部署相关资源归入 `docker/`；不要在源码目录中放置运行时或构建产物。修改后端模块或插件前，请先阅读距离目标文件最近的 `CLAUDE.md`。
+所有沟通使用简体中文，技术名、命令、API 和代码标识符保留英文。中文与英文、数字之间留空格。
 
-## 构建、测试与开发命令
+## 项目结构
 
-在 `Admin.NET/` 中运行后端命令：
+- `Admin.NET/`：后端解决方案。`Admin.NET.Core` 承载领域模型与基础设施，`Admin.NET.Application` 实现应用服务，`Admin.NET.Web.Core` 负责 Web 配置，`Admin.NET.Web.Entry` 是 API 入口，`Admin.NET.Test` 是测试项目，`Plugins/` 放置可选集成。
+- `Web/`：pnpm workspace。业务应用在 `Web/apps/web-antdv-next/`，共享代码在 `Web/packages/`，工具配置在 `Web/internal/`。先读 [前端规则](Web/AGENTS.md) 和 [前端说明](Web/README.md)，不要使用已移除的 `Web/src/`、`Web/public/` 或旧应用路径。
+- `docker/`：部署资源，使用前核对 [Docker 说明](docker/README.md) 与对应脚本。
+- `docs/`：长期维护的说明与协作约定，入口为 [文档索引](docs/README.md)。`docs/assets/images/`、`docs/assets/shop/` 保留上游展示资源。
+- `.scratch/`：默认忽略的临时工作区，少量历史文件已被 Git 跟踪；不作为运行依赖或长期文档目录。清理边界见 [维护说明](docs/maintenance.md)。
+
+## 开发与验证
+
+从仓库根目录执行后端命令：
 
 ```powershell
-dotnet restore Admin.NET.sln
-dotnet build Admin.NET.sln -c Debug
-dotnet run --project Admin.NET.Web.Entry/Admin.NET.Web.Entry.csproj
-dotnet test Admin.NET.Test/Admin.NET.Test.csproj
+dotnet restore Admin.NET/Admin.NET.sln
+dotnet build Admin.NET/Admin.NET.sln -c Debug
+dotnet run --project Admin.NET/Admin.NET.Web.Entry/Admin.NET.Web.Entry.csproj
 ```
 
-### 不需要测试mobil端，只测试桌面端
-### 用pgsql测试，不要用sqlite
-
-解决方案面向 .NET 8 和 .NET 10，Web 入口项目面向 .NET 10。在 `Web/` 中使用仓库指定版本的 pnpm 运行前端命令：
+API 入口与测试项目使用 .NET 10；其他工程的目标框架以各自 `.csproj` 为准。`Admin.NET/global.json` 选择 Microsoft.Testing.Platform，当前未固定 SDK 版本。测试须在 `Admin.NET/` 目录执行，使用该运行器的参数：
 
 ```powershell
-pnpm install
+dotnet test --project Admin.NET.Test/Admin.NET.Test.csproj
+```
+
+前端在 `Web/` 下使用 `package.json` 的 `packageManager` 指定版本运行：
+
+```powershell
+pnpm install --frozen-lockfile
 pnpm dev
 pnpm build
-pnpm lint-fix
-pnpm format
+pnpm lint
+pnpm check:type
+pnpm test:unit
 ```
 
-`pnpm lint-fix` 会修改文件，提交前请检查其产生的差异。
+按改动范围选择检查，不把列出的全部命令作为每次任务的固定门禁。`pnpm lint-fix`、`pnpm format` 会写文件，只对明确需要格式化的范围使用，并检查差异。前后端联调和桌面 E2E 的环境前提见 [开发与验证](docs/development.md)。
 
-## 代码风格与命名约定
+- 后端使用现有 xUnit v3 测试项目；涉及数据库的集成验证使用隔离的真实 PostgreSQL，不使用 SQLite 替代。
+- 前端逻辑使用 Vitest；浏览器流程使用 Playwright，仅要求桌面端。CapsLock、快捷键和 Notification 在浏览器层通过 Playwright API 或 Mock 验证，不编写 Windows 原生 Hook。
+- 测试类采用 `*Tests`，方法采用 `Method_Scenario_ExpectedResult`，遵循 Arrange、Act、Assert。
+- 沿用标准测试框架，不自研底层驱动、时序探测器或临时协议，不堆积散碎 `.tmp` 证据。按场景记录退出码、关键截图和 PostgreSQL 数据核验结果。
+- 单项测试调试超过 30 分钟仍未解决时，停止扩展测试工具；可用 Mock 验证可隔离的逻辑，并列出 1～2 步人工核验方法。明确标注真实集成验收仍未完成，不能将 Mock 结果记作真实联调通过。
+- 仅文档改动通常核对路径、命令、事实、链接与差异即可；不要因此启动业务服务、创建测试数据库或运行修改型全仓格式化。
 
-遵循 `Admin.NET/.editorconfig`：C# 使用 4 个空格缩进、`CRLF` 换行、文件范围命名空间，以及 `PascalCase` 类型和成员命名；接口以 `I` 开头，并在适当场景优先使用显式局部类型。新增 C# 文件时保留规定的版权声明头。
+## 代码与提交
 
-前端格式由 `Web/.prettierrc.cjs` 定义：使用制表符缩进（宽度为 2）、分号、单引号、`LF` 换行和 200 字符行宽。遵循既有的 `index.vue` 与功能目录组织模式，避免建立平行的目录结构。
+后端遵循 `Admin.NET/.editorconfig`：C# 使用 4 空格、CRLF、文件范围命名空间，类型和成员使用 `PascalCase`，接口以 `I` 开头。新增 C# 文件保留版权声明。前端遵循目标包的现有配置，业务应用格式参考 `Web/.prettierrc.cjs`，不要为统一文档顺带重排共享包源码。
 
-## 自动化测试与验收集成规范
+提交信息采用中文 Conventional Commits，例如 `docs: 更新前端开发与验收说明`。PR 写明问题、行为变化、受影响模块、关联 Issue 和验证结果；界面变更提供必要截图。保留用户已有改动。不要提交密钥、连接凭据、证书、业务上传文件或构建产物，不因文档维护升级依赖。
 
-在 `Admin.NET.Test` 中使用 xUnit v3。测试文件应放在对应领域目录下；新测试类命名为 `*Tests`，测试方法使用 `Method_Scenario_ExpectedResult` 格式，例如 `Init_WithTimeSpan_ReturnsCorrectDateTime`。测试采用 Arrange、Act、Assert 结构。提交 PR 前运行受影响的测试项目和相关构建。
+## 检索与工具
 
-###  **禁止自研测试工具**：严禁自写底层驱动、时序探测器或临时协议；禁止生成散碎 `.tmp` 证据文件。验收以标准测试框架的退出码 `0`、关键截图和 PG 数据为准。
-###  **分层与标准工具**：
-  - 后端：`Admin.NET.Test` (xUnit v3) + 真实 PostgreSQL。
-  - 前端与 E2E：Vitest 测逻辑；**Playwright** 测桌面端流程。
-  - 浏览器边界：大写锁定（CapsLock）、快捷键及桌面通知（Notification）统一在浏览器层通过 Playwright API 或 Mock 验证，**严禁手写 Windows 原生 Hook**。
-###  **30 分钟熔断机制**：单项测试调试超过 **30 分钟**未果，必须立即停止折腾测试工具；降级为 Mock 并注明 1~2 步人工核验操作，绝不允许单项阻塞主线。
+1. 定位实现、分析依赖或修改代码前，优先调用 `codegraph_explore`；`projectPath` 始终传当前仓库的绝对路径，查询包含具体符号、文件或行为。
+2. Codegraph 返回的带行号源码视为已读取，不立即重复打开同一段。修改公共方法或核心流程前核对调用方、配置入口、测试和影响范围。
+3. Codegraph 不可用、命中不相关或索引与源码不一致时，说明实际限制并用定向 `rg`、`git grep` 或文件读取补充。仅在索引缺失且确有需要时建议用户执行 `codegraph init <仓库绝对路径>`；不自行升级、删除或重建索引，也不在工具正常时声称不可用。
+4. 文件盘点、文档更新和已知路径的精确读取可直接使用 `rg` 和文件工具。不要检索或输出 `.env`、认证文件、密钥、令牌或证书内容。
+5. 使用会话实际暴露且可调用的 Skill、MCP 和 CLI，不将配置文件存在视为工具已加载。外部库 API 问题按需查询匹配版本的文档；普通文档整理优先使用本地事实。
 
+Windows 原生命令与仓库 PowerShell 脚本使用 PowerShell 7+，不要调用旧版 `powershell.exe` 或 `cmd.exe`。PowerShell 脚本以 `$ErrorActionPreference = 'Stop'` 开始，文件读写显式使用 UTF-8，检查外部命令退出码。工具宿主规定的 Shell 与沙箱边界优先，不混用 Bash / PowerShell 转义，不绕过权限限制。删除或移动前核验解析后的绝对路径及其用途。
 
-## 提交与 Pull Request 约定
+## 协作与文档维护
 
-提交信息使用简洁的中文 Conventional Commit 格式，例如 `fix: 修复异常日志序列化失败` 或 `feat: 新增审批流节点`。每个提交只处理一个关注点。Pull Request 应说明行为变化、标出受影响的后端或前端模块、关联可用的 Issue、列出验证命令；界面变更还应附截图。不要提交凭据、生产环境连接字符串、证书，以及生成的 `bin/`、`obj/`、`node_modules/` 或 `dist/` 内容。
-
-## 前端 Skill 与工具调用规范
-
-本节适用于 `Web/` 前端任务。Skill 提供按需知识，MCP 和 CLI 提供查询与检查能力；具体实现以用户要求、仓库现有结构及目标包的实际配置为准。所有 Skill 的 API 和配置建议均需核对项目实际版本。`antfu` 的个人偏好仅作补充，不因加载 Skill 而替换现有工具链、目录组织或格式规则。
-
-### 按需选择 Skill
-
-任务触发时，先阅读对应的 `.agents/skills/<skill>/SKILL.md`，再按指引读取相关参考文件；只加载本次任务需要的内容。
-
-| 任务 | 应使用的 Skill |
-| --- | --- |
-| Vue 组件、响应式逻辑、SFC | `vue` |
-| antdv-next 组件开发、API 查询、主题定制、故障诊断、版本迁移 | `antdv` 与 `antdv-next`，涉及 Vue 实现时同时使用 `vue` |
-| Pinia 状态管理 | `pinia` |
-| Vite 配置或 Vitest 测试 | 分别使用 `vite` 或 `vitest` |
-| pnpm 依赖、workspace、catalog、lockfile | `pnpm` |
-| Nuxt、Nitro、VitePress、UnoCSS | 仅在实际涉及对应技术时使用 `nuxt`、`nitro`、`vitepress`、`unocss` |
-| 新项目工具选型或用户明确要求 Anthony Fu 的约定 | `antfu` |
-| 用户明确要求创建、发布或准备 PR | `antfu-create-pr`，提交与 PR 文案仍遵循本仓库规范 |
-
-### antdv-next 查询与验证流程
-
-1. **确认版本**：核对目标应用的已安装依赖与 `Web/pnpm-lock.yaml`；将 `catalog:` 或 semver 范围解析为确定版本。若安装状态与 lockfile 不一致，先说明差异，明确查询的目标版本。本文件不固定组件库版本号。
-2. **选择查询入口**：优先使用当前会话已加载且能确认版本匹配的 `antdv` MCP，参数以实际工具 schema 为准。MCP 未加载、版本不明或查询失败时，改用 CLI，例如 `antdv info <组件名> --ver <实际版本> --format json`。配置文件存在不等于工具已可调用；`--ver` 指定组件库版本，`--version` 打印 CLI 版本。
-3. **先查询后编码**：按 `info → demo → 编码` 顺序执行，必要时补充 `doc`。确认 Props、Events、Slots、类型、默认值和弃用提示后再实现；以匹配版本的结果为依据，不直接套用旧版 Ant Design Vue 或 React Ant Design 的 API。`antdv-next` 的离线参考资料仅在版本适用时使用。
-4. **样式与主题**：主题修改查询 `token`，DOM 与样式挂钩查询 `semantic`，整体视觉设计按需读取 `design.md`。沿用仓库现有视觉规范，优先使用该版本公开的 Token 和样式接口。
-5. **修改后验证**：按实际命令支持情况运行 `antdv lint <修改文件或目录> --format json`，并执行受影响包现有的 lint、类型检查和相关测试。若 CLI 仅回显参数、功能未实现或不支持目标版本，明确记录限制，改用仓库现有检查及对应版本文档复核，不把退出码 `0` 单独视为检查通过。
-6. **升级与迁移**：先核对版本间的 Changelog 和迁移指南，再决定替换方案；CLI 支持时使用 `changelog`、`migrate` 辅助查询。仅为获取资料不得顺带升级项目依赖或重写配置。CLI 用法有疑问时以本机 `--help` 和官方说明交叉核验。
-
-### 参考资料
-
-- Antdv Next：[Skills](https://www.antdv-next.cn/docs/vue/skills-cn)、[MCP](https://www.antdv-next.cn/docs/vue/mcp-cn)、[CLI](https://antdv-next.com/docs/vue/cli-cn.md)、[Agent 指南](https://antdv-next.com/docs/vue/for-agents-cn.md)。
-- [Antfu Skills](https://github.com/antfu/skills)；项目内已安装的 Skill 以 `.agents/skills/` 为准。
-
-## 项目检索规则
-
-进行代码分析、定位实现、追踪调用链或修改代码前，优先使用 `codegraph`，避免无目的地遍历整个仓库。
-
-### 工具选择
-
-- 已知类名、函数、接口、文件或业务入口时，优先调用 `codegraph_explore`。
-- 需要理解调用链、依赖关系、数据流或修改影响范围时，优先使用 `codegraph_explore`。
-
-### Codegraph 使用规范
-
-- 调用时始终传入当前项目的绝对路径 `projectPath`。
-- 查询应包含具体符号、文件名、业务流程或待修改行为，避免只有“分析项目”之类的宽泛描述。
-- Codegraph 返回的带行号源码视为已经读取过，不要立即重复打开同一段代码。
-- 修改共享方法、公共接口或核心流程前，使用 Codegraph 检查调用方和影响范围。
-- 同时说明 Codegraph 当前不可用于该项目，并提供用户可执行的 `codegraph init` 命令。
-- 不得自行升级 Codegraph，或删除、重建现有索引；发现版本、损坏或索引过期问题时，说明原因和建议操作。
-
-### 标准检索流程
-
-1. 判断是否已有明确符号或入口。
-3. 根据结果进行一次有针对性的补充检索。
-4. 必要时再使用 `rg`、`git grep`、`Select-String` 或文件读取工具核实具体内容。
-5. 修改前确认定义位置、调用方、配置入口、测试位置和潜在影响范围。
-6. 以当前磁盘源码和 `git diff` 为最终依据；工具索引与源码冲突时，以源码为准。
-
-### 检索约束
-- 不要重复读取工具已经返回的完整源码。
-- 不要为了探索代码而自动修改、初始化或升级项目。
-- 不得检索或输出 `.env`、密钥、令牌、证书及其他敏感内容。
-- 回答时区分“源码已验证”“工具推断”和“仍需确认”的内容。
-
-
-
-## Agent skills
-
-### Issue tracker
-
-规格与任务使用本地 Markdown，按功能存放于 `.scratch/<feature>/`。发布、读取及任务编号规则见 `docs/agents/issue-tracker.md`。
-
-### Triage labels
-
-使用默认的 5 个 triage 标签；分流与更新状态时读取 `docs/agents/triage-labels.md`。
-
-### Domain docs
-
-采用 single-context，共享根目录 `GLOSSARY.md` 和 `docs/adr/`。探索领域代码前按 `docs/agents/domain.md` 读取相关资料。
+- Issue / map 操作先按 [任务跟踪约定](docs/agents/issue-tracker.md) 确认当前 workspace 和 backend；不得把 `.scratch/` 中的旧任务表当作当前权威状态。
+- 分流标签按 [标签约定](docs/agents/triage-labels.md) 理解，并服从实际 tracker 的状态与必备标签。
+- 领域资料与架构决策按 [领域文档约定](docs/agents/domain.md) 查阅；不因可选术语表或 ADR 不存在而阻塞任务。
+- 文档只记录可复用的配置、契约和流程。阶段交接、任务编号、截图日志和机器绝对路径留在临时工作区；任务完成后提炼必要结论再清理。更新入口、脚本或契约时，同步修改相应说明和本地链接。

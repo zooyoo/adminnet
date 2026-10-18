@@ -1,59 +1,17 @@
 # @vben/turbo-run
 
-`turbo-run` 是一个命令行工具，允许你在多个包中并行运行命令。它提供了一个交互式的界面，让你可以选择要运行命令的包。
+workspace 内的交互式脚本选择工具。它发现具备目标脚本的包，供用户选择，再交给 Turbo 执行。根 `Web/package.json` 已通过 `workspace:*` 引入本工具，无需另行安装。
 
-## 特性
+从 `Web/` 查看帮助或运行目标脚本：
 
-- 🚀 交互式选择要运行的包
-- 📦 支持 monorepo 项目结构
-- 🔍 自动检测可用的命令
-- 🎯 精确过滤目标包
-
-## 安装
-
-```bash
-pnpm add -D @vben/turbo-run
+```powershell
+$ErrorActionPreference = 'Stop'
+pnpm exec turbo-run --help
+pnpm exec turbo-run dev
 ```
 
-## 使用方法
+候选包来自当前 workspace 的实际 `package.json`；交互式终端需要能接收用户选择。选定包必须定义对应脚本，具体参数与执行方式以 [src/](src/) 和本机 `--help` 为准。
 
-基本语法：
+当前 Admin.NET 根 `pnpm dev`、`pnpm build` 直接选择 `@vben/web-antdv-next`，日常开发不经过本交互工具。不要沿用上游模板中的 `@vben/app`、`@vben/admin`、`@vben/website` 示例作为本仓库应用。
 
-```bash
-turbo-run [script]
-```
-
-例如，如果你想运行 `dev` 命令：
-
-```bash
-turbo-run dev
-```
-
-工具会自动检测哪些包有 `dev` 命令，并提供一个交互式界面让你选择要运行的包。
-
-## 示例
-
-假设你的项目中有以下包：
-
-- `@vben/app`
-- `@vben/admin`
-- `@vben/website`
-
-当你运行：
-
-```bash
-turbo-run dev
-```
-
-工具会：
-
-1. 检测哪些包有 `dev` 命令
-2. 显示一个交互式选择界面
-3. 让你选择要运行命令的包
-4. 使用 `pnpm --filter` 在选定的包中运行命令
-
-## 注意事项
-
-- 确保你的项目使用 pnpm 作为包管理器
-- 确保目标包在 `package.json` 中定义了相应的脚本命令
-- 该工具需要在 monorepo 项目的根目录下运行
+应用命令、环境版本和构建输出见[前端说明](../../README.md)。

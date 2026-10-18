@@ -1,133 +1,45 @@
-[根目录](../../../CLAUDE.md) > [Admin.NET](../../) > **Admin.NET.Web.Core**
-
 # Admin.NET.Web.Core
 
-## 变更记录 (Changelog)
+本文件补充[仓库规则](../../AGENTS.md)，适用于 Web 层的服务注册、请求管道、认证处理与序列化契约。
 
-| 日期 | 说明 |
-|------|------|
-| 2026-03-01 | 补扫：Startup.cs 完整中间件管道、JWT 事件、事件总线 Redis/RabbitMQ 切换、限流、压缩、定时任务看板登录集成 |
-| 2026-03-01 | 初始生成 |
+## 职责与入口
 
----
+本项目将 Core 的基础设施与 Application 扩展组装到 ASP.NET Core 宿主中。直接项目引用为 `Admin.NET.Application`，经其依赖 Core；插件是否加载由实际引用与启动配置决定。当前目标框架为 `net8.0;net10.0`，以 [项目文件](Admin.NET.Web.Core.csproj) 为准。
 
-## 模块职责
+- [Startup.cs](Startup.cs) 使用 `[AppStartup(int.MaxValue)]`，包含 `ConfigureServices` 和 `Configure`。
+- [ProjectOptions.cs](ProjectOptions.cs) 的 `AddProjectOptions` 绑定项目选项及限流配置。
+- [JwtHandler.cs](Handlers/JwtHandler.cs) 处理黑名单、令牌和按钮权限检查；改认证行为时同时核对 Core 的登录、退出及在线用户逻辑。
+- 可执行宿主位于 [Web.Entry](../Admin.NET.Web.Entry/CLAUDE.md)，本项目没有独立启动入口。
 
-Web 宿主核心层，负责将所有基础设施和中间件组装到 ASP.NET Core 管道中。是整个应用的"配置中心"，不包含业务逻辑。
+## 组装与请求边界
 
----
+修改 `Startup` 时查看相邻注册和中间件，不把文档中的简表当作完整调用顺序。
 
-## 入口与启动
+- `AddProjectOptions` 在缓存、SqlSugar 和认证注册之前。默认认证通过 `AddJwt<JwtHandler>(enableGlobalAuthorize: true)` 开启全局授权，并注册开放接口的 Signature 认证；新增公开入口须保留明确的授权设计。
+- JWT 接收事件支持查询参数 `token`；`/hubs` 路径额外接受 SignalR 的 `access_token`。调整代理前缀或 Hub 路由时要检查这条认证路径，避免将 SignalR 参数约定误写成所有 API 的通用约定。
+- 本地化在 `UseRouting` 之前，CORS 在路由与认证之间，随后为认证、授权和限流。转发头在前部处理，修改代理部署时同步核对客户端 IP、限流和访问日志。
+- 私有上传文件的检查位于 ImageSharp 与静态文件之前；私有文件应经受认证的下载、预览 API 访问。不能通过调整静态文件或图片缓存顺序绕过可见性检查。
+- 调度看板路径为 `/schedule`，登录复用现有认证服务。OpenAPI 由 `UseInject` 接入，Scalar 的 `/sapi` 映射受 `AppSettings:InjectSpecificationDocument` 控制；修改文档入口时以当前注册为准。
+- `UseEndpoints` 映射 Hub 和 MVC 路由。新增路径或改变 `VirtualPath` 时需同步检查前端请求与反向代理。
 
-```csharp
-// Startup.cs — 优先级 int.MaxValue（最后执行，确保所有依赖已注册）
-[AppStartup(int.MaxValue)]
-public class Startup : AppStartup
+## 序列化与可选基础设施
+
+当前 MVC 使用 `AddJsonOptions` 配置 System.Text.Json，包含日期、长整数、枚举及 DataTable 等转换器；SignalR JSON 协议复用配置的序列化选项。不能因为 Core 中存在 Newtonsoft.Json 辅助类就声称 MVC 默认使用双序列化。
+
+跨端契约需要保留日期格式、长整数转字符串策略和空值行为；调整转换器时核对 DTO 与客户端生成类型，而非只比较 C# 类型。
+
+缓存选为 Redis 时，事件总线会替换为 `RedisEventSourceStorer`；RabbitMQ 的替换代码当前被注释。OSS、日志、验证码、调度和文件存储也在本层注册，配置项存在不等于外部服务已连接成功。
+
+## 构建与验收
+
+从 `Admin.NET/` 执行：
+
+```powershell
+$ErrorActionPreference = 'Stop'
+dotnet build Admin.NET.Web.Core/Admin.NET.Web.Core.csproj -c Debug
+if ($LASTEXITCODE -ne 0) { throw 'Web.Core 构建失败' }
 ```
 
-### ConfigureServices 注册顺序
+管道改动需通过 Web.Entry 核验成功与拒绝路径：例如有效、过期或退出后的令牌，匿名与受保护接口，跨域预检，以及受影响的 Hub、文件或文档路由。序列化改动核对实际响应，不能仅凭编译通过判断兼容。
 
-| 顺序 | 注册项 | 说明 |
-|------|--------|------|
-| 1 | `AddProjectOptions()` | 项目级选项 |
-| 2 | `AddCache()` | 缓存（Memory / Redis） |
-| 3 | `AddSqlSugar()` | ORM |
-| 4 | `AddJwt<JwtHandler>` | JWT + Signature 双认证；支持 URL `?token=` 参数传递 |
-| 5 | `AddCorsAccessor()` | 跨域 |
-| 6 | `AddHttpRemote()` | 远程 HTTP 请求 |
-| 7 | `AddTaskQueue()` | 任务队列 |
-| 8 | `AddSchedule()` | 定时任务（`DbJobPersistence` 持久化 + `JobMonitor` 监视器） |
-| 9 | `AddSensitiveDetection()` | 敏感词检测 |
-| 10 | `AddControllersWithViews()` | MVC + Newtonsoft.Json + System.Text.Json 双序列化 |
-| 11 | `AddOAuth()` | 三方 OAuth 登录 |
-| 12 | `AddElasticSearchClients()` | ElasticSearch |
-| 13 | `Configure<ForwardedHeadersOptions>` | Nginx 转发头（清空 KnownNetworks/KnownProxies） |
-| 14 | `AddInMemoryRateLimiting()` | 内存限流 |
-| 15 | `AddEventBus()` | 事件总线（`RetryEventHandlerExecutor` + `EventHandlerMonitor`；Redis 队列可选） |
-| 16 | `AddImageSharp()` | 图像处理 |
-| 17 | `AddOSSService()` | OSS 对象存储（从 `OSSProvider` 配置读取 Provider） |
-| 18 | 文件存储三件套 | `SysFileProviderService`、`OSSServiceManager`（单例）、`MultiOSSFileProvider` |
-| 19 | `AddViewEngine()` | 模板引擎 |
-| 20 | `AddSignalR()` | 即时通讯（KeepAlive 15s，超时 30s，最大包 10MB） |
-| 21 | `AddLoggingSetup()` | 系统日志 |
-| 22 | `AddCaptcha()` | 验证码 |
-| 23 | `AddConsoleLogo()` | 控制台 Logo |
-| 24 | `AddResponseCompression()` | Brotli + Gzip 压缩（HTTPS 启用） |
-| 25 | `AddVirtualFileServer()` | 虚拟文件系统 |
-
-### Configure 中间件管道顺序
-
-```
-UseResponseCompression
-UseForwardedHeaders
-UseDeveloperExceptionPage / UseExceptionHandler + UseHsts
-[自定义响应头: Admin.NET]
-UseImageSharp
-UseStaticFiles（含二级目录 VirtualPath 支持）
-UseOAuth
-UseUnifyResultStatusCodes
-UseAppLocalization          ← 必须在 UseRouting 之前
-UseRouting
-UseCorsAccessor             ← 必须在 UseRouting 和 UseAuthentication 之间
-UseAuthentication
-UseAuthorization
-UseIpRateLimiting
-UseClientRateLimiting
-UsePolicyRateLimit
-UseScheduleUI(/schedule)    ← 定时任务看板，集成 SysAuthService 登录
-UseKnife4UI(/kapi)          ← Swagger UI
-UseInject(string.Empty)     ← Furion Swagger
-UseEndpoints
-  ├── MapHubs()             ← SignalR
-  └── MapControllerRoute()
-```
-
-### 关键配置细节
-
-**JWT 事件**：`OnMessageReceived` 支持从 Query String `?token=xxx` 读取令牌（用于 WebSocket/SignalR 场景）。
-
-**事件总线 Redis 切换**：
-```csharp
-// Cache.json 中 CacheType == "Redis" 时自动切换
-options.ReplaceStorer(sp => new RedisEventSourceStorer(
-    sp.GetRequiredService<ICacheProvider>(),
-    "adminnet_eventsource_queue", 3000));
-```
-
-**定时任务看板登录**：复用 `SysAuthService.SwaggerSubmitUrl()`，临时禁用验证码后调用标准登录流程。
-
-**IP 地址库**：`IpToolSettings.LoadInternationalDbToMemory = true`（内存换速度，+60~70MB）。
-
-**JSON 序列化**：
-- `long` 超过 17 位自动转 `string`（防 JS 精度溢出）
-- 时间格式：`yyyy-MM-dd HH:mm:ss`
-- 禁止 Unicode 转码（`JavaScriptEncoder.Create(UnicodeRanges.All)`）
-
----
-
-## 对外接口
-
-- `Handlers/JwtHandler.cs`：JWT 令牌验证处理器，实现 Token 黑名单校验、租户切换、用户状态验证
-- `ProjectOptions.cs`：项目级选项注册扩展
-
----
-
-## 关键依赖与配置
-
-```xml
-<PackageReference Include="IGeekFan.AspNetCore.Knife4jUI" Version="0.0.16" />
-<PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.0" />
-```
-
-项目引用：`Admin.NET.Application`（间接引用 Core 和插件）
-
----
-
-## 相关文件清单
-
-```
-Admin.NET.Web.Core/
-├── Handlers/JwtHandler.cs      # JWT 验证处理器
-├── ProjectOptions.cs           # 选项注册
-└── Startup.cs                  # 核心 DI 注册 + 中间件管道
-```
+现有测试项目直接引用 Core；对本层的宿主行为需明确测试宿主与依赖准备情况。数据库集成采用隔离的真实 PostgreSQL，涉及界面的流程只验收桌面端，Mock 结论与真实联调结论分开记录。

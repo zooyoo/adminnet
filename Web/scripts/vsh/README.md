@@ -1,56 +1,15 @@
 # @vben/vsh
 
-一个 Shell 脚本工具集合，用于 Vue Vben Admin 项目的开发和管理。
+当前 pnpm workspace 的 Node.js 辅助 CLI，提供依赖检查、循环依赖检查和发布配置检查。根 `Web/package.json` 已以 `workspace:*` 引入，无需另行全局安装或使用 npm、Yarn 安装。
 
-## 功能特性
+在 `Web/` 使用现有脚本：
 
-- 🚀 基于 Node.js 的现代化 Shell 工具
-- 📦 支持模块化开发和按需加载
-- 🔍 提供依赖检查和分析功能
-- 🔄 支持循环依赖扫描
-- 📝 提供包发布检查功能
+| 根脚本 | 实际 CLI 命令 | 用途 |
+| --- | --- | --- |
+| `pnpm check:dep` | `vsh check-dep` | 检查依赖 |
+| `pnpm check:circular` | `vsh check-circular` | 检查循环依赖 |
+| `pnpm publint` | `vsh publint` | 检查包发布配置 |
 
-## 安装
+直接查看当前 CLI 支持情况可执行 `pnpm exec vsh --help`；具体选项以本机输出和 [src/](src/) 为准。旧模板中的 `check-deps`、`scan-circular`、`publish-check` 不是当前命令名。
 
-```bash
-# 使用 pnpm 安装
-pnpm add -D @vben/vsh
-
-# 或者使用 npm
-npm install -D @vben/vsh
-
-# 或者使用 yarn
-yarn add -D @vben/vsh
-```
-
-## 使用方法
-
-### 全局安装
-
-```bash
-# 全局安装
-pnpm add -g @vben/vsh
-
-# 使用 vsh 命令
-vsh [command]
-```
-
-### 本地使用
-
-```bash
-# 在 package.json 中添加脚本
-{
-  "scripts": {
-    "vsh": "vsh"
-  }
-}
-
-# 运行命令
-pnpm vsh [command]
-```
-
-## 命令列表
-
-- `vsh check-deps`: 检查项目依赖
-- `vsh scan-circular`: 扫描循环依赖
-- `vsh publish-check`: 检查包发布配置
+这些维护检查与应用 lint、类型检查是不同范围。部分检查需要对应外部 CLI 和完整 workspace 环境，命令存在不表示所有包都能在任意机器立即通过。依赖准备与日常应用检查见[前端说明](../../README.md)。

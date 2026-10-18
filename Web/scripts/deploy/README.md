@@ -1,4 +1,4 @@
-# Vben / Antdv-Next 前端部署
+# Admin.NET 前端部署
 
 在 Web 目录使用仓库指定的 pnpm 版本：
 
@@ -40,12 +40,12 @@ Web/scripts/deploy/nginx.conf 用于 8080 HTTP 容器；docker/nginx/conf/nginx.
 
 应用配置后先执行 nginx -t，再重载 Nginx。验证 /prod-api/api/sysConfig/sysInfo 返回业务 JSON、实际登录、文件上传预览下载、在线用户连接和调度看板事件流。仅修改外置配置时确认刷新读取到新值，HTML 与配置不应返回长缓存。
 
-## 本地验收边界
+## 验证边界
 
-第 45 项自动验收使用本次隔离 PostgreSQL、真实 API、官方 Nginx 镜像和生产 Web/dist。TLS 使用临时自签名证书，验证代理链路；正式域名证书和外部发布由部署环境单独验证。验收不会连接生产数据库或写入现有发布目录。
+本地集成验证使用隔离的真实 PostgreSQL、API、Nginx 和生产 `Web/dist/`，按目标场景核对代理、认证、上传、Hub 和事件流。逻辑 Mock 或开发服务器测试不能替代这条链路。TLS 使用临时自签名证书时，只能证明对应测试环境的代理行为；正式域名、证书与外部发布需要在目标环境核验。环境准备和桌面测试边界见[开发和验证](../../../docs/development.md)。
 
 ## 发布包、自动切换与首次登录
 
 使用 frontend-release.mjs 将已验证的 Web/dist 打成带 SHA256 清单的发布目录；传输或解压后重新 verify，再用核对过的清单哈希执行 activate。切换先校验新目录，完整成功后清除本次临时备份，不长期保留旧发布版本。命令、Nginx 父目录挂载要求、故障恢复及现场配置边界见 [CUTOVER.md](./CUTOVER.md)。
 
-浏览器缓存以 VITE_APP_NAMESPACE-VITE_APP_VERSION-prod 隔离，旧版本的 token Cookie 和冒号存储键不导入；首次访问新应用重新登录。站点登录地址为 /#/auth/login，独立调度看板仍为 /schedule/。本地测试地址随夹具结束关闭，历史地址和完整性证据见 .scratch/frontend-vben-migration/release48-acceptance.json；正式访问地址由独立获批的部署环境确定。
+浏览器缓存以 `VITE_APP_NAMESPACE-VITE_APP_VERSION-prod` 隔离，旧版本的 token Cookie 和冒号存储键不导入；首次访问新应用重新登录。站点登录地址为 `/#/auth/login`，独立调度看板为 `/schedule/`。测试夹具使用的临时地址随测试结束关闭，实际访问地址以当前部署环境为准。发布步骤与验收结果记录在本次交付材料中，长期维护规则见[维护说明](../../../docs/maintenance.md)。

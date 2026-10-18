@@ -39,7 +39,9 @@
 
 ## 第 18 轮：交付证据反查
 
-直接读取并解析以下三份原始报告，文件均存在，passed=true、cleanupPassed=true、cleanupErrors=[]；这不是本轮重新运行业务测试。
+直接读取并解析以下三份原始报告，核验当时文件均存在，passed=true、cleanupPassed=true、cleanupErrors=[]；这不是本轮重新运行业务测试。
+
+资料保留说明：前端移植完成后的仓库维护已清理 `.scratch/frontend-vben-migration/`。下列临时报告路径和任务记录仅说明当时的证据来源，不保证当前文件仍存在；已跟踪记录按所列提交从 Git 历史查证。本文件及独立 DSH 修复资料继续保留，清理不代表其后续事项已完成。
 
 - 提案 29：`C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-1be5382ddf56446c992b56ef5cbfb41c/evidence/stress-browser-baseline.json`；对应任务记录 `issues/29-controlled-stress-test.md`（位于 frontend-vben-migration），提交 ed16649bf 已核实。
 - 提案 31：`C:/Users/zoyo/AppData/Local/Temp/adminnet-vben-df55f333997141acb36d80a84984fb30/evidence/open-access-browser-baseline.json`；对应任务记录 `issues/31-open-access-signature.md`；该记录最近交付提交为 ac864b4222c5d0e8012bb4d07f0319d0f74ce3f2，Git 已核实。

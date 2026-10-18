@@ -1,6 +1,6 @@
 <div align="center">
     <p align="center">
-        <img src="./Web/src/assets/logo.png" height="128" alt="logo"/>
+        <img src="./Web/apps/web-antdv-next/public/logo.png" height="128" alt="Admin.NET logo"/>
     </p>
 </div>
 <div align="center"><h3>站在巨人肩膀上的 .NET 通用权限开发框架</h3></div>
@@ -9,62 +9,80 @@
 
 [![star](https://gitee.com/zuohuaijun/Admin.NET/badge/star.svg?theme=dark)](https://gitee.com/zuohuaijun/Admin.NET/stargazers)
 [![fork](https://gitee.com/zuohuaijun/Admin.NET/badge/fork.svg?theme=dark)](https://gitee.com/zuohuaijun/Admin.NET/members)
-[![GitHub license](https://img.shields.io/badge/license-MIT-yellow)](https://gitee.com/zuohuaijun/Admin.NET/blob/next/LICENSE)
+[![License](https://img.shields.io/badge/license-MIT%20%2F%20Apache--2.0-yellow)](./LICENSE-MIT)
 
 </div>
 
 ## 🎁框架介绍
-Admin.NET 是基于 .NET8/10 (Furion/SqlSugar) 实现的通用权限开发框架，前端采用 Vue3+Element-plus+Vite5，整合众多优秀技术和框架，模块插件式开发。集成多租户、缓存、数据校验、鉴权、事件总线、动态API、通讯、远程请求、任务调度、打印等众多黑科技。代码结构简单清晰，注释详尽，易于上手与二次开发，即便是复杂业务逻辑也能迅速实现，真正实现“开箱即用”。
+Admin.NET 是基于 ASP.NET Core、Furion 和 SqlSugar 的通用权限开发框架，支持多租户、权限管理、任务调度、消息通知、文件管理、代码生成与打印等能力。本仓库已完成前端移植，当前使用 Vue 3、Vben、antdv-next 和 Vite 8，采用 pnpm workspace 管理前端应用与共享包。后端共享工程按项目配置支持 .NET 8 / .NET 10，API 入口与测试项目使用 .NET 10。
 
-面向中小企业快速开发平台框架，框架采用主流技术开发设计，前后端分离架构模式。完美适配国产化软硬件环境，支持国产中间件、国产数据库、麒麟操作系统、Windows、Linux部署使用；集成国密加解密插件，使用SM2、SM3、SM4等国密算法进行签名、数据完整性保护；软件层面全面遵循等级保护测评要求，完全符合等保、密评要求。
+项目采用前后端分离与模块化设计，可按业务需要扩展应用服务、数据库适配和插件。具体运行环境、数据库驱动及集成功能以当前项目配置为准；部署前需结合实际环境完成验证。
 
 ```
 超高人气的框架(Furion)配合高性能超简单的ORM(SqlSugar)加持，阅历痛点，相见恨晚！让 .NET 开发更简单，更通用，更流行！
 ```
 
-## 🍁说明
-1.  支持各种数据库，后台配置文件自行修改（自动生成数据库及种子数据）
-2.  前端运行步骤：1、安装依赖pnpm install 2、运行pnpm run dev 3、打包pnpm run build
-3.  QQ交流群1：[87333204](https://jq.qq.com/?_wv=1027&k=1t8iqf0G)  QQ交流群2：[252381476](https://jq.qq.com/?_wv=1027&k=IkzihDcL)  
-4.  演示环境1：https://demo.adminnet.top  账号：superAdmin.NET  密码：Admin.NET++010101
-5. [GitHub 镜像地址](https://github.com/zuohuaijun/Admin.NET.git)  [Gitee 镜像地址](https://gitee.com/zuohuaijun/Admin.NET.git)  [GitCode 镜像地址](https://gitcode.com/zuohuaijun/Admin.NET.git)
-6.  在线文档 [https://adminnet.top/](https://adminnet.top/)
+## 🍁开始使用
 
-## 📙开发流程
-```bash
-1. 建议每个应用系统单独创建一个工程（Admin.NET.Application层只是示例），单独设置各项配置，引用Admin.NET.Core层（非必须不改工程名）
+后端入口为 `Admin.NET/Admin.NET.Web.Entry/`，前端入口为 `Web/apps/web-antdv-next/`。准备 .NET 10 SDK、Node.js（`^22.18.0 || ^24.12.0`）和 `pnpm@11.16.0`。依赖版本以仓库配置与 lockfile 为准。
 
-2. Web层引用新建的应用层工程即可（所有应用系统一个解决方案显示一个后台一套代码搞定，可以自由切换不同应用层）
+在仓库根目录启动 API：
 
-# 可以随主仓库升级而升级避免冲突，原则上接口、服务、控制器合并模式不影响自建应用层发挥与使用。若必须修改或补充主框架，也欢迎PR！
-
+```powershell
+dotnet restore Admin.NET/Admin.NET.sln
+dotnet run --project Admin.NET/Admin.NET.Web.Entry/Admin.NET.Web.Entry.csproj
 ```
 
-## 🍎效果截图
+在 `Web/` 目录安装并启动前端：
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+数据库连接、前端代理与 API 地址须按本机环境配置；数据库初始化可能创建表和种子数据，应使用独立开发库。集成验收使用 PostgreSQL。前端生产构建为 `pnpm build`，按应用的 Vite 配置输出到 `Web/dist/`。
+
+- [文档索引](docs/README.md)：开发、验证、部署、协议与维护说明。
+- [前端说明](Web/README.md) 与 [开发及验证指南](docs/development.md)：完整命令与环境前提。
+- [上游在线文档](https://adminnet.top/) 与 [上游演示](https://demo.adminnet.top)：上游资料可能与本分支的前端实现不同。
+- 上游仓库：[GitHub](https://github.com/zuohuaijun/Admin.NET) · [Gitee](https://gitee.com/zuohuaijun/Admin.NET) · [GitCode](https://gitcode.com/zuohuaijun/Admin.NET)。
+- 许可：[MIT](LICENSE-MIT) 或 [Apache-2.0](LICENSE-APACHE)，另见 [法律声明](DISCLAIMER.md)。
+
+## 📙开发流程
+
+1. 业务服务放在独立应用工程或既有 `Admin.NET.Application` 中，复用 `Admin.NET.Core`，由 Web 层引用需要启用的应用或插件。
+2. 前端业务页面放在 `Web/apps/web-antdv-next/src/views/`，接口封装、授权与路由沿用当前应用结构。共享能力按职责维护在 `Web/packages/`。
+3. 修改前读取 [仓库规则](AGENTS.md)、[前端规则](Web/AGENTS.md) 或后端模块旁的 `CLAUDE.md`。验证范围和真实联调要求见 [开发与验证](docs/development.md)。
+4. 长期文档维护在 `docs/`；已完成前端移植的交接清单、任务草案和临时验收数据按 [维护说明](docs/maintenance.md) 清理。
+
+## 🍎上游历史界面展示
+
+以下为上游旧前端的历史展示资源，保留用于项目介绍。当前 Vben / antdv-next 前端界面以本仓库运行结果为准。
+
 <table>
     <tr>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/1.png"/></td>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/2.png"/></td>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/3.png"/></td>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/4.png"/></td>
+        <td><img src="./docs/assets/images/1.png"/></td>
+        <td><img src="./docs/assets/images/2.png"/></td>
+        <td><img src="./docs/assets/images/3.png"/></td>
+        <td><img src="./docs/assets/images/4.png"/></td>
     </tr>
     <tr>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/5.png"/></td>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/6.png"/></td>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/7.png"/></td>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/8.png"/></td>
+        <td><img src="./docs/assets/images/5.png"/></td>
+        <td><img src="./docs/assets/images/6.png"/></td>
+        <td><img src="./docs/assets/images/7.png"/></td>
+        <td><img src="./docs/assets/images/8.png"/></td>
     </tr>
     <tr>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/9.png"/></td>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/10.png"/></td>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/11.png"/></td>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/12.png"/></td>
+        <td><img src="./docs/assets/images/9.png"/></td>
+        <td><img src="./docs/assets/images/10.png"/></td>
+        <td><img src="./docs/assets/images/11.png"/></td>
+        <td><img src="./docs/assets/images/12.png"/></td>
     </tr>
     <tr>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/13.png"/></td>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/14.png"/></td>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/15.png"/></td>
-        <td><img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/16.png"/></td>
+        <td><img src="./docs/assets/images/13.png"/></td>
+        <td><img src="./docs/assets/images/14.png"/></td>
+        <td><img src="./docs/assets/images/15.png"/></td>
+        <td><img src="./docs/assets/images/16.png"/></td>
     </tr>
 </table>
 
@@ -101,11 +119,13 @@ Admin.NET 是基于 .NET8/10 (Furion/SqlSugar) 实现的通用权限开发框架
 ```
 如果对您有帮助，请点击右上角⭐Star关注或扫码捐赠，感谢支持开源！
 ```
-<img src="https://gitee.com/zuohuaijun/Admin.NET/raw/next/doc/img/pay.png"/>
+<img src="./docs/assets/images/pay.png"/>
 
 ## 💐特别鸣谢
 - 👉 Furion：[https://gitee.com/dotnetchina/Furion](https://gitee.com/dotnetchina/Furion)
-- 👉 vue-next-admin：[https://lyt-top.gitee.io/vue-next-admin-doc-preview/](https://lyt-top.gitee.io/vue-next-admin-doc-preview/)
+- 👉 Vue Vben Admin：[https://github.com/vbenjs/vue-vben-admin](https://github.com/vbenjs/vue-vben-admin)
+- 👉 Antdv Next：[https://github.com/antdv-next/antdv-next](https://github.com/antdv-next/antdv-next)
+- 👉 vue-next-admin（原前端）：[https://lyt-top.gitee.io/vue-next-admin-doc-preview/](https://lyt-top.gitee.io/vue-next-admin-doc-preview/)
 - 👉 SqlSugar：[https://gitee.com/dotnetchina/SqlSugar](https://gitee.com/dotnetchina/SqlSugar)
 - 👉 NewLife.Redis：[https://github.com/NewLifeX/NewLife.Redis](https://github.com/NewLifeX/NewLife.Redis)
 - 👉 Magicodes.IE：[https://gitee.com/magicodes/Magicodes.IE](https://gitee.com/magicodes/Magicodes.IE)

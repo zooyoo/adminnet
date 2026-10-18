@@ -1,20 +1,13 @@
 # @vben/types
 
-用于多个 `app` 公用的工具类型，继承了 `@vben-core/typings` 的所有能力。业务上有通用的类型定义可以放在这里。
+前端共享类型包，在 `@vben-core/typings` 的基础上导出业务通用类型。公开类型以 [src/index.ts](src/index.ts) 与 [package.json](package.json) 为准。
 
-## 用法
-
-### 添加依赖
-
-```bash
-# 进入目标应用目录，例如 apps/xxxx-app
-# cd apps/xxxx-app
-pnpm add @vben/types
-```
-
-### 使用
+当前 `apps/web-antdv-next` 已通过 `workspace:*` 依赖本包。使用类型导入：
 
 ```ts
-// 推荐加上 type
 import type { SelectOption } from '@vben/types';
 ```
+
+新增消费包时，从 `Web/` 使用 `pnpm --filter <目标包名> add @vben/types --workspace`。类型契约变化需要核对调用方；根 `pnpm check:type` 检查当前业务应用，按影响范围补充其他消费包的类型验证。
+
+环境、目录与命令说明见[前端说明](../../README.md)。
