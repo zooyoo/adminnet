@@ -1,0 +1,55 @@
+schema_version: 1
+module_path: root
+title: 仓库根目录与项目元信息
+scope:
+    - README.md
+    - DISCLAIMER.md
+    - AGENTS.md
+    - .gitignore
+    - .gitattributes
+    - 一键净化项目.bat
+source_files: []
+depends_on: []
+related_to: []
+kk_module_id: 945e46ef-6dd1-431b-8a01-7027be336f66
+kk_cards:
+    architecture_design:
+        id: 84f48dc8-4ed5-498a-b7bb-ee11313ac370
+        title: 仓库根目录与项目元信息
+    coding_conventions:
+        id: 2827030e-fd74-42f4-9334-7ecd0667468a
+        title: 仓库根目录与项目元信息
+    overview:
+        id: a6aa97da-cb9c-4a27-89a4-20e1099f8c1a
+        title: 仓库根目录与项目元信息
+    tech_stack:
+        id: 5941d5f6-7a14-4d78-bddc-ab38f4fce605
+        title: 仓库根目录与项目元信息
+    unique_setup_and_commands:
+        id: 27958216-b72a-42a3-9082-cf4d8f4c4918
+        title: 仓库根目录与项目元信息
+    build_system:
+        id: 849526b9-cb35-47d1-8475-85497748bbac
+        title: .NET + pnpm/Turbo 双栈构建与容器化体系
+    configuration_system:
+        id: 581e48ae-5359-43a7-a0ad-9ba1276db6c7
+        title: 基于 Furion 的 JSON 配置扫描与 IConfigurableOptions 选项模型体系
+    dependency_management:
+        id: e7fd6ebd-4083-4469-a316-96c84e5230c5
+        title: 多语言仓库依赖管理（.NET NuGet + pnpm monorepo catalog）
+    error_handling:
+        id: 1f15d0e1-74c0-44f5-8941-b1ac05431349
+        title: Admin.NET 错误处理体系：ErrorCodeEnum + Oops.Oh + Furion UnifyResult + UseExceptionHandler
+    frontend_style:
+        id: 487a08e8-64a4-44f4-9a11-f5c79f5a4ae2
+        title: 基于 Tailwind CSS + Ant Design Vue Next 的前端样式体系
+    logging_system:
+        id: bffd4074-5cd2-4709-bc82-1ff6ad2d2cac
+        title: Admin.NET 日志系统：多Sink、结构化监控与脱敏
+kk_repo_cards:
+    - build_system
+    - configuration_system
+    - dependency_management
+    - error_handling
+    - frontend_style
+    - logging_system

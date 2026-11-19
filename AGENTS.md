@@ -56,16 +56,6 @@ pnpm test:unit
 
 提交信息采用中文 Conventional Commits，例如 `docs: 更新前端开发与验收说明`。PR 写明问题、行为变化、受影响模块、关联 Issue 和验证结果；界面变更提供必要截图。保留用户已有改动。不要提交密钥、连接凭据、证书、业务上传文件或构建产物，不因文档维护升级依赖。
 
-## 检索与工具
-
-1. 定位实现、分析依赖或修改代码前，优先调用 `codegraph_explore`；`projectPath` 始终传当前仓库的绝对路径，查询包含具体符号、文件或行为。
-2. Codegraph 返回的带行号源码视为已读取，不立即重复打开同一段。修改公共方法或核心流程前核对调用方、配置入口、测试和影响范围。
-3. Codegraph 不可用、命中不相关或索引与源码不一致时，说明实际限制并用定向 `rg`、`git grep` 或文件读取补充。仅在索引缺失且确有需要时建议用户执行 `codegraph init <仓库绝对路径>`；不自行升级、删除或重建索引，也不在工具正常时声称不可用。
-4. 文件盘点、文档更新和已知路径的精确读取可直接使用 `rg` 和文件工具。不要检索或输出 `.env`、认证文件、密钥、令牌或证书内容。
-5. 使用会话实际暴露且可调用的 Skill、MCP 和 CLI，不将配置文件存在视为工具已加载。外部库 API 问题按需查询匹配版本的文档；普通文档整理优先使用本地事实。
-
-Windows 原生命令与仓库 PowerShell 脚本使用 PowerShell 7+，不要调用旧版 `powershell.exe` 或 `cmd.exe`。PowerShell 脚本以 `$ErrorActionPreference = 'Stop'` 开始，文件读写显式使用 UTF-8，检查外部命令退出码。工具宿主规定的 Shell 与沙箱边界优先，不混用 Bash / PowerShell 转义，不绕过权限限制。删除或移动前核验解析后的绝对路径及其用途。
-
 ## 协作与文档维护
 
 - Issue / map 操作先按 [任务跟踪约定](docs/agents/issue-tracker.md) 确认当前 workspace 和 backend；不得把 `.scratch/` 中的旧任务表当作当前权威状态。

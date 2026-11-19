@@ -1,0 +1,54 @@
+version: 1
+
+repowiki:
+  # 保留自动目录规划，不预设架构或产品需求模板。
+  template: ""
+  documents: []
+  notes:
+    - text: >-
+        使用简体中文撰写正文、标题与说明，技术名、命令和代码标识符保留英文；中文与英文、数字之间留空格。
+    - text: >-
+        以当前磁盘源码和项目配置为事实依据，引用 README 中的路径与链接前先核验其存在性。
+        上游文档、历史截图与旧版变更记录仅作历史资料，不据此推断本分支现状。
+    - text: >-
+        将本分支已完成前端移植视为当前基线，以 Web/apps/web-antdv-next/ 为业务前端入口；不要沿用旧前端目录或其他模板应用的使用指南。
+    - text: >-
+        按各工程的 .csproj 分别说明目标框架，不把共享工程、API 入口与测试工程归为单一目标框架。
+        Admin.NET/global.json 当前只选择 Microsoft.Testing.Platform，不能据此声称已固定 .NET SDK 版本。
+    - text: >-
+        前端运行环境以 Web/package.json 的 packageManager、engines 及现有 workspace 配置和锁文件为准。
+        说明根脚本时明确 pnpm dev、pnpm build、pnpm lint 和 pnpm check:type 面向业务应用，不能将其表述为全 workspace 检查。
+    - text: >-
+        数据库集成验证要求隔离的真实 PostgreSQL，不能以 SQLite 或 Mock 结果声称真实联调通过。
+        浏览器流程只要求桌面端，区分 Vitest 逻辑测试、Playwright 浏览器验证与真实 API、数据库链路验收。
+    - text: >-
+        不将临时任务记录、缓存、构建产物或机器绝对路径作为长期知识依据；不记录真实密钥、令牌、连接凭据或个人信息。
+
+knowledgecard:
+  notes:
+    - text: >-
+        使用简体中文撰写正文、标题与说明，技术名、命令和代码标识符保留英文；中文与英文、数字之间留空格。
+    - text: >-
+        以当前磁盘源码和项目配置为事实依据，引用 README 中的路径与链接前先核验其存在性。
+        上游文档、历史截图与旧版变更记录仅作历史资料，不据此推断本分支现状。
+    - text: >-
+        将本分支已完成前端移植视为当前基线，以 Web/apps/web-antdv-next/ 为业务前端入口；不要沿用旧前端目录或其他模板应用的使用指南。
+    - text: >-
+        按各工程的 .csproj 分别说明目标框架，不把共享工程、API 入口与测试工程归为单一目标框架。
+        Admin.NET/global.json 当前只选择 Microsoft.Testing.Platform，不能据此声称已固定 .NET SDK 版本。
+    - text: >-
+        前端运行环境以 Web/package.json 的 packageManager、engines 及现有 workspace 配置和锁文件为准。
+        说明根脚本时明确 pnpm dev、pnpm build、pnpm lint 和 pnpm check:type 面向业务应用，不能将其表述为全 workspace 检查。
+    - text: >-
+        数据库集成验证要求隔离的真实 PostgreSQL，不能以 SQLite 或 Mock 结果声称真实联调通过。
+        浏览器流程只要求桌面端，区分 Vitest 逻辑测试、Playwright 浏览器验证与真实 API、数据库链路验收。
+    - text: >-
+        不将临时任务记录、缓存、构建产物或机器绝对路径作为长期知识依据；不记录真实密钥、令牌、连接凭据或个人信息。
+    - text: >-
+        以 Admin.NET/Admin.NET.Core/、Admin.NET/Admin.NET.Application/、Admin.NET/Admin.NET.Web.Core/ 和 Admin.NET/Admin.NET.Web.Entry/ 的职责分层组织后端知识，再按实际功能细分。
+    - text: >-
+        区分 Web/apps/web-antdv-next/ 的业务适配、Web/packages/ 的共享能力和 Web/internal/ 的工具配置。
+        保留 @vben/* 包名与上游归属，不将共享框架实现全部归为本项目业务代码。
+    - text: >-
+        将 Admin.NET/Plugins/ 视为可选集成，是否启用须核对项目引用与运行配置。
+        将 Admin.NET/Admin.NET.Test/ 的知识归入测试与验证职责。

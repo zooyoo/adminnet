@@ -1,0 +1,21 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: zh-CN
+commit: 152f9d459da83290e178e73f6971a0db2be04179
+branch: v2
+exported_at: "2026-11-05T00:51:31Z"
+modules:
+    root:
+        dir_name: 仓库根目录与项目元信息
+        title: 仓库根目录与项目元信息
+        scope:
+            - README.md
+            - DISCLAIMER.md
+            - AGENTS.md
+            - .gitignore
+            - .gitattributes
+            - 一键净化项目.bat
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
